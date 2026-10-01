@@ -1,0 +1,43 @@
+/* Contenedor principal de la página */
+.pagina {
+  max-width: 600px;
+  margin: 40px auto; /* Centra el contenedor horizontalmente */
+  padding: 35px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08); /* Sombra suave */
+  border: 1px solid #e9ecef;
+}
+
+/* Estilo para el título */
+.pagina h2 {
+  color: #212529;
+  font-size: 28px;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid #0d6efd; /* Línea azul estilo Bootstrap */
+}
+
+/* Estilo para los párrafos */
+.pagina p {
+  font-size: 16px;
+  color: #495057;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+/* Resaltar los textos en negrita (Email, Teléfono) */
+.pagina p strong {
+  color: #212529;
+  font-weight: 600;
+  margin-right: 5px;
+}
+
+/* Efecto hover interactivo para la tarjeta (Opcional) */
+.pagina:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+  transition: all 0.3s ease-in-out;
+}

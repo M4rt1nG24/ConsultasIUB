@@ -1,0 +1,24 @@
+.header {
+  background: linear-gradient(135deg, #1f3864 0%, #16294a 100%);
+  color: #ffffff;
+  padding: 1.25rem 2rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.header__title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.header p {
+  margin: 0.35rem 0 0 0;
+  font-size: 0.95rem;
+  color: #d1d5db;
+  font-weight: 300;
+  letter-spacing: 0.3px;
+}
