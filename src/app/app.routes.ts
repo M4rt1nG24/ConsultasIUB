@@ -33,6 +33,13 @@ export const routes: Routes = [
         .then(m => m.ContactoPage)
   },
 
+  {
+    path: "reportes",
+    loadComponent: () =>
+      import("./features/reportes/page/repotes-page/repotes-page")
+        .then(m => m.RepotesPage)
+  },
+
   // Ruta comodín: cualquier URL no reconocida redirige a /principal
   {
     path: "**",

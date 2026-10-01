@@ -1,1 +1,72 @@
-<p>repotes-page works!</p>
+<app-header></app-header>
+<app-nav></app-nav>
+
+<div class="container my-4">
+  <div class="card shadow-sm border-0 rounded-3 p-4">
+    <!-- Encabezado de la tarjeta -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h2 class="h4 fw-bold mb-1">Módulo de Reportes</h2>
+        <span class="badge bg-light text-secondary border">
+          Total: {{ reportesService.reportes().length }} reportes generados
+        </span>
+      </div>
+      <div>
+        <button class="btn btn-primary btn-sm px-3 rounded-pill fw-semibold">
+          <i class="bi bi-file-earmark-plus me-1"></i> Generar Reporte
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabla de Reportes -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th scope="col" style="width: 80px;">ID</th>
+            <th scope="col">Título del Reporte</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Fecha</th>
+            <th scope="col">Estado</th>
+            <th scope="col" class="text-center" style="width: 120px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (reporte of reportesService.reportes(); track reporte.id) {
+            <tr>
+              <td class="fw-bold text-primary">#{{ reporte.id }}</td>
+              <td>
+                <span class="fw-semibold text-dark">{{ reporte.titulo }}</span>
+              </td>
+              <td>
+                <span class="badge-tipo">{{ reporte.tipo }}</span>
+              </td>
+              <td class="text-muted">{{ reporte.fecha }}</td>
+              <td>
+                <span class="badge-estado" [class.estado-completado]="reporte.estado === 'Completado'" [class.estado-pendiente]="reporte.estado === 'Pendiente'">
+                  {{ reporte.estado }}
+                </span>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-outline-primary btn-sm rounded-circle me-1" title="Ver detalle">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <button class="btn btn-outline-secondary btn-sm rounded-circle" title="Descargar PDF">
+                  <i class="bi bi-download"></i>
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">
+                No hay reportes disponibles en este momento.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<app-footer></app-footer>

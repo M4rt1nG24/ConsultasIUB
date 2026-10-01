@@ -1,0 +1,123 @@
+/* Paleta corporativa basada en #1F3864 y #16294a */
+
+:host {
+  display: block;
+  background-color: #f0f4f8;
+  min-height: calc(100vh - 140px);
+  padding-bottom: 2.5rem;
+}
+
+/* Tarjeta principal */
+.card {
+  background-color: #ffffff;
+  border-radius: 12px !important;
+  border: 1px solid #d9e2ec !important;
+  box-shadow: 0 8px 24px rgba(22, 41, 74, 0.08) !important;
+}
+
+/* Título */
+.card h2 {
+  color: #1F3864;
+  font-weight: 700;
+}
+
+/* Botón principal */
+.btn-primary {
+  background-color: #1F3864;
+  border-color: #1F3864;
+}
+
+.btn-primary:hover {
+  background-color: #16294a;
+  border-color: #16294a;
+}
+
+/* Badge del total */
+.badge {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: 20px;
+  background-color: #e8eef7 !important;
+  color: #1F3864 !important;
+  border: 1px solid #c7d6eb !important;
+}
+
+/* Cabecera de la tabla */
+.table thead th {
+  background-color: #16294a !important;
+  color: #ffffff !important;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 0.9rem 1.25rem;
+  border: none;
+}
+
+/* Bordes redondeados en la cabecera */
+.table thead tr th:first-child {
+  border-top-left-radius: 8px;
+}
+.table thead tr th:last-child {
+  border-top-right-radius: 8px;
+}
+
+/* Celdas del cuerpo */
+.table tbody td {
+  padding: 1rem 1.25rem;
+  font-size: 0.92rem;
+  color: #243b53;
+  border-bottom: 1px solid #e1e8f0;
+  vertical-align: middle;
+}
+
+/* ID con el azul corporativo */
+.table tbody td.text-primary {
+  color: #1F3864 !important;
+  font-weight: 700;
+}
+
+/* Filas hover */
+.table-hover tbody tr:hover {
+  background-color: #f0f5fc !important;
+}
+
+/* Etiqueta de Tipo */
+.badge-tipo {
+  background-color: #e2e8f0;
+  color: #334155;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Etiquetas de Estado */
+.badge-estado {
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.estado-completado {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.estado-pendiente {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* Botones de acción circulares */
+.table td .btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
