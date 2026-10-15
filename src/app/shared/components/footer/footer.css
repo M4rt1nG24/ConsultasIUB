@@ -1,6 +1,11 @@
-.footer{
-    background: linear-gradient(135deg, #1f3864 0%, #16294a 100%);
+.footer {
+  background: linear-gradient(135deg, #1f3864 0%, #16294a 100%);
   color: #ffffff;
   padding: 1.25rem 2rem;
   text-align: center;
+}
+
+.footer .text-muted {
+  color: #d1d5db !important;
+  font-size: 0.9rem;
 }

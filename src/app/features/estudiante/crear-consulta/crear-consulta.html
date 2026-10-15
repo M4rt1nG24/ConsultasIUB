@@ -6,26 +6,26 @@
     </div>
 
     <div class="main-card">
-        <form class="form-content">
+        <form (ngSubmit)="enviarSolicitud()" class="form-content">
 
             <!-- Asignatura y Docente -->
             <div class="form-row">
                 <div class="input-block">
-                    <label for="asig">Asignatura</label>
-                    <select id="asig" class="form-control">
-                        <option>Estructura de Datos</option>
-                        <option>Bases de Datos Relacionales</option>
-                        <option>Programación Web</option>
-                        <option>Arquitectura de Software</option>
+                    <label for="asig">Asignatura *</label>
+                    <select id="asig" class="form-control" [(ngModel)]="asignatura" name="asig">
+                        <option value="Estructura de Datos">Estructura de Datos</option>
+                        <option value="Bases de Datos Relacionales">Bases de Datos Relacionales</option>
+                        <option value="Programación Web">Programación Web</option>
+                        <option value="Arquitectura de Software">Arquitectura de Software</option>
                     </select>
                 </div>
 
                 <div class="input-block">
                     <label for="doc">Docente / Tutor de Preferencia</label>
-                    <select id="doc" class="form-control">
-                        <option>Asignación Automática (Recomendado)</option>
-                        <option>Ing. Carlos Mendoza</option>
-                        <option>Ing. Diana Rodríguez</option>
+                    <select id="doc" class="form-control" [(ngModel)]="docente" name="doc">
+                        <option value="Asignación Automática (Recomendado)">Asignación Automática (Recomendado)</option>
+                        <option value="Ing. Carlos Mendoza">Ing. Carlos Mendoza</option>
+                        <option value="Ing. Diana Rodríguez">Ing. Diana Rodríguez</option>
                     </select>
                 </div>
             </div>
@@ -33,42 +33,80 @@
             <!-- Tipo de Tutoría y Modalidad -->
             <div class="form-row">
                 <div class="input-block">
-                    <label for="modalidad">Modalidad Deseada</label>
-                    <select id="modalidad" class="form-control">
-                        <option>Presencial (Sede Plaza de la Paz)</option>
-                        <option>Virtual (Google Meet / Teams)</option>
+                    <label for="modalidad">Modalidad Deseada *</label>
+                    <select id="modalidad" class="form-control" [(ngModel)]="modalidad" name="modalidad">
+                        <option value="Presencial (Sede Plaza de la Paz)">Presencial (Sede Plaza de la Paz)</option>
+                        <option value="Virtual (Google Meet / Teams)">Virtual (Google Meet / Teams)</option>
                     </select>
                 </div>
 
                 <div class="input-block">
-                    <label for="franja">Franja Horaria Sugerida</label>
-                    <select id="franja" class="form-control">
-                        <option>Mañana (08:00 AM - 12:00 PM)</option>
-                        <option>Tarde (02:00 PM - 06:00 PM)</option>
-                        <option>Noche (06:00 PM - 09:00 PM)</option>
+                    <label for="franja">Franja Horaria Sugerida *</label>
+                    <select id="franja" class="form-control" [(ngModel)]="franja" name="franja">
+                        <option value="Mañana (08:00 AM - 12:00 PM)">Mañana (08:00 AM - 12:00 PM)</option>
+                        <option value="Tarde (02:00 PM - 06:00 PM)">Tarde (02:00 PM - 06:00 PM)</option>
+                        <option value="Noche (06:00 PM - 09:00 PM)">Noche (06:00 PM - 09:00 PM)</option>
                     </select>
                 </div>
             </div>
 
             <!-- Tema y Detalle -->
             <div class="input-block">
-                <label for="tema">Tema o Duda Concreta</label>
-                <input id="tema" type="text" class="form-control"
-                    placeholder="Ej. Dificultad con balanceo de árboles AVL" />
+                <label for="tema">Tema o Duda Concreta *</label>
+                <input
+                    id="tema"
+                    type="text"
+                    class="form-control"
+                    [(ngModel)]="tema"
+                    name="tema"
+                    placeholder="Ej. Dificultad con balanceo de árboles AVL..."
+                    required />
             </div>
 
             <div class="input-block">
-                <label for="desc">Descripción detallada</label>
-                <textarea id="desc" rows="4" class="form-control"
+                <label for="desc">Descripción Detallada</label>
+                <textarea
+                    id="desc"
+                    rows="4"
+                    class="form-control"
+                    [(ngModel)]="descripcion"
+                    name="desc"
                     placeholder="Describe brevemente qué ejercicios o conceptos necesitas reforzar antes de la sesión..."></textarea>
             </div>
 
             <!-- Botones de Acción -->
             <div class="button-row">
-                <button type="button" class="btn-cancel">Cancelar</button>
-                <button type="button" class="btn-submit">Enviar Solicitud</button>
+                <button type="button" class="btn-cancel" (click)="cancelar()">Cancelar</button>
+                <button type="submit" class="btn-submit">Enviar Solicitud</button>
             </div>
 
         </form>
     </div>
 </div>
+
+<!-- Modal de Confirmación de Solicitud -->
+@if (modalConfirmacionAbierto()) {
+<div class="modal-backdrop">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>✅ Solicitud Radicada con Éxito</h3>
+            <button class="btn-close" type="button" (click)="cerrarModalYVolver()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p>Tu solicitud de tutoría ha sido registrada en el sistema institucional con el radicado <strong>#{{ radicadoGenerado() }}</strong>.</p>
+            <div class="summary-box">
+                <div><strong>Asignatura:</strong> {{ asignatura }}</div>
+                <div><strong>Tutor preferido:</strong> {{ docente }}</div>
+                <div><strong>Modalidad:</strong> {{ modalidad }}</div>
+                <div><strong>Franja:</strong> {{ franja }}</div>
+                <div><strong>Tema:</strong> {{ tema }}</div>
+            </div>
+            <p class="modal-info-text">Se ha notificado al coordinador de área para la confirmación de la franja horaria y aula/enlace virtual.</p>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" (click)="crearOtra()">Crear Otra Solicitud</button>
+                <button type="button" class="btn-submit" (click)="cerrarModalYVolver()">Ver Mis Solicitudes</button>
+            </div>
+        </div>
+    </div>
+</div>
+}

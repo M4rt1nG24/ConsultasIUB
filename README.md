@@ -1,63 +1,88 @@
-<<<<<<< HEAD
-# ConsultasIub
+# MiTutoría - ConsultasIUB
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.0.
+Plataforma oficial de la **Institución Universitaria de Barranquilla (IUB)** para la gestión digital, trazabilidad, asignación y atención de tutorías académicas, monitorías y semilleros de investigación.
 
-## Development server
+---
 
-To start a local development server, run:
+## 🏛️ Características Principales
 
+- **Cero Papel:** Eliminación de formatos físicos mediante radicación y atención digital auditada.
+- **Arquitectura Multi-Rol:** Módulos personalizados para **Estudiante**, **Docente** y **Coordinación (Administrador)**.
+- **Componentes Compartidos Unificados:** Encabezado institucional (`Header`) y pie de página (`Footer`) aplicados a todos los módulos.
+- **Simulador de Roles en Vivo:** Selector interactivo para alternar entre roles y probar flujos de usuario durante la evaluación del proyecto.
+- **Tecnología de Punta:** Desarrollado sobre **Angular 22**, componentes **Standalone**, reactividad con **Signals**, nueva sintaxis de control de flujo (`@for`, `@if`), enrutamiento perezoso (*Lazy Loading*) y Vite.
+
+---
+
+## 🚀 Requisitos y Puesta en Marcha
+
+### Prerrequisitos
+- **Node.js:** v18+ o v20+ (recomendado LTS)
+- **npm:** v9+ o superior
+
+### Instalación de Dependencias
 ```bash
+npm install
+```
+
+### Servidor de Desarrollo Local
+Para iniciar el servidor de desarrollo con recarga automática:
+```bash
+npm start
+# o también:
 ng serve
 ```
+La aplicación estará disponible en [http://localhost:4200/](http://localhost:4200/).
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
+### Compilación para Producción
 ```bash
-ng generate component component-name
+npm run build
+```
+Los artefactos compilados y optimizados se generarán en la carpeta `dist/Consultas-iub`.
+
+### Ejecución de Pruebas Unitarias
+```bash
+npm test
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+---
 
-```bash
-ng generate --help
-```
+## 🧭 Estructura de Rutas y Módulos
 
-## Building
+| Ruta | Módulo / Vista | Descripción |
+| :--- | :--- | :--- |
+| `/principal` | Portal Público | Landing page institucional con accesos rápidos por rol |
+| `/login` | Autenticación | Inicio de sesión con simulador interactivo de roles |
+| `/registro` | Registro | Formulario de registro institucional IUB |
+| `/admin/reportes` | Coordinación | Dashboard de estadísticas, KPIs y exportación PDF |
+| `/admin/usuarios` | Coordinación | Gestión y filtrado de usuarios por rol y estado |
+| `/admin/consultas` | Coordinación | Reasignación de consultas represadas o vencidas |
+| `/admin/cursos-roles` | Coordinación | Administración de asignaturas y asignación de cupos |
+| `/docente/asignadas` | Docentes | Bandeja de solicitudes de tutoría asignadas |
+| `/docente/atencion` | Docentes | Formulario de atención, observaciones y control de asistencia |
+| `/docente/historial` | Docentes | Historial de tutorías realizadas |
+| `/estudiante/mis-solicitudes` | Estudiantes | Listado y seguimiento de tutorías solicitadas |
+| `/estudiante/crear` | Estudiantes | Radicación de nueva consulta académica |
+| `/estudiante/detalle` | Estudiantes | Trazabilidad y respuesta del docente |
+| `/estudiante/directorio-tutorias`| Estudiantes | Directorio de docentes, horarios y enlaces de atención |
 
-To build the project run:
+---
 
-```bash
-ng build
-```
+## 🎨 Paleta Institucional IUB
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+- **Azul Marino IUB:** `#071936` / `#0f2c59`
+- **Azul Corporativo:** `#1e56a0` / `#2563eb`
+- **Cyan / Acento:** `#38bdf8`
+- **Fondo de Interfaz:** `#f1f5f9` / `#ffffff`
+- **Éxito (Completado):** `#22c55e` / `#dcfce7`
+- **Alerta (Pendiente):** `#f59e0b` / `#fef3c7`
 
-## Running unit tests
+---
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## 📄 Documentación Técnica Completa
 
-```bash
-ng test
-```
+Para conocer todos los detalles técnicos, diagramas de arquitectura, especificación de componentes compartidos, modelos y servicios, consulta el archivo [DOCUMENTACION.md](file:///c:/Users/MARTIN/Downloads/consultasiub/ConsultasIUB/DOCUMENTACION.md).
 
-## Running end-to-end tests
+---
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
-=======
-# ConsultasIUB
->>>>>>> c14f056093e6bd317ffc69e7d6555a18b8a67ba5
+© 2026 **Institución Universitaria de Barranquilla (IUB)**. Sede Plaza de la Paz - Barranquilla, Colombia.

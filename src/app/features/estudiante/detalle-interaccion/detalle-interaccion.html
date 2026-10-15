@@ -56,8 +56,46 @@
                 <small class="audit-meta">Marca de tiempo de registro: 14/10/2026 16:15:02 COT</small><br>
                 <small class="audit-meta">Sede: Plaza de la Paz - Sala de Cómputo 10</small>
             </div>
-            <button type="button" class="btn-back">Volver a Mis Solicitudes</button>
+            <div class="actions-group">
+                <button type="button" class="btn-cert" (click)="descargarConstancia()">Descargar Constancia</button>
+                <button type="button" class="btn-back" (click)="volver()">Volver a Mis Solicitudes</button>
+            </div>
         </div>
 
     </div>
 </div>
+
+<!-- Modal de Constancia Digital -->
+@if (modalConstanciaAbierto()) {
+<div class="modal-backdrop">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>🎓 Constancia Oficial de Asistencia</h3>
+            <button class="btn-close" type="button" (click)="cerrarConstancia()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="cert-box">
+                <div class="cert-header">
+                    <h4>INSTITUCIÓN UNIVERSITARIA DE BARRANQUILLA</h4>
+                    <span>Sistema MiTutoría IUB • Formato Oficial F-IUB-04</span>
+                </div>
+                <hr>
+                <p>Se hace constar que el estudiante asistió puntualmente y completó los compromisos de la sesión:</p>
+                <ul class="cert-list">
+                    <li><strong>Asignatura:</strong> Estructura de Datos</li>
+                    <li><strong>Tutor Docente:</strong> Ing. Carlos Mendoza</li>
+                    <li><strong>Fecha y Hora:</strong> 14/10/2026 - 03:30 PM a 04:30 PM</li>
+                    <li><strong>Temática:</strong> Rotaciones simples y dobles en árboles AVL</li>
+                    <li><strong>Auditoría Cero Papel:</strong> Folio #AUD-2026-1045892110 (Asistencia 1)</li>
+                </ul>
+                <div class="cert-stamp">
+                    <span>✓ Sello y Firma Digital Validada IUB</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-back" (click)="cerrarConstancia()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+}

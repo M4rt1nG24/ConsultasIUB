@@ -5,91 +5,114 @@
         <p>Conoce los docentes disponibles, horarios de atención presencial y enlaces virtuales.</p>
     </div>
 
-    <!-- Buscador -->
+    <!-- Buscador Reactivo -->
     <div class="search-bar">
-        <input type="text" class="search-input" placeholder="Buscar por asignatura, docente o área de conocimiento...">
+        <input
+            type="text"
+            class="search-input"
+            [ngModel]="busqueda()"
+            (ngModelChange)="busqueda.set($event)"
+            placeholder="Buscar por asignatura, docente o área de conocimiento..." />
     </div>
 
     <!-- Grid de Tarjetas de Docentes -->
     <div class="tutors-grid">
-
-        <!-- Tarjeta 1 -->
+        @for (tutor of tutoresFiltrados(); track tutor.id) {
         <div class="tutor-card">
             <div class="tutor-header">
-                <div class="avatar-box"></div>
+                <div class="avatar-box" [style.background-color]="tutor.avatarBg">
+                    <span>{{ tutor.iniciales }}</span>
+                </div>
                 <div>
-                    <h4>Ing. Carlos Mendoza</h4>
-                    <span class="role-caption">Docente Titular</span>
+                    <h4>{{ tutor.nombre }}</h4>
+                    <span class="role-caption">{{ tutor.cargo }}</span>
                 </div>
             </div>
             <div class="tutor-body">
                 <div class="data-row">
                     <strong>Área:</strong>
-                    <span>Algoritmia y Estructura de Datos</span>
+                    <span>{{ tutor.area }}</span>
                 </div>
                 <div class="data-row">
                     <strong>Horario:</strong>
-                    <span>Mar - Jue: 02:00 PM a 04:00 PM</span>
+                    <span>{{ tutor.horario }}</span>
                 </div>
                 <div class="data-row">
                     <strong>Ubicación:</strong>
-                    <span>Sede Plaza de la Paz - Sala 10</span>
+                    <span>{{ tutor.ubicacion }}</span>
+                </div>
+                <div class="data-row">
+                    <strong>Contacto:</strong>
+                    <span>{{ tutor.correo }}</span>
                 </div>
             </div>
-            <button class="btn-solicitar" type="button">Solicitar Cita</button>
+            <button class="btn-solicitar" type="button" (click)="abrirSolicitudCita(tutor)">Solicitar Cita</button>
         </div>
-
-        <!-- Tarjeta 2 -->
-        <div class="tutor-card">
-            <div class="tutor-header">
-                <div class="avatar-box"></div>
-                <div>
-                    <h4>Ing. Diana Rodríguez</h4>
-                    <span class="role-caption">Docente / Investigadora</span>
-                </div>
-            </div>
-            <div class="tutor-body">
-                <div class="data-row">
-                    <strong>Área:</strong>
-                    <span>Desarrollo Web & Bases de Datos</span>
-                </div>
-                <div class="data-row">
-                    <strong>Horario:</strong>
-                    <span>Lun - Mié: 10:00 AM a 12:00 PM</span>
-                </div>
-                <div class="data-row">
-                    <strong>Ubicación:</strong>
-                    <span>Virtual / Google Meet</span>
-                </div>
-            </div>
-            <button class="btn-solicitar" type="button">Solicitar Cita</button>
+        } @empty {
+        <div class="empty-state">
+            <p>No se encontraron tutores o monitores que coincidan con "{{ busqueda() }}".</p>
         </div>
-
-        <!-- Tarjeta 3 -->
-        <div class="tutor-card">
-            <div class="tutor-header">
-                <div class="avatar-box"></div>
-                <div>
-                    <h4>Andrés Camargo</h4>
-                    <span class="role-caption">Monitor Académico</span>
-                </div>
-            </div>
-            <div class="tutor-body">
-                <div class="data-row">
-                    <strong>Área:</strong>
-                    <span>Fundamentos de Programación</span>
-                </div>
-                <div class="data-row">
-                    <strong>Horario:</strong>
-                    <span>Viernes: 08:00 AM a 12:00 PM</span>
-                </div>
-                <div class="data-row">
-                    <strong>Ubicación:</strong>
-                    <span>Sede Plaza de la Paz - Sala 27</span>
-                </div>
-            </div>
-            <button class="btn-solicitar" type="button">Solicitar Cita</button>
-        </div>
-
+        }
     </div>
 </div>
+
+<!-- Modal Solicitar Cita con Tutor -->
+@if (modalCitaAbierto() && tutorSeleccionado(); as t) {
+<div class="modal-backdrop">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>📅 Agendar Cita con {{ t.nombre }}</h3>
+            <button class="btn-close" type="button" (click)="cerrarModalCita()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="tutor-info-banner">
+                <div><strong>Área:</strong> {{ t.area }}</div>
+                <div><strong>Horario habitual:</strong> {{ t.horario }}</div>
+                <div><strong>Lugar / Canal:</strong> {{ t.ubicacion }}</div>
+            </div>
+
+            <form (ngSubmit)="confirmarCita()" class="appointment-form">
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label>Fecha Propuesta *</label>
+                        <input type="date" class="form-control" [(ngModel)]="fechaCita" name="fecha" required>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>Franja Horaria *</label>
+                        <select class="form-control" [(ngModel)]="franjaCita" name="franja">
+                            <option value="Mañana (08:00 AM - 10:00 AM)">Mañana (08:00 AM - 10:00 AM)</option>
+                            <option value="Mañana (10:00 AM - 12:00 PM)">Mañana (10:00 AM - 12:00 PM)</option>
+                            <option value="Tarde (02:00 PM - 04:00 PM)">Tarde (02:00 PM - 04:00 PM)</option>
+                            <option value="Tarde (04:00 PM - 06:00 PM)">Tarde (04:00 PM - 06:00 PM)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Modalidad de Atención *</label>
+                    <select class="form-control" [(ngModel)]="modalidadCita" name="modalidad">
+                        <option value="Presencial">Presencial (Sede Plaza de la Paz)</option>
+                        <option value="Virtual">Virtual (Google Meet institucional)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Tema o Asunto a Consultar *</label>
+                    <textarea
+                        class="form-control"
+                        rows="3"
+                        [(ngModel)]="temaCita"
+                        name="tema"
+                        placeholder="Describe los temas o ejercicios que deseas repasar con el tutor..."
+                        required></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" (click)="cerrarModalCita()">Cancelar</button>
+                    <button type="submit" class="btn-primary">Confirmar Solicitud de Cita</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+}

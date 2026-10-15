@@ -18,32 +18,26 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @for (item of solicitudes(); track item.codigo) {
                     <tr>
                         <td>
-                            <strong>1045892110</strong><br>
-                            <span>Carlos Mario Pérez</span>
+                            <strong>{{ item.codigo }}</strong><br>
+                            <span>{{ item.estudiante }}</span>
                         </td>
-                        <td>Estructura de Datos</td>
-                        <td>Árboles binarios y balanceo AVL</td>
-                        <td>14/10/2026</td>
-                        <td><span class="badge-status status-pending">Pendiente</span></td>
+                        <td>{{ item.asignatura }}</td>
+                        <td>{{ item.tema }}</td>
+                        <td>{{ item.fecha }}</td>
+                        <td><span class="badge-status status-pending">{{ item.estado }}</span></td>
                         <td>
-                            <button class="btn-primary" type="button">Atender</button>
+                            <button
+                                class="btn-primary"
+                                type="button"
+                                (click)="atender(item)">
+                                Atender
+                            </button>
                         </td>
                     </tr>
-                    <tr>
-                        <td>
-                            <strong>1042301994</strong><br>
-                            <span>María José Herrera</span>
-                        </td>
-                        <td>Bases de Datos Relacionales</td>
-                        <td>Normalización de 3ra Forma</td>
-                        <td>14/10/2026</td>
-                        <td><span class="badge-status status-pending">Pendiente</span></td>
-                        <td>
-                            <button class="btn-primary" type="button">Atender</button>
-                        </td>
-                    </tr>
+                    }
                 </tbody>
             </table>
         </div>

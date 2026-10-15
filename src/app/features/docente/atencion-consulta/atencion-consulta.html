@@ -27,43 +27,71 @@
         </div>
 
         <!-- Campos del Formulario -->
-        <div class="form-content">
+        <form (ngSubmit)="finalizarRegistro()" class="form-content">
 
             <div class="input-block">
-                <label for="tipo">Tipo de Atención</label>
-                <select id="tipo" class="form-control">
-                    <option>Tutoría Individual</option>
-                    <option>Tutoría Grupal</option>
-                    <option>Semillero de Investigación</option>
-                    <option>Nivelación / Refuerzo Académico</option>
+                <label for="tipo">Tipo de Atención *</label>
+                <select id="tipo" class="form-control" [(ngModel)]="tipoAtencion" name="tipo">
+                    <option value="Tutoría Individual">Tutoría Individual</option>
+                    <option value="Tutoría Grupal">Tutoría Grupal</option>
+                    <option value="Semillero de Investigación">Semillero de Investigación</option>
+                    <option value="Nivelación / Refuerzo Académico">Nivelación / Refuerzo Académico</option>
                 </select>
             </div>
 
             <div class="input-block">
-                <label for="tema">Temática Tratada</label>
-                <input id="tema" type="text" class="form-control" placeholder="Describa el tema puntual abordado..." />
+                <label for="tema">Temática Tratada *</label>
+                <input
+                    id="tema"
+                    type="text"
+                    class="form-control"
+                    [(ngModel)]="temaTratado"
+                    name="tema"
+                    placeholder="Describa el tema puntual abordado..."
+                    required />
             </div>
 
             <div class="input-block">
                 <label for="obs">Observaciones y Compromisos Académicos</label>
-                <textarea id="obs" rows="5" class="form-control"
+                <textarea
+                    id="obs"
+                    rows="5"
+                    class="form-control"
+                    [(ngModel)]="observaciones"
+                    name="obs"
                     placeholder="Detalle los compromisos pactados con el estudiante y sugerencias de seguimiento..."></textarea>
             </div>
 
             <!-- Checkbox de Auditoría -->
             <label class="audit-check">
-                <input type="checkbox" checked />
-                <span>Asistencia Confirmada (Control de estado 1/0 y marca de tiempo en auditoría)</span>
+                <input type="checkbox" [(ngModel)]="asistenciaConfirmada" name="asistencia" />
+                <span>Asistencia Confirmada (Control de estado 1/0 y marca de tiempo en auditoría institucional)</span>
             </label>
 
             <!-- Botones de Acción -->
             <div class="button-row">
-                <button type="button" class="btn-cancel">Cancelar</button>
-                <button type="button" class="btn-submit">Finalizar y Registrar Tutoría</button>
+                <button type="button" class="btn-cancel" (click)="cancelar()">Cancelar</button>
+                <button type="submit" class="btn-submit">Finalizar y Registrar Tutoría</button>
             </div>
 
-        </div>
+        </form>
 
     </div>
 
+</div>
+
+<!-- Modal de confirmación de registro -->
+<div class="modal-backdrop" *ngIf="modalExitoAbierto()">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>✅ Tutoría Registrada Exitosamente</h3>
+        </div>
+        <div class="modal-body">
+            <p><strong>Folio de Auditoría:</strong> #AUD-2026-{{ 1045892110 }}</p>
+            <p>La sesión académica de <strong>{{ temaTratado }}</strong> con el estudiante <strong>Carlos Mario Pérez</strong> ha sido radicada digitalmente con control de asistencia <strong>{{ asistenciaConfirmada ? 'Confirmada (1)' : 'Sin Asistencia (0)' }}</strong>.</p>
+            <div class="modal-footer">
+                <button type="button" class="btn-submit" (click)="confirmarSalida()">Volver a Bandeja</button>
+            </div>
+        </div>
+    </div>
 </div>

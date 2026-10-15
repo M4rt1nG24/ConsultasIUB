@@ -1,8 +1,13 @@
 <div class="admin-view">
+    <!-- Toast de retroalimentación -->
+    <div class="toast-notification" *ngIf="mensajeToast()">
+        <span>✅ {{ mensajeToast() }}</span>
+    </div>
+
     <div class="view-header">
         <div>
             <h2>🎓 Gestión de Cursos y Asignaciones</h2>
-            <p>Vincula las asignaturas del programa con los docentes tutores.</p>
+            <p>Vincula las asignaturas del programa con los docentes tutores y monitorías.</p>
         </div>
     </div>
 
@@ -10,21 +15,35 @@
         <!-- Columna Izquierda: Formulario rápido -->
         <div class="section-box">
             <h3>Registrar / Vincular Curso</h3>
-            <form class="simple-form">
-                <label>Código del Curso</label>
-                <input type="text" placeholder="Ej. SIS-801" class="input-control" />
+            <form (ngSubmit)="guardarAsignacion()" class="simple-form">
+                <label>Código del Curso *</label>
+                <input
+                    type="text"
+                    placeholder="Ej. SIS-801"
+                    class="input-control"
+                    [(ngModel)]="nuevoCodigo"
+                    name="codigo"
+                    required />
 
-                <label>Nombre de la Asignatura</label>
-                <input type="text" placeholder="Ej. Arquitectura de Software" class="input-control" />
+                <label>Nombre de la Asignatura *</label>
+                <input
+                    type="text"
+                    placeholder="Ej. Arquitectura de Software"
+                    class="input-control"
+                    [(ngModel)]="nuevaAsignatura"
+                    name="asignatura"
+                    required />
 
-                <label>Docente Tutor Asignado</label>
-                <select class="input-control">
-                    <option>Ing. Roberto Pineda</option>
-                    <option>Ing. Laura Gómez</option>
-                    <option>Ing. Carlos Ruiz</option>
+                <label>Docente Tutor Asignado *</label>
+                <select class="input-control" [(ngModel)]="nuevoDocente" name="docente">
+                    <option value="Ing. Roberto Pineda">Ing. Roberto Pineda</option>
+                    <option value="Ing. Laura Gómez">Ing. Laura Gómez</option>
+                    <option value="Ing. Carlos Ruiz">Ing. Carlos Ruiz</option>
+                    <option value="Ing. Carlos Mendoza">Ing. Carlos Mendoza</option>
+                    <option value="Ing. Diana Rodríguez">Ing. Diana Rodríguez</option>
                 </select>
 
-                <button type="button" class="btn-primary">Guardar Asignación</button>
+                <button type="submit" class="btn-primary">Guardar Asignación</button>
             </form>
         </div>
 
@@ -41,20 +60,50 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @for (curso of cursos(); track curso.codigo) {
                     <tr>
-                        <td><strong>SIS-402</strong></td>
-                        <td>Programación Web</td>
-                        <td>Ing. Roberto Pineda</td>
-                        <td><button class="btn-outline">Cambiar</button></td>
+                        <td><strong>{{ curso.codigo }}</strong></td>
+                        <td>{{ curso.asignatura }}</td>
+                        <td>{{ curso.docente }}</td>
+                        <td>
+                            <button
+                                class="btn-outline"
+                                type="button"
+                                (click)="abrirCambiarDocente(curso)">
+                                Cambiar
+                            </button>
+                        </td>
                     </tr>
-                    <tr>
-                        <td><strong>SIS-501</strong></td>
-                        <td>Bases de Datos II</td>
-                        <td>Ing. Laura Gómez</td>
-                        <td><button class="btn-outline">Cambiar</button></td>
-                    </tr>
+                    }
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cambiar docente tutor -->
+<div class="modal-backdrop" *ngIf="modalCambioAbierto()">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>🔄 Cambiar Tutor: {{ cursoSeleccionado()?.codigo }}</h3>
+            <button class="btn-close" type="button" (click)="cerrarModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p><strong>Asignatura:</strong> {{ cursoSeleccionado()?.asignatura }}</p>
+            <div class="form-group">
+                <label>Seleccionar Nuevo Docente Tutor</label>
+                <select class="input-control" [(ngModel)]="docenteReemplazo" name="reemplazo">
+                    <option value="Ing. Roberto Pineda">Ing. Roberto Pineda</option>
+                    <option value="Ing. Laura Gómez">Ing. Laura Gómez</option>
+                    <option value="Ing. Carlos Ruiz">Ing. Carlos Ruiz</option>
+                    <option value="Ing. Carlos Mendoza">Ing. Carlos Mendoza</option>
+                    <option value="Ing. Diana Rodríguez">Ing. Diana Rodríguez</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+                <button type="button" class="btn-primary" (click)="confirmarCambioDocente()">Confirmar Asignación</button>
+            </div>
         </div>
     </div>
 </div>

@@ -1,5 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { Header } from '../../shared/components/header/header';
+import { Footer } from '../../shared/components/footer/footer';
 
 export type RolUsuario = 'ADMIN' | 'DOCENTE' | 'ESTUDIANTE';
 
@@ -13,7 +15,7 @@ interface OpcionMenu {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Header, Footer],
   templateUrl: './main-layout.html',
   styleUrl: './main-layout.css'
 })

@@ -6,7 +6,7 @@
                 <h2>Mis Solicitudes de Tutoría</h2>
                 <p>Historial y seguimiento de tus consultas asignadas y pendientes.</p>
             </div>
-            <button class="btn-create" type="button">+ Nueva Consulta</button>
+            <button class="btn-create" type="button" (click)="abrirModalRapido()">+ Nueva Consulta</button>
         </div>
     </div>
 
@@ -15,6 +15,7 @@
             <table>
                 <thead>
                     <tr>
+                        <th>Radicado</th>
                         <th>Asignatura</th>
                         <th>Tema</th>
                         <th>Tutor Asignado</th>
@@ -24,32 +25,116 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @for (item of solicitudes(); track item.id) {
                     <tr>
-                        <td><strong>Estructura de Datos</strong></td>
-                        <td>Árboles binarios y balanceo AVL</td>
-                        <td>Ing. Carlos Mendoza</td>
-                        <td>16/10/2026 - 10:00 AM</td>
-                        <td><span class="badge-status status-assigned">Programada</span></td>
-                        <td><button class="btn-action" type="button">Ver Detalle</button></td>
+                        <td><strong>{{ item.radicado }}</strong></td>
+                        <td>{{ item.asignatura }}</td>
+                        <td>{{ item.tema }}</td>
+                        <td>{{ item.tutor }}</td>
+                        <td>{{ item.fecha }}</td>
+                        <td><span class="badge-status" [ngClass]="item.estadoClase">{{ item.estado }}</span></td>
+                        <td>
+                            <button class="btn-action" type="button" (click)="abrirDetalle(item)">Ver Detalle</button>
+                        </td>
                     </tr>
-                    <tr>
-                        <td><strong>Bases de Datos</strong></td>
-                        <td>Normalización 3FN</td>
-                        <td>En asignación</td>
-                        <td>15/10/2026 - Tarde</td>
-                        <td><span class="badge-status status-pending">Pendiente</span></td>
-                        <td><button class="btn-action" type="button">Ver Detalle</button></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Programación Web</strong></td>
-                        <td>Enrutamiento con Angular</td>
-                        <td>Ing. Diana Rodríguez</td>
-                        <td>08/10/2026 - 02:00 PM</td>
-                        <td><span class="badge-status status-done">Completada</span></td>
-                        <td><button class="btn-action" type="button">Ver Detalle</button></td>
-                    </tr>
+                    }
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<!-- Modal Detalle de la Solicitud -->
+@if (modalDetalleAbierto() && solicitudSeleccionada(); as s) {
+<div class="modal-backdrop">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>📑 Ficha de Consulta: {{ s.radicado }}</h3>
+            <button class="btn-close" type="button" (click)="cerrarDetalle()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="detail-grid">
+                <div><strong>Asignatura:</strong> {{ s.asignatura }}</div>
+                <div><strong>Estado:</strong> <span class="badge-status" [ngClass]="s.estadoClase">{{ s.estado }}</span></div>
+                <div><strong>Tutor:</strong> {{ s.tutor }}</div>
+                <div><strong>Modalidad:</strong> {{ s.modalidad }}</div>
+                <div><strong>Fecha/Hora:</strong> {{ s.fecha }}</div>
+                <div><strong>Ubicación / Canal:</strong> {{ s.ubicacion }}</div>
+            </div>
+
+            <div class="detail-box">
+                <span class="detail-subtitle">Tema de Consulta:</span>
+                <p class="detail-text">{{ s.tema }}</p>
+            </div>
+
+            <div class="detail-box">
+                <span class="detail-subtitle">Observaciones / Trazabilidad Docente:</span>
+                <p class="detail-text">{{ s.observaciones }}</p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" (click)="cerrarDetalle()">Cerrar</button>
+                <button type="button" class="btn-primary" (click)="verFichaCompleta(s)">Ver Acta Oficial</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+<!-- Modal Formulario Rápido de Solicitud -->
+@if (modalRapidoAbierto()) {
+<div class="modal-backdrop">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>📝 Solicitud Rápida de Tutoría</h3>
+            <button class="btn-close" type="button" (click)="cerrarModalRapido()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p>Diligencia los datos básicos de tu duda académica para radicar tu consulta en el sistema.</p>
+
+            <div class="form-group">
+                <label>Asignatura *</label>
+                <select class="form-control" [(ngModel)]="nuevaAsignatura">
+                    <option value="Estructura de Datos">Estructura de Datos</option>
+                    <option value="Bases de Datos">Bases de Datos</option>
+                    <option value="Programación Web">Programación Web</option>
+                    <option value="Arquitectura de Software">Arquitectura de Software</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <label>Modalidad</label>
+                    <select class="form-control" [(ngModel)]="nuevaModalidad">
+                        <option value="Presencial">Presencial (Sede Plaza de la Paz)</option>
+                        <option value="Virtual">Virtual (Google Meet / Teams)</option>
+                    </select>
+                </div>
+                <div class="form-group flex-1">
+                    <label>Franja Horaria</label>
+                    <select class="form-control" [(ngModel)]="nuevaFranja">
+                        <option value="Mañana (08:00 AM - 12:00 PM)">Mañana (08:00 AM - 12:00 PM)</option>
+                        <option value="Tarde (02:00 PM - 06:00 PM)">Tarde (02:00 PM - 06:00 PM)</option>
+                        <option value="Noche (06:00 PM - 09:00 PM)">Noche (06:00 PM - 09:00 PM)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Tema o Pregunta Concreta *</label>
+                <input
+                    type="text"
+                    class="form-control"
+                    [(ngModel)]="nuevoTema"
+                    placeholder="Ej. Dudas con herencia y polimorfismo en TypeScript..." />
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-link-action" (click)="irAFormularioCompleto()">Abrir Formulario Completo ↗</button>
+                <button type="button" class="btn-secondary" (click)="cerrarModalRapido()">Cancelar</button>
+                <button type="button" class="btn-primary" (click)="guardarSolicitudRapida()">Radicar Consulta</button>
+            </div>
+        </div>
+    </div>
+</div>
+}

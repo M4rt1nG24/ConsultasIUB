@@ -1,8 +1,13 @@
 <div class="admin-view">
+    <!-- Toast -->
+    <div class="toast-notification" *ngIf="mensajeToast()">
+        <span>✅ {{ mensajeToast() }}</span>
+    </div>
+
     <div class="view-header">
         <div>
             <h2>🔄 Reasignación de Consultas</h2>
-            <p>Transfiere solicitudes pendientes a otro docente disponible del área.</p>
+            <p>Transfiere solicitudes pendientes o represadas a otro docente disponible del área.</p>
         </div>
     </div>
 
@@ -13,40 +18,47 @@
                     <th>Ticket</th>
                     <th>Estudiante</th>
                     <th>Asignatura / Tema</th>
-                    <th>Docente Actual</th>
+                    <th>Docente Titular Actual</th>
                     <th>Reasignar a</th>
                     <th>Acción</th>
                 </tr>
             </thead>
             <tbody>
+                @for (item of solicitudes(); track item.ticket) {
                 <tr>
-                    <td><strong>#TUT-104</strong></td>
-                    <td>Andrés Mendoza</td>
-                    <td>Bases de Datos (Normalización)</td>
-                    <td>Ing. Laura Gómez</td>
+                    <td><strong>{{ item.ticket }}</strong></td>
+                    <td>{{ item.estudiante }}</td>
+                    <td>{{ item.asignatura }}</td>
                     <td>
-                        <select class="input-control">
-                            <option>Seleccionar docente...</option>
-                            <option>Ing. Roberto Pineda</option>
-                            <option>Ing. Carlos Ruiz</option>
+                        <span class="teacher-tag">{{ item.docenteActual }}</span>
+                    </td>
+                    <td>
+                        <select
+                            class="input-control"
+                            [(ngModel)]="item.docenteSeleccionado"
+                            [disabled]="item.reasignado">
+                            <option value="">Seleccionar docente...</option>
+                            @for (doc of docentesDisponibles; track doc) {
+                                @if (doc !== item.docenteActual) {
+                                    <option [value]="doc">{{ doc }}</option>
+                                }
+                            }
                         </select>
                     </td>
-                    <td><button class="btn-primary btn-sm">Confirmar</button></td>
-                </tr>
-                <tr>
-                    <td><strong>#TUT-109</strong></td>
-                    <td>Camila Torres</td>
-                    <td>Programación Web (Rutas Angular)</td>
-                    <td>Ing. Roberto Pineda</td>
                     <td>
-                        <select class="input-control">
-                            <option>Seleccionar docente...</option>
-                            <option>Ing. Laura Gómez</option>
-                            <option>Ing. Carlos Ruiz</option>
-                        </select>
+                        @if (!item.reasignado) {
+                            <button
+                                class="btn-primary btn-sm"
+                                type="button"
+                                (click)="confirmar(item)">
+                                Confirmar
+                            </button>
+                        } @else {
+                            <span class="badge-done">✓ Reasignado</span>
+                        }
                     </td>
-                    <td><button class="btn-primary btn-sm">Confirmar</button></td>
                 </tr>
+                }
             </tbody>
         </table>
     </div>

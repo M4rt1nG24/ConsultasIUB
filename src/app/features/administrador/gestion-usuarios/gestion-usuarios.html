@@ -1,17 +1,30 @@
 <div class="admin-view">
+    <!-- Notificación Toast -->
+    <div class="toast-notification" *ngIf="mensajeFeedback()">
+        <span>✅ {{ mensajeFeedback() }}</span>
+    </div>
+
     <div class="view-header">
         <div>
             <h2>👥 Gestión de Usuarios</h2>
-            <p>Administra las cuentas de estudiantes, docentes y coordinadores.</p>
+            <p>Administra las cuentas de estudiantes, docentes y coordinadores institucionales.</p>
         </div>
-        <button class="btn-primary">+ Nuevo Usuario</button>
+        <button class="btn-primary" type="button" (click)="abrirModalCrear()">+ Nuevo Usuario</button>
     </div>
 
-    <!-- Barra de filtros -->
+    <!-- Barra de filtros interactiva -->
     <div class="toolbar">
-        <input type="text" placeholder="Buscar por nombre o correo institucional..."
-            class="input-control search-input" />
-        <select class="input-control">
+        <input
+            type="text"
+            placeholder="Buscar por nombre, correo o programa institucional..."
+            class="input-control search-input"
+            [ngModel]="filtroTexto()"
+            (ngModelChange)="filtroTexto.set($event)" />
+
+        <select
+            class="input-control"
+            [ngModel]="filtroRol()"
+            (ngModelChange)="filtroRol.set($event)">
             <option value="">Todos los roles</option>
             <option value="ADMIN">Administrador</option>
             <option value="DOCENTE">Docente</option>
@@ -19,41 +32,117 @@
         </select>
     </div>
 
-    <!-- Tabla de usuarios -->
+    <!-- Tabla de usuarios dinámica -->
     <div class="section-box">
         <table class="simple-table">
             <thead>
                 <tr>
                     <th>Nombre Completo</th>
                     <th>Correo Institucional</th>
+                    <th>Programa / Área</th>
                     <th>Rol</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
+                @for (u of usuariosFiltrados(); track u.id) {
                 <tr>
-                    <td>Coordinación Sistemas</td>
-                    <td>coordinacion.sistemas@unibarranquilla.edu.co</td>
-                    <td><strong>ADMIN</strong></td>
-                    <td><span class="badge badge-ok">Activo</span></td>
-                    <td><button class="btn-outline">Editar</button></td>
+                    <td><strong>{{ u.nombre }}</strong></td>
+                    <td>{{ u.email }}</td>
+                    <td>{{ u.programa }}</td>
+                    <td>
+                        <span class="role-badge" [ngClass]="'role-' + u.rol.toLowerCase()">
+                            {{ u.rol }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge" [ngClass]="u.estado === 'Activo' ? 'badge-ok' : 'badge-inactive'">
+                            {{ u.estado }}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn-outline" type="button" (click)="abrirModalEditar(u)">Editar</button>
+                    </td>
                 </tr>
+                } @empty {
                 <tr>
-                    <td>Roberto Pineda</td>
-                    <td>rpineda@unibarranquilla.edu.co</td>
-                    <td><strong>DOCENTE</strong></td>
-                    <td><span class="badge badge-ok">Activo</span></td>
-                    <td><button class="btn-outline">Editar</button></td>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        No se encontraron usuarios que coincidan con los filtros de búsqueda.
+                    </td>
                 </tr>
-                <tr>
-                    <td>Estudiante Prueba</td>
-                    <td>estudiante@unibarranquilla.edu.co</td>
-                    <td><strong>ESTUDIANTE</strong></td>
-                    <td><span class="badge badge-ok">Activo</span></td>
-                    <td><button class="btn-outline">Editar</button></td>
-                </tr>
+                }
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- ==================== MODAL FORMULARIO DE USUARIO ==================== -->
+<div class="modal-backdrop" *ngIf="modalAbierto()">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>{{ modoModal() === 'crear' ? '➕ Registrar Nuevo Usuario' : '✏️ Editar Usuario' }}</h3>
+            <button class="btn-close" type="button" (click)="cerrarModal()">✕</button>
+        </div>
+
+        <form (ngSubmit)="guardarUsuario()" class="modal-body">
+            <div class="form-group">
+                <label>Nombre Completo *</label>
+                <input
+                    type="text"
+                    class="input-control"
+                    [(ngModel)]="formData.nombre"
+                    name="nombre"
+                    placeholder="Ej. Ing. Martín Clavijo"
+                    required />
+            </div>
+
+            <div class="form-group">
+                <label>Correo Institucional *</label>
+                <input
+                    type="email"
+                    class="input-control"
+                    [(ngModel)]="formData.email"
+                    name="email"
+                    placeholder="usuario@unibarranquilla.edu.co"
+                    required />
+            </div>
+
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <label>Rol en el Sistema *</label>
+                    <select class="input-control" [(ngModel)]="formData.rol" name="rol">
+                        <option value="ESTUDIANTE">Estudiante</option>
+                        <option value="DOCENTE">Docente</option>
+                        <option value="ADMIN">Administrador</option>
+                    </select>
+                </div>
+
+                <div class="form-group flex-1">
+                    <label>Estado *</label>
+                    <select class="input-control" [(ngModel)]="formData.estado" name="estado">
+                        <option value="Activo">Activo</option>
+                        <option value="Inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Programa Académico / Facultad</label>
+                <input
+                    type="text"
+                    class="input-control"
+                    [(ngModel)]="formData.programa"
+                    name="programa"
+                    placeholder="Ej. Ingeniería de Sistemas" />
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+                <button type="submit" class="btn-primary">
+                    {{ modoModal() === 'crear' ? 'Registrar Usuario' : 'Guardar Cambios' }}
+                </button>
+            </div>
+        </form>
     </div>
 </div>

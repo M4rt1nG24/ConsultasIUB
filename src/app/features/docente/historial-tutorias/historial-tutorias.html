@@ -1,16 +1,25 @@
 <div class="page-container">
     <div class="page-header">
         <h1>Historial de Tutorías Realizadas</h1>
-        <p>Registro histórico digital de todas las atenciones académicas completadas.</p>
+        <p>Registro histórico digital de todas las atenciones académicas completadas (Cero Papel).</p>
     </div>
 
     <div class="card">
         <div class="filter-bar">
-            <input type="text" class="input-search" placeholder="Buscar por estudiante o cédula...">
-            <select class="select-filter">
-                <option>Todas las asignaturas</option>
-                <option>Estructura de Datos</option>
-                <option>Bases de Datos</option>
+            <input
+                type="text"
+                class="input-search"
+                [ngModel]="busqueda()"
+                (ngModelChange)="busqueda.set($event)"
+                placeholder="Buscar por estudiante, cédula o temática...">
+            <select
+                class="select-filter"
+                [ngModel]="filtroAsignatura()"
+                (ngModelChange)="filtroAsignatura.set($event)">
+                <option value="Todas las asignaturas">Todas las asignaturas</option>
+                <option value="Estructura de Datos">Estructura de Datos</option>
+                <option value="Bases de Datos">Bases de Datos</option>
+                <option value="Programación Web">Programación Web</option>
             </select>
         </div>
 
@@ -19,7 +28,7 @@
                 <thead>
                     <tr>
                         <th>Fecha y Hora</th>
-                        <th>Estudiante</th>
+                        <th>Estudiante / ID</th>
                         <th>Asignatura</th>
                         <th>Tipo</th>
                         <th>Estado Auditoría</th>
@@ -27,24 +36,80 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @for (item of historialFiltrado(); track item.id) {
                     <tr>
-                        <td>10/10/2026 - 14:30</td>
-                        <td>Andrés Felipe Castro</td>
-                        <td>Programación Web</td>
-                        <td>Individual</td>
-                        <td><span class="badge-status status-completed">Completada (1)</span></td>
-                        <td><button class="btn-secondary" type="button">Ver Formato</button></td>
+                        <td>{{ item.fechaHora }}</td>
+                        <td>
+                            <strong>{{ item.estudiante }}</strong><br>
+                            <small class="text-muted">C.C. {{ item.documento }}</small>
+                        </td>
+                        <td>{{ item.asignatura }}</td>
+                        <td>{{ item.tipo }}</td>
+                        <td>
+                            <span class="badge-status status-completed">
+                                Completada ({{ item.asistencia }})
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn-secondary" type="button" (click)="abrirFormato(item)">
+                                Ver Formato
+                            </button>
+                        </td>
                     </tr>
+                    } @empty {
                     <tr>
-                        <td>08/10/2026 - 10:15</td>
-                        <td>Valeria Morales Díaz</td>
-                        <td>Algoritmos</td>
-                        <td>Grupal</td>
-                        <td><span class="badge-status status-completed">Completada (1)</span></td>
-                        <td><button class="btn-secondary" type="button">Ver Formato</button></td>
+                        <td colspan="6" class="text-center py-4">
+                            No se encontraron registros de tutoría con los criterios seleccionados.
+                        </td>
                     </tr>
+                    }
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<!-- Modal Formato Institucional Oficial F-IUB-04 -->
+@if (modalFormatoAbierto() && registroSeleccionado(); as reg) {
+<div class="modal-backdrop">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>📑 Formato Digital de Atención F-IUB-04</h3>
+            <button class="btn-close" type="button" (click)="cerrarFormato()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="format-header">
+                <span class="badge-audit">Folio de Auditoría: {{ reg.folio }}</span>
+                <span class="timestamp-meta">{{ reg.fechaHora }}</span>
+            </div>
+
+            <div class="grid-details">
+                <div><strong>Estudiante:</strong> {{ reg.estudiante }}</div>
+                <div><strong>Documento:</strong> {{ reg.documento }}</div>
+                <div><strong>Asignatura:</strong> {{ reg.asignatura }}</div>
+                <div><strong>Tipo de Atención:</strong> {{ reg.tipo }}</div>
+                <div><strong>Control de Asistencia:</strong> {{ reg.asistencia === 1 ? 'Confirmada (1)' : 'Sin Asistencia (0)' }}</div>
+                <div><strong>Sede:</strong> Plaza de la Paz</div>
+            </div>
+
+            <div class="info-box">
+                <span class="box-title">Temática Abordada:</span>
+                <p>{{ reg.tema }}</p>
+            </div>
+
+            <div class="info-box">
+                <span class="box-title">Observaciones y Compromisos Docentes:</span>
+                <p>{{ reg.observaciones }}</p>
+            </div>
+
+            <div class="signature-box">
+                <span>✓ Diligenciado y radicado digitalmente por el docente asignado</span>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-primary" (click)="cerrarFormato()">Cerrar Formato</button>
+            </div>
+        </div>
+    </div>
+</div>
+}

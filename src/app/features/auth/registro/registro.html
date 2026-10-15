@@ -41,32 +41,58 @@
 
     <!-- Columna Derecha: Formulario de Registro -->
     <div class="col-form">
-        <h2>Registro</h2>
-        <p class="sub">Ingresa tus datos para registrarte en el sistema</p>
+        <h2>Registro de Usuario</h2>
+        <p class="sub">Ingresa tus datos institucionales para solicitar tu cuenta</p>
 
-
-
-        <div class="field">
-            <label>Nombre Completo</label>
-            <input type="text" placeholder="Ej. Martín Clavijo">
+        @if (errorMensaje()) {
+        <div class="error-banner">
+            ⚠️ {{ errorMensaje() }}
         </div>
+        }
 
-        <div class="field">
-            <label>Correo Institucional</label>
-            <input type="text" placeholder="usuario@unibarranquilla.edu.co">
-        </div>
+        <form (ngSubmit)="registrar()">
+            <div class="field">
+                <label>Nombre Completo *</label>
+                <input type="text" [(ngModel)]="nombre" name="nombre" placeholder="Ej. Martín Clavijo" required>
+            </div>
 
-        <div class="field">
-            <label>Contraseña</label>
-            <input type="password" placeholder="••••••••">
-        </div>
+            <div class="field-row">
+                <div class="field flex-1">
+                    <label>No. Identificación</label>
+                    <input type="text" [(ngModel)]="documento" name="documento" placeholder="1045892110">
+                </div>
+            </div>
 
-        <div class="field">
-            <label>Confirmar Contraseña</label>
-            <input type="password" placeholder="••••••••">
-        </div>
+            <div class="field">
+                <label>Programa Académico</label>
+                <select [(ngModel)]="programa" name="programa" class="select-control">
+                    <option value="Ingeniería de Sistemas">Ingeniería de Sistemas</option>
+                    <option value="Ingeniería Industrial">Ingeniería Industrial</option>
+                    <option value="Ingeniería Mecatrónica">Ingeniería Mecatrónica</option>
+                    <option value="Administración de Empresas">Administración de Empresas</option>
+                </select>
+            </div>
 
-        <button type="button">Registrarse en el Sistema</button>
+            <div class="field">
+                <label>Correo Institucional *</label>
+                <input type="email" [(ngModel)]="correo" name="correo" placeholder="usuario@unibarranquilla.edu.co"
+                    required>
+            </div>
+
+            <div class="field-row">
+                <div class="field flex-1">
+                    <label>Contraseña *</label>
+                    <input type="password" [(ngModel)]="password" name="password" placeholder="••••••••" required>
+                </div>
+                <div class="field flex-1">
+                    <label>Confirmar *</label>
+                    <input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" placeholder="••••••••"
+                        required>
+                </div>
+            </div>
+
+            <button type="submit">Registrarse en el Sistema</button>
+        </form>
 
         <div class="links">
             <a routerLink="/principal">Volver a la página principal</a>
@@ -75,3 +101,31 @@
     </div>
 
 </div>
+
+<!-- Modal de Confirmación y Opciones de Registro -->
+@if (modalRegistroAbierto()) {
+<div class="modal-backdrop">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>✅ Solicitud de Registro Lista</h3>
+            <button class="btn-close" type="button" (click)="cerrarModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p>Se ha estructurado la solicitud de creación de cuenta para <strong>{{ nombre }}</strong> con el rol
+                <strong>{{ rol }}</strong>.</p>
+            <div class="summary-card">
+                <div><strong>Correo:</strong> {{ correo }}</div>
+                <div><strong>Programa:</strong> {{ programa }}</div>
+                <div><strong>Identificación:</strong> {{ documento || 'No especificada' }}</div>
+                <div><strong>Estado:</strong> Pre-aprobado para verificación institucional</div>
+            </div>
+            <p class="modal-note">El registro se encuentra validado y listo para autenticarse en el módulo de ingreso.
+            </p>
+            <div class="modal-footer">
+                <button type="button" class="btn-outline-modal" (click)="cerrarModal()">Modificar Datos</button>
+                <button type="button" class="btn-primary-modal" (click)="irALogin()">Ir a Iniciar Sesión</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
