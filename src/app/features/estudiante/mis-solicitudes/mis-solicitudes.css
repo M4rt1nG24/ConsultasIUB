@@ -1,0 +1,150 @@
+:host {
+    display: block;
+    width: 100%;
+}
+
+.view-wrapper {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 10px 20px 40px 20px;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.header-section {
+    margin-bottom: 24px;
+}
+
+.badge-tag {
+    display: inline-block;
+    background-color: #e5edf7;
+    color: #173b6c;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+.header-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.header-title-row h2 {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f2747;
+    margin-bottom: 4px;
+}
+
+.header-title-row p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+
+.btn-create {
+    background-color: #184275;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(24, 66, 117, 0.2);
+    transition: all 0.2s ease;
+}
+
+.btn-create:hover {
+    background-color: #102d52;
+}
+
+.main-card {
+    background-color: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(15, 39, 71, 0.05);
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th {
+    background-color: #173b6c;
+    color: #ffffff;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+th:first-child {
+    border-top-left-radius: 8px;
+}
+
+th:last-child {
+    border-top-right-radius: 8px;
+}
+
+td {
+    padding: 14px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+    vertical-align: middle;
+}
+
+tr:hover {
+    background-color: #f8fafc;
+}
+
+/* Badges */
+.badge-status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.status-pending {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.status-assigned {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.status-done {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.btn-action {
+    background-color: #e2e8f0;
+    color: #334155;
+    border: none;
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-action:hover {
+    background-color: #cbd5e1;
+}

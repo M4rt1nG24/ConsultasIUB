@@ -1,0 +1,59 @@
+<div class="admin-view">
+    <div class="view-header">
+        <div>
+            <h2>👥 Gestión de Usuarios</h2>
+            <p>Administra las cuentas de estudiantes, docentes y coordinadores.</p>
+        </div>
+        <button class="btn-primary">+ Nuevo Usuario</button>
+    </div>
+
+    <!-- Barra de filtros -->
+    <div class="toolbar">
+        <input type="text" placeholder="Buscar por nombre o correo institucional..."
+            class="input-control search-input" />
+        <select class="input-control">
+            <option value="">Todos los roles</option>
+            <option value="ADMIN">Administrador</option>
+            <option value="DOCENTE">Docente</option>
+            <option value="ESTUDIANTE">Estudiante</option>
+        </select>
+    </div>
+
+    <!-- Tabla de usuarios -->
+    <div class="section-box">
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>Nombre Completo</th>
+                    <th>Correo Institucional</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Coordinación Sistemas</td>
+                    <td>coordinacion.sistemas@unibarranquilla.edu.co</td>
+                    <td><strong>ADMIN</strong></td>
+                    <td><span class="badge badge-ok">Activo</span></td>
+                    <td><button class="btn-outline">Editar</button></td>
+                </tr>
+                <tr>
+                    <td>Roberto Pineda</td>
+                    <td>rpineda@unibarranquilla.edu.co</td>
+                    <td><strong>DOCENTE</strong></td>
+                    <td><span class="badge badge-ok">Activo</span></td>
+                    <td><button class="btn-outline">Editar</button></td>
+                </tr>
+                <tr>
+                    <td>Estudiante Prueba</td>
+                    <td>estudiante@unibarranquilla.edu.co</td>
+                    <td><strong>ESTUDIANTE</strong></td>
+                    <td><span class="badge badge-ok">Activo</span></td>
+                    <td><button class="btn-outline">Editar</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

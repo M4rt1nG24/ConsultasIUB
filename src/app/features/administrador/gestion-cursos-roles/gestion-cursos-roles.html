@@ -1,0 +1,60 @@
+<div class="admin-view">
+    <div class="view-header">
+        <div>
+            <h2>🎓 Gestión de Cursos y Asignaciones</h2>
+            <p>Vincula las asignaturas del programa con los docentes tutores.</p>
+        </div>
+    </div>
+
+    <div class="two-columns">
+        <!-- Columna Izquierda: Formulario rápido -->
+        <div class="section-box">
+            <h3>Registrar / Vincular Curso</h3>
+            <form class="simple-form">
+                <label>Código del Curso</label>
+                <input type="text" placeholder="Ej. SIS-801" class="input-control" />
+
+                <label>Nombre de la Asignatura</label>
+                <input type="text" placeholder="Ej. Arquitectura de Software" class="input-control" />
+
+                <label>Docente Tutor Asignado</label>
+                <select class="input-control">
+                    <option>Ing. Roberto Pineda</option>
+                    <option>Ing. Laura Gómez</option>
+                    <option>Ing. Carlos Ruiz</option>
+                </select>
+
+                <button type="button" class="btn-primary">Guardar Asignación</button>
+            </form>
+        </div>
+
+        <!-- Columna Derecha: Cursos activos -->
+        <div class="section-box">
+            <h3>Cursos Configurados</h3>
+            <table class="simple-table">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Asignatura</th>
+                        <th>Docente Tutor</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>SIS-402</strong></td>
+                        <td>Programación Web</td>
+                        <td>Ing. Roberto Pineda</td>
+                        <td><button class="btn-outline">Cambiar</button></td>
+                    </tr>
+                    <tr>
+                        <td><strong>SIS-501</strong></td>
+                        <td>Bases de Datos II</td>
+                        <td>Ing. Laura Gómez</td>
+                        <td><button class="btn-outline">Cambiar</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

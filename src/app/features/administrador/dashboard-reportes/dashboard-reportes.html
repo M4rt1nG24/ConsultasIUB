@@ -1,0 +1,72 @@
+<div class="admin-view">
+    <div class="view-header">
+        <div>
+            <h2>📊 Reportes y Estadísticas</h2>
+            <p>Resumen general de tutorías académicas del cuatrimestre actual.</p>
+        </div>
+        <button class="btn-primary">Exportar PDF</button>
+    </div>
+
+    <!-- Tarjetas de resumen (KPIs) -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-title">Total Solicitudes</span>
+            <strong class="stat-number">128</strong>
+            <span class="stat-sub">En este período</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-title">Atendidas</span>
+            <strong class="stat-number text-success">96</strong>
+            <span class="stat-sub">75% de efectividad</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-title">Pendientes</span>
+            <strong class="stat-number text-warning">24</strong>
+            <span class="stat-sub">En bandeja de docentes</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-title">Sin Asignar / Vencidas</span>
+            <strong class="stat-number text-danger">8</strong>
+            <span class="stat-sub">Requieren reasignación</span>
+        </div>
+    </div>
+
+    <!-- Tabla de asignaturas con más demanda -->
+    <div class="section-box">
+        <h3>Consultas por Asignatura</h3>
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>Asignatura</th>
+                    <th>Docente Titular</th>
+                    <th>Solicitudes</th>
+                    <th>Atendidas</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Programación Web</td>
+                    <td>Ing. Roberto Pineda</td>
+                    <td>42</td>
+                    <td>39</td>
+                    <td><span class="badge badge-ok">Al día</span></td>
+                </tr>
+                <tr>
+                    <td>Bases de Datos II</td>
+                    <td>Ing. Laura Gómez</td>
+                    <td>35</td>
+                    <td>25</td>
+                    <td><span class="badge badge-warn">Alta demanda</span></td>
+                </tr>
+                <tr>
+                    <td>Estructura de Datos</td>
+                    <td>Ing. Carlos Ruiz</td>
+                    <td>28</td>
+                    <td>27</td>
+                    <td><span class="badge badge-ok">Al día</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

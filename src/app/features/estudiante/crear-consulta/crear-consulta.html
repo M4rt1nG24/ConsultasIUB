@@ -1,0 +1,74 @@
+<div class="view-wrapper">
+    <div class="header-section">
+        <span class="badge-tag">Módulo Estudiante</span>
+        <h2>Crear Nueva Solicitud de Tutoría</h2>
+        <p>Registra tu duda o tema a consultar para programar una sesión académica.</p>
+    </div>
+
+    <div class="main-card">
+        <form class="form-content">
+
+            <!-- Asignatura y Docente -->
+            <div class="form-row">
+                <div class="input-block">
+                    <label for="asig">Asignatura</label>
+                    <select id="asig" class="form-control">
+                        <option>Estructura de Datos</option>
+                        <option>Bases de Datos Relacionales</option>
+                        <option>Programación Web</option>
+                        <option>Arquitectura de Software</option>
+                    </select>
+                </div>
+
+                <div class="input-block">
+                    <label for="doc">Docente / Tutor de Preferencia</label>
+                    <select id="doc" class="form-control">
+                        <option>Asignación Automática (Recomendado)</option>
+                        <option>Ing. Carlos Mendoza</option>
+                        <option>Ing. Diana Rodríguez</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tipo de Tutoría y Modalidad -->
+            <div class="form-row">
+                <div class="input-block">
+                    <label for="modalidad">Modalidad Deseada</label>
+                    <select id="modalidad" class="form-control">
+                        <option>Presencial (Sede Plaza de la Paz)</option>
+                        <option>Virtual (Google Meet / Teams)</option>
+                    </select>
+                </div>
+
+                <div class="input-block">
+                    <label for="franja">Franja Horaria Sugerida</label>
+                    <select id="franja" class="form-control">
+                        <option>Mañana (08:00 AM - 12:00 PM)</option>
+                        <option>Tarde (02:00 PM - 06:00 PM)</option>
+                        <option>Noche (06:00 PM - 09:00 PM)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tema y Detalle -->
+            <div class="input-block">
+                <label for="tema">Tema o Duda Concreta</label>
+                <input id="tema" type="text" class="form-control"
+                    placeholder="Ej. Dificultad con balanceo de árboles AVL" />
+            </div>
+
+            <div class="input-block">
+                <label for="desc">Descripción detallada</label>
+                <textarea id="desc" rows="4" class="form-control"
+                    placeholder="Describe brevemente qué ejercicios o conceptos necesitas reforzar antes de la sesión..."></textarea>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="button-row">
+                <button type="button" class="btn-cancel">Cancelar</button>
+                <button type="button" class="btn-submit">Enviar Solicitud</button>
+            </div>
+
+        </form>
+    </div>
+</div>

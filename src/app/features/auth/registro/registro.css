@@ -1,0 +1,202 @@
+:host {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #324c75, #192a43);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Tarjeta principal */
+.card-container {
+    width: 900px;
+    max-width: 100%;
+    background: #f1f4f9;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* Columna Izquierda */
+.col-info {
+    width: 45%;
+    background-color: #173b6c;
+    color: #ffffff;
+    padding: 35px 30px;
+}
+
+.badge {
+    background-color: #1f497f;
+    color: #55bef0;
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 12px;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+.col-info h1 {
+    font-size: 26px;
+    margin-bottom: 15px;
+}
+
+.col-info .desc {
+    font-size: 13px;
+    color: #b5c7df;
+    line-height: 1.4;
+    margin-bottom: 25px;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.box-icon {
+    width: 34px;
+    height: 34px;
+    background-color: #38bdf8;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.item h3 {
+    font-size: 13px;
+    margin: 0;
+}
+
+.item p {
+    font-size: 11px;
+    color: #b5c7df;
+    margin: 0;
+}
+
+.footer-info {
+    margin-top: 25px;
+    font-size: 11px;
+    color: #92a9cb;
+}
+
+/* Columna Derecha */
+.col-form {
+    width: 55%;
+    padding: 35px 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.col-form h2 {
+    font-size: 22px;
+    color: #162a45;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.col-form .sub {
+    font-size: 12px;
+    color: #64748b;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+/* Caja de selección de rol */
+.role-box {
+    background-color: #dce7f5;
+    border: 1px solid #c2d5ec;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 14px;
+}
+
+.role-box label {
+    display: block;
+    font-size: 12px;
+    font-weight: bold;
+    color: #173b6c;
+    margin-bottom: 6px;
+}
+
+.role-box select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #ffffff;
+    outline: none;
+}
+
+.role-box span {
+    display: block;
+    font-size: 11px;
+    color: #4b6485;
+    margin-top: 5px;
+}
+
+/* Campos de entrada */
+.field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+}
+
+.field label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #334155;
+    margin-bottom: 4px;
+}
+
+.field input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #c7d2e1;
+    background: #ffffff;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+/* Botón */
+button {
+    width: 100%;
+    padding: 11px;
+    background-color: #173b6c;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+/* Enlaces */
+.links {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 12px;
+}
+
+.links a {
+    color: #556987;
+    text-decoration: none;
+}
+
+.links p {
+    margin-top: 6px;
+    color: #64748b;
+}
+
+.links .bold {
+    color: #173b6c;
+    font-weight: bold;
+}

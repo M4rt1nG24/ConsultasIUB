@@ -1,0 +1,69 @@
+<div class="view-wrapper">
+
+    <!-- Encabezado de la Sección -->
+    <div class="header-section">
+        <span class="badge-tag">Módulo Docente</span>
+        <h2>Atención de Consulta Académica</h2>
+        <p>Diligenciamiento digital de la sesión y registro de trazabilidad en tiempo real (Cero Papel).</p>
+    </div>
+
+    <!-- Tarjeta Principal del Formulario -->
+    <div class="main-card">
+
+        <!-- Tarjeta informativa del estudiante -->
+        <div class="info-card">
+            <div class="info-item">
+                <span class="info-label">Estudiante</span>
+                <span class="info-val">Carlos Mario Pérez (1045892110)</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Asignatura</span>
+                <span class="info-val">Estructura de Datos</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Sede</span>
+                <span class="info-val">Plaza de la Paz</span>
+            </div>
+        </div>
+
+        <!-- Campos del Formulario -->
+        <div class="form-content">
+
+            <div class="input-block">
+                <label for="tipo">Tipo de Atención</label>
+                <select id="tipo" class="form-control">
+                    <option>Tutoría Individual</option>
+                    <option>Tutoría Grupal</option>
+                    <option>Semillero de Investigación</option>
+                    <option>Nivelación / Refuerzo Académico</option>
+                </select>
+            </div>
+
+            <div class="input-block">
+                <label for="tema">Temática Tratada</label>
+                <input id="tema" type="text" class="form-control" placeholder="Describa el tema puntual abordado..." />
+            </div>
+
+            <div class="input-block">
+                <label for="obs">Observaciones y Compromisos Académicos</label>
+                <textarea id="obs" rows="5" class="form-control"
+                    placeholder="Detalle los compromisos pactados con el estudiante y sugerencias de seguimiento..."></textarea>
+            </div>
+
+            <!-- Checkbox de Auditoría -->
+            <label class="audit-check">
+                <input type="checkbox" checked />
+                <span>Asistencia Confirmada (Control de estado 1/0 y marca de tiempo en auditoría)</span>
+            </label>
+
+            <!-- Botones de Acción -->
+            <div class="button-row">
+                <button type="button" class="btn-cancel">Cancelar</button>
+                <button type="button" class="btn-submit">Finalizar y Registrar Tutoría</button>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

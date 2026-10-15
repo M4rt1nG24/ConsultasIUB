@@ -1,0 +1,85 @@
+.admin-view {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 14px;
+}
+
+.view-header h2 {
+    margin: 0;
+    font-size: 1.35rem;
+    color: #0f172a;
+}
+
+.view-header p {
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+/* Contenedor y Tabla de Reasignación */
+.section-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px;
+}
+
+.simple-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.simple-table th,
+.simple-table td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.simple-table th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+}
+
+/* Selector de docente dentro de la tabla */
+.input-control {
+    width: 100%;
+    max-width: 240px;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    background-color: #f8fafc;
+    outline: none;
+}
+
+.input-control:focus {
+    border-color: #2563eb;
+    background-color: #ffffff;
+}
+
+.btn-primary {
+    background-color: #2563eb;
+    color: #ffffff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background-color: #1d4ed8;
+}

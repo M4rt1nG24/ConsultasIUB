@@ -1,0 +1,78 @@
+<div class="dashboard-layout">
+
+    <!-- ==================== SIDEBAR IZQUIERDO ==================== -->
+    <aside class="sidebar">
+        <!-- Logo institucional -->
+        <div class="sidebar-brand">
+            <div class="brand-logo">MT</div>
+            <div class="brand-text">
+                <h1>MiTutoría</h1>
+                <span>Portal Académico IUB</span>
+            </div>
+        </div>
+
+        <!-- Etiqueta de Rol Activo -->
+        <div class="role-section">
+            <span class="role-label">MENÚ {{ rolActual() }}</span>
+        </div>
+
+        <!-- Navegación Dinámica según el rol -->
+        <nav class="sidebar-nav">
+            @for (item of menuDelRol(); track item.ruta) {
+            <a [routerLink]="item.ruta" routerLinkActive="active" class="nav-item">
+                <span class="nav-icon">{{ item.icono }}</span>
+                <span class="nav-text">{{ item.titulo }}</span>
+            </a>
+            }
+        </nav>
+
+        <!-- Pie del Sidebar (Cerrar sesión) -->
+        <div class="sidebar-footer">
+            <a routerLink="/login" class="logout-btn">
+                <span>🚪</span>
+                <span>Cerrar Sesión</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- ==================== CONTENEDOR PRINCIPAL DERECHO ==================== -->
+    <div class="main-container">
+
+        <!-- NAVBAR SUPERIOR -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <h2 class="page-title">Panel de Control</h2>
+            </div>
+
+            <div class="topbar-right">
+                <!-- Selector temporal para que pruebes el cambio de rol en vivo -->
+                <div class="role-switcher">
+                    <label>Probar rol:</label>
+                    <select (change)="cambiarRol($any($event.target).value)">
+                        <option value="ESTUDIANTE" [selected]="rolActual() === 'ESTUDIANTE'">Estudiante</option>
+                        <option value="DOCENTE" [selected]="rolActual() === 'DOCENTE'">Docente</option>
+                        <option value="ADMIN" [selected]="rolActual() === 'ADMIN'">Administrador</option>
+                    </select>
+                </div>
+
+                <!-- Perfil del Usuario -->
+                <div class="user-profile">
+                    <div class="avatar">U</div>
+                    <div class="user-info">
+                        <span class="user-name">Usuario Activo</span>
+                        <span class="user-role-badge">{{ rolActual() }}</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ÁREA DINÁMICA (Aquí se inyectan las rutas hijas independientes) -->
+        <main class="content-area">
+            <div class="content-card">
+                <router-outlet></router-outlet>
+            </div>
+        </main>
+
+    </div>
+
+</div>

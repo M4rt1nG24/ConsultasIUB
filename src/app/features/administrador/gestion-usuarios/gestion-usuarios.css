@@ -1,0 +1,116 @@
+.admin-view {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 14px;
+}
+
+.view-header h2 {
+    margin: 0;
+    font-size: 1.35rem;
+    color: #0f172a;
+}
+
+.view-header p {
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+/* Barra de búsqueda y filtro (Exclusivo de Gestión de Usuarios) */
+.toolbar {
+    display: flex;
+    gap: 12px;
+}
+
+.search-input {
+    flex: 1;
+}
+
+.input-control {
+    padding: 9px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    outline: none;
+    background-color: #ffffff;
+}
+
+.input-control:focus {
+    border-color: #2563eb;
+}
+
+/* Tabla de usuarios */
+.section-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px;
+}
+
+.simple-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.simple-table th,
+.simple-table td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.simple-table th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+}
+
+/* Botones y Badges */
+.btn-primary {
+    background-color: #2563eb;
+    color: #ffffff;
+    border: none;
+    padding: 9px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background-color: #1d4ed8;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.btn-outline:hover {
+    background-color: #f1f5f9;
+}
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-ok {
+    background: #dcfce7;
+    color: #15803d;
+}

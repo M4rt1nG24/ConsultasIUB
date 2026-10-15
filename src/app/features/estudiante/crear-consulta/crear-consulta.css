@@ -1,0 +1,146 @@
+:host {
+    display: block;
+    width: 100%;
+}
+
+.view-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 10px 20px 40px 20px;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.header-section {
+    margin-bottom: 24px;
+}
+
+.badge-tag {
+    display: inline-block;
+    background-color: #e5edf7;
+    color: #173b6c;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+.header-section h2 {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f2747;
+    margin-bottom: 6px;
+}
+
+.header-section p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+
+.main-card {
+    background-color: #ffffff;
+    border-radius: 16px;
+    padding: 30px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(15, 39, 71, 0.05);
+}
+
+.form-content {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+@media (min-width: 650px) {
+    .form-row {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.input-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.input-block label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.form-control {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    color: #1e293b;
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.form-control:focus {
+    background-color: #ffffff;
+    border-color: #184275;
+    box-shadow: 0 0 0 3px rgba(24, 66, 117, 0.12);
+}
+
+textarea.form-control {
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.button-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 10px;
+    padding-top: 20px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.btn-cancel {
+    background-color: #e2e8f0;
+    color: #475569;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 22px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-cancel:hover {
+    background-color: #cbd5e1;
+    color: #1e293b;
+}
+
+.btn-submit {
+    background-color: #184275;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 24px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(24, 66, 117, 0.25);
+    transition: all 0.2s ease;
+}
+
+.btn-submit:hover {
+    background-color: #102d52;
+    transform: translateY(-1px);
+}

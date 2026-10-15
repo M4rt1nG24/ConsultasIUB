@@ -1,0 +1,194 @@
+:host {
+    display: block;
+    width: 100%;
+}
+
+/* Envoltura con márgenes cómodos dentro del layout */
+.view-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 10px 20px 40px 20px;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* Encabezado */
+.header-section {
+    margin-bottom: 24px;
+}
+
+.badge-tag {
+    display: inline-block;
+    background-color: #e5edf7;
+    color: #173b6c;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+.header-section h2 {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f2747;
+    margin-bottom: 6px;
+}
+
+.header-section p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Tarjeta contenedora blanca */
+.main-card {
+    background-color: #ffffff;
+    border-radius: 16px;
+    padding: 30px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(15, 39, 71, 0.05);
+}
+
+/* Banner superior con datos del estudiante */
+.info-card {
+    background-color: #e8f0fa;
+    border: 1px solid #c8d9ee;
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    margin-bottom: 24px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #1a4276;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+}
+
+.info-val {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+/* Formulario */
+.form-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.input-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.input-block label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+/* Inputs, Selects y Textareas */
+.form-control {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    color: #1e293b;
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.form-control:focus {
+    background-color: #ffffff;
+    border-color: #184275;
+    box-shadow: 0 0 0 3px rgba(24, 66, 117, 0.12);
+}
+
+textarea.form-control {
+    resize: vertical;
+    line-height: 1.5;
+}
+
+/* Checkbox de auditoría */
+.audit-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #173b6c;
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.audit-check input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    accent-color: #184275;
+    cursor: pointer;
+}
+
+/* Contenedor de botones alineado a la derecha */
+.button-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 10px;
+    padding-top: 20px;
+    border-top: 1px solid #f1f5f9;
+}
+
+/* Botón Cancelar */
+.btn-cancel {
+    background-color: #e2e8f0;
+    color: #475569;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 22px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-cancel:hover {
+    background-color: #cbd5e1;
+    color: #1e293b;
+}
+
+/* Botón Principal (Azul Institucional) */
+.btn-submit {
+    background-color: #184275;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 24px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(24, 66, 117, 0.25);
+    transition: all 0.2s ease;
+}
+
+.btn-submit:hover {
+    background-color: #102d52;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(24, 66, 117, 0.35);
+}

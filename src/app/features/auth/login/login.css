@@ -1,0 +1,331 @@
+/* Contenedor principal a pantalla completa */
+.login-wrapper {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #071936 0%, #103766 55%, #1e56a0 100%);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* Tarjeta dividida en 2 columnas */
+.login-card {
+    width: 100%;
+    max-width: 1020px;
+    background-color: #ffffff;
+    border-radius: 20px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+}
+
+/* ================= PANEL IZQUIERDO (BANNER IUB) ================= */
+.login-banner {
+    background: linear-gradient(160deg, #0b2247 0%, #16437e 100%);
+    color: #ffffff;
+    padding: 3rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+}
+
+.banner-badge {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    background: rgba(56, 189, 248, 0.18);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    color: #7dd3fc;
+    padding: 0.4rem 0.9rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin-bottom: 1.25rem;
+}
+
+.banner-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+    color: #ffffff;
+}
+
+.banner-subtitle {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.82);
+    margin-bottom: 2rem;
+}
+
+.banner-features {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+.feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.feature-icon {
+    background: #38bdf8;
+    color: #0b2247;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.feature-item h6 {
+    margin: 0 0 0.2rem 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.feature-item p {
+    margin: 0;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.banner-footer {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.55);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding-top: 1rem;
+}
+
+/* ================= PANEL DERECHO (FORMULARIO) ================= */
+.login-form-container {
+    padding: 3rem 2.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: #ffffff;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 1.8rem;
+}
+
+.logo-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.85rem;
+    margin-bottom: 0.85rem;
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.12);
+}
+
+.form-header h2 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 0.35rem;
+}
+
+.form-header p {
+    font-size: 0.88rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Campos del formulario */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.45rem;
+}
+
+/* Caja destacada para el Selector de Rol del Parcial */
+.role-highlight {
+    background-color: #f0f7ff;
+    border: 1.5px solid #bfdbfe;
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+}
+
+.role-highlight label {
+    color: #1e40af;
+    font-weight: 700;
+}
+
+.custom-select {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid #93c5fd;
+    background-color: #ffffff;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.custom-select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+.role-helper {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.76rem;
+    color: #475569;
+}
+
+/* Inputs con icono */
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: 14px;
+    color: #64748b;
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.input-with-icon .form-control {
+    width: 100%;
+    padding: 0.72rem 0.9rem 0.72rem 2.65rem;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.92rem;
+    color: #0f172a;
+    transition: all 0.2s ease;
+}
+
+.input-with-icon .form-control:focus {
+    outline: none;
+    border-color: #1d4ed8;
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.14);
+}
+
+.forgot-link {
+    font-size: 0.8rem;
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.forgot-link:hover {
+    text-decoration: underline;
+}
+
+/* Botón principal */
+.btn-submit {
+    margin-top: 0.4rem;
+    width: 100%;
+    padding: 0.85rem 1.2rem;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1e56a0 0%, #0b2247 100%);
+    color: #ffffff;
+    font-size: 0.98rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+    box-shadow: 0 10px 20px -5px rgba(11, 34, 71, 0.35);
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 24px -5px rgba(11, 34, 71, 0.45);
+}
+
+/* Pie del formulario */
+.form-footer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.84rem;
+}
+
+.back-link {
+    color: #64748b;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.back-link:hover {
+    color: #0f172a;
+}
+
+.register-text {
+    color: #475569;
+}
+
+.register-text a {
+    color: #1d4ed8;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.register-text a:hover {
+    text-decoration: underline;
+}
+
+/* ================= DISEÑO RESPONSIVE (MÓVIL Y TABLET) ================= */
+@media (max-width: 860px) {
+    .login-card {
+        grid-template-columns: 1fr;
+        max-width: 480px;
+    }
+
+    .login-banner {
+        padding: 2rem 1.75rem;
+    }
+
+    .banner-features {
+        display: none;
+        /* Simplifica la vista en pantallas pequeñas */
+    }
+
+    .login-form-container {
+        padding: 2rem 1.75rem;
+    }
+}
