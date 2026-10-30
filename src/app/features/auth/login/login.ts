@@ -5,6 +5,13 @@ import { Router, RouterModule } from '@angular/router';
 
 export type RolUsuario = 'ADMIN' | 'DOCENTE' | 'ESTUDIANTE';
 
+interface CredencialDemo {
+  correo: string;
+  password: string;
+  rol: RolUsuario;
+  ruta: string;
+}
+
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -12,35 +19,45 @@ export type RolUsuario = 'ADMIN' | 'DOCENTE' | 'ESTUDIANTE';
   templateUrl: './login.html',
   styleUrl: './login.css'
 })
-
 export class Login {
   private router = inject(Router);
 
   rolSeleccionado: RolUsuario = 'ADMIN';
   correo: string = 'coordinacion.sistemas@unibarranquilla.edu.co';
   password: string = '12345678';
+  errorMensaje = signal<string>('');
 
-  // Modal para "¿Olvidaste tu contraseña?"
   modalRecuperarAbierto = signal<boolean>(false);
   correoRecuperacion = signal<string>('');
   recuperacionEnviada = signal<boolean>(false);
 
-  // Diccionario de correos demo según el rol
-  private readonly correosDemo: Record<RolUsuario, string> = {
-    ADMIN: 'coordinacion.sistemas@unibarranquilla.edu.co',
-    DOCENTE: 'rpineda@unibarranquilla.edu.co',
-    ESTUDIANTE: 'meclavijo@unibarranquilla.edu.co'
-  };
-
-  // Diccionario de rutas iniciales según tu app.routes.ts
-  private readonly rutasIniciales: Record<RolUsuario, string> = {
-    ADMIN: '/admin/reportes',
-    DOCENTE: '/docente/asignadas',
-    ESTUDIANTE: '/estudiante/mis-solicitudes'
+  // Credenciales válidas por rol (puedes cambiar la contraseña de cada uno si son distintas)
+  private readonly usuariosValidos: Record<RolUsuario, CredencialDemo> = {
+    ADMIN: {
+      correo: 'coordinacion.sistemas@unibarranquilla.edu.co',
+      password: '12345678',
+      rol: 'ADMIN',
+      ruta: '/admin/reportes'
+    },
+    DOCENTE: {
+      correo: 'rpineda@unibarranquilla.edu.co',
+      password: '12345678',
+      rol: 'DOCENTE',
+      ruta: '/docente/asignadas'
+    },
+    ESTUDIANTE: {
+      correo: 'meclavijo@unibarranquilla.edu.co',
+      password: '12345678',
+      rol: 'ESTUDIANTE',
+      ruta: '/estudiante/mis-solicitudes'
+    }
   };
 
   actualizarCorreoDemo(): void {
-    this.correo = this.correosDemo[this.rolSeleccionado];
+    const credencial = this.usuariosValidos[this.rolSeleccionado];
+    this.correo = credencial.correo;
+    this.password = credencial.password;
+    this.errorMensaje.set('');
   }
 
   abrirModalRecuperar(): void {
@@ -62,12 +79,46 @@ export class Login {
   }
 
   ingresar(): void {
-    // 1. Guardamos la sesión en localStorage
-    localStorage.setItem('rolActivo', this.rolSeleccionado);
-    localStorage.setItem('correoActivo', this.correo);
+    const correoLimpio = this.correo.trim().toLowerCase();
+    const passwordIngresada = this.password;
 
-    // 2. Redirigimos exactamente a la ruta que corresponde al rol
-    const rutaDestino = this.rutasIniciales[this.rolSeleccionado];
-    this.router.navigateByUrl(rutaDestino);
+    if (!correoLimpio || !passwordIngresada) {
+      this.errorMensaje.set('Por favor ingresa tu correo y contraseña.');
+      alert('Por favor ingresa tu correo y contraseña.');
+      return;
+    }
+
+    // Buscamos el usuario por correo
+    const usuarioEncontrado = Object.values(this.usuariosValidos).find(
+      u => u.correo.toLowerCase() === correoLimpio
+    );
+
+    if (!usuarioEncontrado) {
+      this.errorMensaje.set('El correo ingresado no está registrado.');
+      alert('El correo ingresado no está registrado.');
+      return;
+    }
+
+    // Validamos que el correo corresponda al rol seleccionado
+    if (usuarioEncontrado.rol !== this.rolSeleccionado) {
+      this.errorMensaje.set(`Este correo no pertenece al rol ${this.rolSeleccionado}.`);
+      alert(`Este correo pertenece al rol ${usuarioEncontrado.rol}, no a ${this.rolSeleccionado}.`);
+      return;
+    }
+
+    // Validamos la contraseña
+    if (usuarioEncontrado.password !== passwordIngresada) {
+      this.errorMensaje.set('Contraseña incorrecta. Verifica e intenta nuevamente.');
+      alert('Contraseña incorrecta. Verifica e intenta nuevamente.');
+      return;
+
+    }
+
+    // Credenciales válidas: guardamos sesión y redirigimos según su rol
+    this.errorMensaje.set('');
+    localStorage.setItem('rolActivo', usuarioEncontrado.rol);
+    localStorage.setItem('correoActivo', usuarioEncontrado.correo);
+
+    this.router.navigateByUrl(usuarioEncontrado.ruta);
   }
-}
+}

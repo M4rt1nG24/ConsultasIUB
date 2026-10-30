@@ -1,5 +1,19 @@
 /* Reset básico para asegurar que ocupe toda la pantalla */
 :host {
+    /* Paleta institucional IUB: azules + amarillos */
+    --iub-blue-950: #071936;
+    --iub-blue-900: #0b2247;
+    --iub-blue-800: #103766;
+    --iub-blue-700: #16437e;
+    --iub-blue-600: #1e56a0;
+    --iub-blue-100: #e3ecf8;
+    --iub-blue-50: #f3f7fc;
+    --iub-yellow-600: #d99a00;
+    --iub-yellow-500: #f5b800;
+    --iub-yellow-400: #ffc928;
+    --iub-yellow-200: #ffe58a;
+    --iub-yellow-50: #fff9e6;
+
     display: block;
     height: 100vh;
     width: 100vw;
@@ -11,8 +25,8 @@
     display: flex;
     height: 100vh;
     width: 100%;
-    background-color: #f1f5f9;
-    /* Fondo gris claro para el área de trabajo */
+    background: linear-gradient(180deg, var(--iub-blue-50) 0%, #fdfaf0 100%);
+    /* Fondo claro azul → crema para el área de trabajo */
 }
 
 /* ==========================================================================
@@ -20,13 +34,14 @@
    ========================================================================== */
 .sidebar {
     width: 260px;
-    background-color: #0f172a;
-    /* Azul oscuro / Slate */
+    background: linear-gradient(170deg, var(--iub-blue-950) 0%, var(--iub-blue-800) 60%, var(--iub-blue-700) 100%);
+    /* Azul institucional en degradado */
     color: #f8fafc;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+    box-shadow: 4px 0 18px rgba(7, 25, 54, 0.25);
+    border-right: 3px solid var(--iub-yellow-500);
     z-index: 10;
 }
 
@@ -36,20 +51,26 @@
     align-items: center;
     gap: 12px;
     padding: 0 20px;
-    border-bottom: 1px solid #1e293b;
+    border-bottom: 1px solid rgba(245, 184, 0, 0.25);
 }
 
 .brand-logo {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, var(--iub-yellow-400), var(--iub-yellow-600));
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
     font-size: 1.1rem;
-    color: #ffffff;
+    color: var(--iub-blue-900);
+    box-shadow: 0 4px 14px rgba(245, 184, 0, 0.4);
+    transition: transform 0.3s ease;
+}
+
+.sidebar-brand:hover .brand-logo {
+    transform: rotate(-8deg) scale(1.06);
 }
 
 .brand-text h1 {
@@ -61,7 +82,7 @@
 
 .brand-text span {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--iub-yellow-200);
 }
 
 /* Etiqueta separadora del rol */
@@ -73,7 +94,7 @@
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.08em;
-    color: #64748b;
+    color: var(--iub-yellow-400);
     text-transform: uppercase;
 }
 
@@ -88,29 +109,31 @@
 }
 
 .nav-item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
     border-radius: 8px;
-    color: #cbd5e1;
+    color: #d6e2f3;
     text-decoration: none;
     font-size: 0.92rem;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: all 0.25s ease;
 }
 
 .nav-item:hover {
-    background-color: #1e293b;
-    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--iub-yellow-200);
+    transform: translateX(4px);
 }
 
 /* Estilo cuando la ruta está activa (gracias a routerLinkActive="active") */
 .nav-item.active {
-    background-color: #2563eb;
-    color: #ffffff;
+    background: linear-gradient(90deg, var(--iub-yellow-500), var(--iub-yellow-400));
+    color: var(--iub-blue-900);
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 14px rgba(245, 184, 0, 0.35);
 }
 
 .nav-icon {
@@ -122,7 +145,7 @@
 /* Pie del Sidebar */
 .sidebar-footer {
     padding: 16px 12px;
-    border-top: 1px solid #1e293b;
+    border-top: 1px solid rgba(245, 184, 0, 0.25);
 }
 
 .logout-btn {
@@ -131,15 +154,24 @@
     gap: 12px;
     padding: 12px 16px;
     border-radius: 8px;
-    color: #f87171;
+    color: var(--iub-yellow-200);
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 500;
-    transition: background-color 0.2s;
+    border: 1px solid rgba(245, 184, 0, 0.3);
+    transition: background-color 0.2s, color 0.2s;
 }
 
 .logout-btn:hover {
-    background-color: rgba(248, 113, 113, 0.1);
+    background-color: var(--iub-yellow-500);
+    color: var(--iub-blue-900);
+}
+
+.logout-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 /* ==========================================================================
@@ -157,7 +189,8 @@
 .topbar {
     height: 70px;
     background-color: #ffffff;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 3px solid transparent;
+    border-image: linear-gradient(90deg, var(--iub-blue-800), var(--iub-blue-600) 55%, var(--iub-yellow-500)) 1;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -169,7 +202,17 @@
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--iub-blue-800);
+}
+
+.page-title::after {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 3px;
+    margin-top: 4px;
+    border-radius: 2px;
+    background: var(--iub-yellow-500);
 }
 
 .topbar-right {
@@ -183,19 +226,25 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: #f8fafc;
+    background-color: var(--iub-yellow-50);
     padding: 6px 12px;
     border-radius: 8px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--iub-yellow-200);
     font-size: 0.85rem;
-    color: #475569;
+    color: var(--iub-blue-700);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.role-switcher:hover {
+    border-color: var(--iub-yellow-500);
+    box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.15);
 }
 
 .role-switcher select {
     border: none;
     background: transparent;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--iub-blue-900);
     cursor: pointer;
     outline: none;
 }
@@ -211,8 +260,9 @@
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    background-color: #dbeafe;
-    color: #1d4ed8;
+    background: linear-gradient(135deg, var(--iub-blue-800), var(--iub-blue-600));
+    color: var(--iub-yellow-400);
+    border: 2px solid var(--iub-yellow-500);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -227,13 +277,18 @@
 .user-name {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--iub-blue-900);
 }
 
 .user-role-badge {
+    align-self: flex-start;
+    margin-top: 2px;
+    padding: 1px 8px;
+    border-radius: 10px;
     font-size: 0.72rem;
-    font-weight: 600;
-    color: #2563eb;
+    font-weight: 700;
+    color: var(--iub-blue-900);
+    background-color: var(--iub-yellow-400);
 }
 
 /* ==========================================================================
@@ -251,6 +306,169 @@
     border-radius: 12px;
     padding: 24px;
     min-height: calc(100vh - 130px);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 16px rgba(16, 55, 102, 0.08);
+    border: 1px solid var(--iub-blue-100);
+    border-top: 4px solid var(--iub-yellow-500);
+    animation: fadeUp 0.35s ease;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ==================== CHAT FLOTANTE IA (OLLAMA) ==================== */
+.ia-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    background: #0d47a1;
+    color: #ffffff;
+    border: none;
+    border-radius: 50px;
+    padding: 14px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(13, 71, 161, 0.35);
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.ia-fab:hover {
+    background: #1565c0;
+    transform: translateY(-2px);
+}
+
+.ia-chat-window {
+    position: fixed;
+    bottom: 84px;
+    right: 24px;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    height: 480px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1000;
     border: 1px solid #e2e8f0;
+}
+
+.ia-chat-header {
+    background: #0d47a1;
+    color: #ffffff;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ia-subtitle {
+    display: block;
+    font-size: 11px;
+    opacity: 0.85;
+}
+
+.ia-close-btn {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.ia-chat-messages {
+    flex: 1;
+    padding: 14px;
+    overflow-y: auto;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ia-msg {
+    display: flex;
+}
+
+.ia-msg-user {
+    justify-content: flex-end;
+}
+
+.ia-msg-bot {
+    justify-content: flex-start;
+}
+
+.ia-msg-bubble {
+    max-width: 82%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.ia-msg-user .ia-msg-bubble {
+    background: #0d47a1;
+    color: #ffffff;
+    border-bottom-right-radius: 4px;
+}
+
+.ia-msg-bot .ia-msg-bubble {
+    background: #ffffff;
+    color: #1e293b;
+    border: 1px solid #e2e8f0;
+    border-bottom-left-radius: 4px;
+}
+
+.ia-typing {
+    font-size: 12px;
+    color: #64748b;
+    font-style: italic;
+}
+
+.ia-chat-input {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+}
+
+.ia-chat-input input {
+    flex: 1;
+    padding: 9px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 13.5px;
+    outline: none;
+}
+
+.ia-chat-input input:focus {
+    border-color: #0d47a1;
+}
+
+.ia-chat-input button {
+    background: #0d47a1;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 0 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ia-chat-input button:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
 }

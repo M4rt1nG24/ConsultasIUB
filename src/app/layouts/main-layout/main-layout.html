@@ -29,7 +29,7 @@
         <!-- Pie del Sidebar (Cerrar sesión) -->
         <div class="sidebar-footer">
             <a routerLink="/login" class="logout-btn">
-                <span>🚪</span>
+                <img src="log-out.ico" alt="" class="logout-icon" aria-hidden="true">
                 <span>Cerrar Sesión</span>
             </a>
         </div>
@@ -48,16 +48,6 @@
             </div>
 
             <div class="topbar-right">
-                <!-- Selector temporal para que pruebes el cambio de rol en vivo -->
-                <div class="role-switcher">
-                    <label>Probar rol:</label>
-                    <select (change)="cambiarRol($any($event.target).value)">
-                        <option value="ESTUDIANTE" [selected]="rolActual() === 'ESTUDIANTE'">Estudiante</option>
-                        <option value="DOCENTE" [selected]="rolActual() === 'DOCENTE'">Docente</option>
-                        <option value="ADMIN" [selected]="rolActual() === 'ADMIN'">Administrador</option>
-                    </select>
-                </div>
-
                 <!-- Perfil del Usuario -->
                 <div class="user-profile">
                     <div class="avatar">U</div>
@@ -78,5 +68,43 @@
         </main>
 
     </div>
+
+    <!-- ==================== CHAT FLOTANTE IA (OLLAMA) ==================== -->
+    <button type="button" class="ia-fab" (click)="toggleChat()">
+        {{ chatAbierto() ? 'Cerrar' : 'Asistente IA' }}
+    </button>
+
+    @if (chatAbierto()) {
+    <div class="ia-chat-window">
+        <div class="ia-chat-header">
+            <div>
+                <strong>Asistente IA - MiTutoría</strong>
+                <span class="ia-subtitle">Ollama Local</span>
+            </div>
+            <button type="button" class="ia-close-btn" (click)="toggleChat()">X</button>
+        </div>
+
+        <div class="ia-chat-messages">
+            @for (msg of mensajesIA(); track $index) {
+            <div class="ia-msg" [class.ia-msg-user]="msg.role === 'user'" [class.ia-msg-bot]="msg.role === 'assistant'">
+                <div class="ia-msg-bubble">
+                    {{ msg.content }}
+                </div>
+            </div>
+            }
+            @if (cargandoIA()) {
+            <div class="ia-typing">Escribiendo respuesta...</div>
+            }
+        </div>
+
+        <div class="ia-chat-input">
+            <input type="text" name="preguntaIA" [(ngModel)]="preguntaIA" (keyup.enter)="enviarPreguntaIA()"
+                placeholder="Pregúntale algo a la IA..." [disabled]="cargandoIA()" />
+            <button type="button" (click)="enviarPreguntaIA()" [disabled]="cargandoIA()">
+                Enviar
+            </button>
+        </div>
+    </div>
+    }
 
 </div>
