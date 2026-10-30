@@ -1,87 +1,126 @@
-.admin-view {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+:host {
+    display: block;
+    width: 100%;
 }
 
-.view-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #e2e8f0;
-    padding-bottom: 14px;
+.view-wrapper {
+    max-width: 1050px;
+    margin: 0 auto;
+    padding: 10px 20px 40px 20px;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
-.view-header h2 {
-    margin: 0;
-    font-size: 1.35rem;
-    color: #0f172a;
+.header-section {
+    margin-bottom: 24px;
 }
 
-.view-header p {
-    margin: 4px 0 0;
-    font-size: 0.9rem;
+.badge-tag {
+    display: inline-block;
+    background-color: #e5edf7;
+    color: #173b6c;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+.header-section h2 {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f2747;
+    margin-bottom: 6px;
+}
+
+.header-section p {
+    font-size: 14px;
     color: #64748b;
+    margin: 0;
 }
 
-/* Contenedor y Tabla de Reasignación */
-.section-box {
-    background: #ffffff;
+.toast-notification {
+    background-color: #dcfce7;
+    border: 1px solid #86efac;
+    color: #166534;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.main-card {
+    background-color: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
     border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 18px;
+    box-shadow: 0 4px 20px rgba(15, 39, 71, 0.05);
 }
 
-.simple-table {
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
+    text-align: left;
 }
 
-.simple-table th,
-.simple-table td {
-    text-align: left;
-    padding: 12px;
-    border-bottom: 1px solid #f1f5f9;
+th {
+    background-color: #173b6c;
+    color: #ffffff;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+th:first-child {
+    border-top-left-radius: 8px;
+}
+
+th:last-child {
+    border-top-right-radius: 8px;
+}
+
+td {
+    padding: 14px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
     vertical-align: middle;
 }
 
-.simple-table th {
+tr:hover {
     background-color: #f8fafc;
-    color: #475569;
-    font-weight: 600;
 }
 
-/* Selector de docente dentro de la tabla */
-.input-control {
+.form-control {
     width: 100%;
-    max-width: 240px;
-    padding: 8px 10px;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #1e293b;
+    background-color: #f8fafc;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
-    font-size: 0.85rem;
-    background-color: #f8fafc;
     outline: none;
+    font-family: inherit;
+    transition: all 0.2s ease;
 }
 
-.input-control:focus {
-    border-color: #2563eb;
+.form-control:focus {
     background-color: #ffffff;
-}
-
-.btn-primary {
-    background-color: #2563eb;
-    color: #ffffff;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-}
-
-.btn-primary:hover {
-    background-color: #1d4ed8;
+    border-color: #184275;
+    box-shadow: 0 0 0 3px rgba(24, 66, 117, 0.12);
 }
 
 .teacher-tag {
@@ -103,12 +142,19 @@
     font-weight: 700;
 }
 
-.toast-notification {
-    background-color: #dcfce7;
-    border: 1px solid #86efac;
-    color: #166534;
-    padding: 12px 16px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.9rem;
+.btn-submit {
+    background-color: #184275;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(24, 66, 117, 0.2);
+    transition: all 0.2s ease;
+}
+
+.btn-submit:hover {
+    background-color: #102d52;
 }

@@ -1,34 +1,45 @@
 <div class="view-wrapper">
-
-    <!-- Encabezado de la Sección -->
     <div class="header-section">
-        <span class="badge-tag">Módulo Docente</span>
-        <h2>Atención de Consulta Académica</h2>
-        <p>Diligenciamiento digital de la sesión y registro de trazabilidad en tiempo real (Cero Papel).</p>
+        <span class="badge-tag">Atención de Consulta</span>
+        <h2>Responder Consulta #CNS-2026-0104</h2>
+        <p>Resuelve las inquietudes del estudiante y formaliza el registro de la tutoría académica.</p>
     </div>
 
-    <!-- Tarjeta Principal del Formulario -->
     <div class="main-card">
 
-        <!-- Tarjeta informativa del estudiante -->
+        <!-- Resumen de la consulta recibida -->
         <div class="info-card">
             <div class="info-item">
                 <span class="info-label">Estudiante</span>
-                <span class="info-val">Carlos Mario Pérez (1045892110)</span>
+                <span class="info-val">Carlos Mario Pérez (estudiante@unibarranquilla.edu.co)</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Asignatura</span>
+                <span class="info-label">Curso</span>
                 <span class="info-val">Estructura de Datos</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Sede</span>
-                <span class="info-val">Plaza de la Paz</span>
+                <span class="info-label">Asunto</span>
+                <span class="info-val">Duda taller balanceo AVL</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Archivos del Estudiante</span>
+                <span class="info-val">📎 taller_arboles.cpp (Descargar)</span>
             </div>
         </div>
 
-        <!-- Campos del Formulario -->
+        <!-- Descripción enviada por el estudiante -->
+        <div class="detail-section">
+            <label class="section-label">Descripción del Estudiante:</label>
+            <p class="text-content">
+                Profesor, al intentar ejecutar la rotación doble izquierda-derecha en el árbol AVL, el factor de balance
+                queda con valor 2 en lugar de 0 o 1. Adjunto el código fuente.
+            </p>
+        </div>
+
+        <!-- Campos del Formulario de Atención Docente -->
         <form (ngSubmit)="finalizarRegistro()" class="form-content">
 
+            <!-- Tipo de Atención -->
             <div class="input-block">
                 <label for="tipo">Tipo de Atención *</label>
                 <select id="tipo" class="form-control" [(ngModel)]="tipoAtencion" name="tipo">
@@ -39,6 +50,7 @@
                 </select>
             </div>
 
+            <!-- Temática Tratada -->
             <div class="input-block">
                 <label for="tema">Temática Tratada *</label>
                 <input
@@ -51,6 +63,7 @@
                     required />
             </div>
 
+            <!-- Observaciones y Compromisos -->
             <div class="input-block">
                 <label for="obs">Observaciones y Compromisos Académicos</label>
                 <textarea
@@ -87,7 +100,7 @@
             <h3>✅ Tutoría Registrada Exitosamente</h3>
         </div>
         <div class="modal-body">
-            <p><strong>Folio de Auditoría:</strong> #AUD-2026-{{ 1045892110 }}</p>
+            <p><strong>Folio de Auditoría:</strong> #AUD-2026-1045892110</p>
             <p>La sesión académica de <strong>{{ temaTratado }}</strong> con el estudiante <strong>Carlos Mario Pérez</strong> ha sido radicada digitalmente con control de asistencia <strong>{{ asistenciaConfirmada ? 'Confirmada (1)' : 'Sin Asistencia (0)' }}</strong>.</p>
             <div class="modal-footer">
                 <button type="button" class="btn-submit" (click)="confirmarSalida()">Volver a Bandeja</button>

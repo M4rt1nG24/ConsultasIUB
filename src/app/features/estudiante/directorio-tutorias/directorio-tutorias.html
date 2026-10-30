@@ -1,8 +1,8 @@
 <div class="view-wrapper">
     <div class="header-section">
-        <span class="badge-tag">Módulo Estudiante</span>
-        <h2>Directorio de Tutorías y Monitores</h2>
-        <p>Conoce los docentes disponibles, horarios de atención presencial y enlaces virtuales.</p>
+        <span class="badge-tag">Directorio Académico</span>
+        <h2>Directorio de Cursos y Docentes</h2>
+        <p>Consulta los docentes asignados por materia y sus canales de atención institucional.</p>
     </div>
 
     <!-- Buscador Reactivo -->
@@ -15,7 +15,6 @@
             placeholder="Buscar por asignatura, docente o área de conocimiento..." />
     </div>
 
-    <!-- Grid de Tarjetas de Docentes -->
     <div class="tutors-grid">
         @for (tutor of tutoresFiltrados(); track tutor.id) {
         <div class="tutor-card">

@@ -1,18 +1,41 @@
-<div class="page-container">
-    <div class="page-header">
-        <h1>Bandeja de Tutorías Asignadas</h1>
-        <p>Solicitudes recibidas y estudiantes asignados para atención académica.</p>
+<div class="view-wrapper">
+    <div class="header-section">
+        <span class="badge-tag">Módulo Docente</span>
+        <h2>Bandeja de Consultas Asignadas</h2>
+        <p>Gestión y seguimiento de consultas académicas enviadas por estudiantes.</p>
     </div>
 
-    <div class="card">
+    <!-- Barra de Búsqueda y Filtros -->
+    <div class="filters-container">
+        <input type="text" class="search-input" placeholder="Buscar por asunto, estudiante o curso...">
+
+        <select class="select-filter">
+            <option value="">Todos los Estados</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En proceso">En proceso</option>
+            <option value="Resuelta">Resuelta</option>
+            <option value="Cerrada">Cerrada</option>
+        </select>
+
+        <select class="select-filter">
+            <option value="">Prioridad</option>
+            <option value="Alta">Alta</option>
+            <option value="Media">Media</option>
+            <option value="Baja">Baja</option>
+        </select>
+
+        <input type="date" class="date-filter">
+    </div>
+
+    <div class="main-card">
         <div class="table-wrapper">
             <table>
                 <thead>
                     <tr>
-                        <th>Código / Estudiante</th>
+                        <th>Estudiante / ID</th>
                         <th>Asignatura</th>
-                        <th>Tema de Consulta</th>
-                        <th>Fecha Solicitud</th>
+                        <th>Tema / Consulta</th>
+                        <th>Fecha Radicación</th>
                         <th>Estado</th>
                         <th>Acción</th>
                     </tr>
@@ -21,18 +44,15 @@
                     @for (item of solicitudes(); track item.codigo) {
                     <tr>
                         <td>
-                            <strong>{{ item.codigo }}</strong><br>
-                            <span>{{ item.estudiante }}</span>
+                            <strong>{{ item.estudiante }}</strong><br>
+                            <small class="text-muted">ID: {{ item.codigo }}</small>
                         </td>
                         <td>{{ item.asignatura }}</td>
                         <td>{{ item.tema }}</td>
                         <td>{{ item.fecha }}</td>
-                        <td><span class="badge-status status-pending">{{ item.estado }}</span></td>
+                        <td><span class="badge-status status-pendiente">{{ item.estado }}</span></td>
                         <td>
-                            <button
-                                class="btn-primary"
-                                type="button"
-                                (click)="atender(item)">
+                            <button class="btn-action-primary" type="button" (click)="atender(item)">
                                 Atender
                             </button>
                         </td>

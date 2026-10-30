@@ -1,66 +1,107 @@
-<div class="dashboard-layout">
+<div class="layout-container">
 
-    <!-- ==================== SIDEBAR IZQUIERDO ==================== -->
+    <!-- BARRA LATERAL (SIDEBAR) -->
     <aside class="sidebar">
-        <!-- Logo institucional -->
         <div class="sidebar-brand">
-            <div class="brand-logo">MT</div>
-            <div class="brand-text">
-                <h1>MiTutoría</h1>
-                <span>Portal Académico IUB</span>
+            <div class="brand-logo">IUB</div>
+            <div>
+                <h2 class="brand-title">MiTutoría</h2>
+                <span class="brand-badge">Sistema Institucional</span>
             </div>
         </div>
 
-        <!-- Etiqueta de Rol Activo -->
-        <div class="role-section">
-            <span class="role-label">MENÚ {{ rolActual() }}</span>
+        <!-- Selector de Rol (Simulador / Switch de rol institucional) -->
+        <div class="role-selector-card">
+            <label for="rolSelect">Rol Activo</label>
+            <select id="rolSelect" [value]="rolActual()" (change)="cambiarRol($any($event.target).value)"
+                class="role-select">
+                <option value="ESTUDIANTE">Estudiante</option>
+                <option value="DOCENTE">Docente</option>
+                <option value="ADMIN">Administrador</option>
+            </select>
         </div>
 
-        <!-- Navegación Dinámica según el rol -->
+        <!-- Menú de Rutas Dinámicas -->
         <nav class="sidebar-nav">
             @for (item of menuDelRol(); track item.ruta) {
-            <a [routerLink]="item.ruta" routerLinkActive="active" class="nav-item">
+            <a [routerLink]="item.ruta" routerLinkActive="active-link" class="nav-item">
                 <span class="nav-icon">{{ item.icono }}</span>
-                <span class="nav-text">{{ item.titulo }}</span>
+                <span class="nav-title">{{ item.titulo }}</span>
             </a>
             }
         </nav>
 
-        <!-- Pie del Sidebar (Cerrar sesión) -->
+        <!-- Botón de Cierre de Sesión (Requerimiento Funcional) -->
         <div class="sidebar-footer">
-            <a routerLink="/login" class="logout-btn">
-                <img src="log-out.ico" alt="" class="logout-icon" aria-hidden="true">
+            <button type="button" class="btn-logout" (click)="cerrarSesion()">
+                <span class="logout-icon">🚪</span>
                 <span>Cerrar Sesión</span>
-            </a>
+            </button>
         </div>
     </aside>
 
-    <!-- ==================== CONTENEDOR PRINCIPAL DERECHO ==================== -->
-    <div class="main-container">
+    <!-- CONTENEDOR PRINCIPAL DERECHO -->
+    <div class="main-wrapper">
 
         <!-- ENCABEZADO INSTITUCIONAL COMPARTIDO -->
         <app-header></app-header>
 
         <!-- NAVBAR SUPERIOR -->
         <header class="topbar">
-            <div class="topbar-left">
-                <h2 class="page-title">Panel de Control</h2>
+
+            <!-- Búsqueda rápida (Requerimiento funcional) -->
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" placeholder="Buscar por radicado, asunto, curso, docente..." class="search-input" />
             </div>
 
-            <div class="topbar-right">
-                <!-- Perfil del Usuario -->
+            <!-- Acciones de cabecera -->
+            <div class="header-actions">
+
+                <!-- Botón de Notificaciones (Requerimiento funcional) -->
+                <div class="notif-wrapper">
+                    <button type="button" class="btn-icon" (click)="toggleNotificaciones()">
+                        🔔
+                        @if (notificacionesPendientes() > 0) {
+                        <span class="notif-badge">{{ notificacionesPendientes() }}</span>
+                        }
+                    </button>
+
+                    <!-- Ventana flotante de notificaciones -->
+                    @if (mostrarNotificaciones()) {
+                    <div class="notif-dropdown">
+                        <div class="notif-header">
+                            <strong>Notificaciones</strong>
+                            <button type="button" class="btn-text-read" (click)="marcarTodasLeidas()">Marcar leídas</button>
+                        </div>
+                        <div class="notif-body">
+                            @for (notif of notificaciones(); track notif.id) {
+                            <div class="notif-item" [class.unread]="!notif.leida">
+                                <p class="notif-text">{{ notif.mensaje }}</p>
+                                <small class="notif-time">{{ notif.fecha }}</small>
+                            </div>
+                            }
+                        </div>
+                    </div>
+                    }
+                </div>
+
+                <!-- Perfil del usuario activo -->
                 <div class="user-profile">
-                    <div class="avatar">U</div>
-                    <div class="user-info">
-                        <span class="user-name">Usuario Activo</span>
+                    <div class="avatar">
+                        {{ rolActual().charAt(0) }}
+                    </div>
+                    <div class="user-meta">
+                        <span class="user-name">Usuario IUB</span>
                         <span class="user-role-badge">{{ rolActual() }}</span>
                     </div>
                 </div>
+
             </div>
         </header>
 
-        <!-- ÁREA DINÁMICA (Aquí se inyectan las rutas hijas independientes) -->
-        <main class="content-area">
+        <!-- ÁREA DINÁMICA DE VISTAS ENRUTADAS -->
+        <main class="page-content">
             <div class="content-card">
                 <router-outlet></router-outlet>
             </div>
@@ -81,7 +122,7 @@
                 <strong>Asistente IA - MiTutoría</strong>
                 <span class="ia-subtitle">Ollama Local</span>
             </div>
-            <button type="button" class="ia-close-btn" (click)="toggleChat()">X</button>
+            <button type="button" class="ia-close-btn" (click)="toggleChat()">✕</button>
         </div>
 
         <div class="ia-chat-messages">

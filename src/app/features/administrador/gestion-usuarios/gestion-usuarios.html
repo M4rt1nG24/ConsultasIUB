@@ -1,31 +1,34 @@
-<div class="admin-view">
+<div class="view-wrapper">
     <!-- Notificación Toast -->
     <div class="toast-notification" *ngIf="mensajeFeedback()">
         <span>✅ {{ mensajeFeedback() }}</span>
     </div>
 
-    <div class="view-header">
-        <div>
-            <h2>👥 Gestión de Usuarios</h2>
-            <p>Administra las cuentas de estudiantes, docentes y coordinadores institucionales.</p>
+    <div class="header-section">
+        <div class="header-title-row">
+            <div>
+                <span class="badge-tag">Módulo Administrador</span>
+                <h2>👥 Gestión de Usuarios y Roles</h2>
+                <p>Administración y control de accesos para estudiantes, docentes y administradores.</p>
+            </div>
+            <button class="btn-primary" type="button" (click)="abrirModalCrear()">+ Nuevo Usuario</button>
         </div>
-        <button class="btn-primary" type="button" (click)="abrirModalCrear()">+ Nuevo Usuario</button>
     </div>
 
     <!-- Barra de filtros interactiva -->
-    <div class="toolbar">
+    <div class="filters-container">
         <input
             type="text"
-            placeholder="Buscar por nombre, correo o programa institucional..."
-            class="input-control search-input"
+            placeholder="Buscar por nombre, correo institucional o programa..."
+            class="search-input"
             [ngModel]="filtroTexto()"
             (ngModelChange)="filtroTexto.set($event)" />
 
         <select
-            class="input-control"
+            class="select-filter"
             [ngModel]="filtroRol()"
             (ngModelChange)="filtroRol.set($event)">
-            <option value="">Todos los roles</option>
+            <option value="">Todos los Roles</option>
             <option value="ADMIN">Administrador</option>
             <option value="DOCENTE">Docente</option>
             <option value="ESTUDIANTE">Estudiante</option>
@@ -33,47 +36,49 @@
     </div>
 
     <!-- Tabla de usuarios dinámica -->
-    <div class="section-box">
-        <table class="simple-table">
-            <thead>
-                <tr>
-                    <th>Nombre Completo</th>
-                    <th>Correo Institucional</th>
-                    <th>Programa / Área</th>
-                    <th>Rol</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @for (u of usuariosFiltrados(); track u.id) {
-                <tr>
-                    <td><strong>{{ u.nombre }}</strong></td>
-                    <td>{{ u.email }}</td>
-                    <td>{{ u.programa }}</td>
-                    <td>
-                        <span class="role-badge" [ngClass]="'role-' + u.rol.toLowerCase()">
-                            {{ u.rol }}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="badge" [ngClass]="u.estado === 'Activo' ? 'badge-ok' : 'badge-inactive'">
-                            {{ u.estado }}
-                        </span>
-                    </td>
-                    <td>
-                        <button class="btn-outline" type="button" (click)="abrirModalEditar(u)">Editar</button>
-                    </td>
-                </tr>
-                } @empty {
-                <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">
-                        No se encontraron usuarios que coincidan con los filtros de búsqueda.
-                    </td>
-                </tr>
-                }
-            </tbody>
-        </table>
+    <div class="main-card">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre Completo</th>
+                        <th>Correo Institucional</th>
+                        <th>Programa / Área</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (u of usuariosFiltrados(); track u.id) {
+                    <tr>
+                        <td><strong>{{ u.nombre }}</strong></td>
+                        <td>{{ u.email }}</td>
+                        <td>{{ u.programa }}</td>
+                        <td>
+                            <span class="badge-role" [ngClass]="'role-' + u.rol.toLowerCase()">
+                                {{ u.rol }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge-status" [ngClass]="u.estado === 'Activo' ? 'status-activo' : 'status-inactivo'">
+                                {{ u.estado }}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn-action" type="button" (click)="abrirModalEditar(u)">Editar</button>
+                        </td>
+                    </tr>
+                    } @empty {
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            No se encontraron usuarios que coincidan con los filtros de búsqueda.
+                        </td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

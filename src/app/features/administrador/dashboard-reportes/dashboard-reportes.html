@@ -1,77 +1,128 @@
-<div class="admin-view">
+<div class="view-wrapper">
+    <!-- Notificación Toast -->
     <div class="toast-notification" *ngIf="mensajeToast()">
         <span>{{ mensajeToast() }}</span>
     </div>
 
-    <div class="view-header">
-        <div>
-            <h2>📊 Reportes y Estadísticas</h2>
-            <p>Resumen general de tutorías académicas del cuatrimestre actual.</p>
+    <div class="header-section">
+        <div class="header-title-row">
+            <div>
+                <span class="badge-tag">Módulo Administrador</span>
+                <h2>📊 Reportes y Estadísticas</h2>
+                <p>Generación y descarga de analítica institucional del cuatrimestre actual.</p>
+            </div>
+            <button class="btn-primary" type="button" (click)="abrirModalExportar()">
+                Exportar Informe PDF
+            </button>
         </div>
-        <button class="btn-primary" type="button" (click)="abrirModalExportar()">Exportar PDF</button>
     </div>
 
-    <!-- Tarjetas de resumen (KPIs) -->
+    <!-- Resumen de Estados según requerimientos funcionales (KPIs) -->
     <div class="stats-grid">
         <div class="stat-card">
-            <span class="stat-title">Total Solicitudes</span>
-            <strong class="stat-number">128</strong>
-            <span class="stat-sub">En este período</span>
+            <div class="stat-icon-box stat-icon-blue"></div>
+            <div>
+                <span class="stat-label">Consultas Resueltas</span>
+                <h3 class="stat-value text-success">142</h3>
+            </div>
         </div>
+
         <div class="stat-card">
-            <span class="stat-title">Atendidas</span>
-            <strong class="stat-number text-success">96</strong>
-            <span class="stat-sub">75% de efectividad</span>
+            <div class="stat-icon-box stat-icon-amber"></div>
+            <div>
+                <span class="stat-label">Consultas Pendientes</span>
+                <h3 class="stat-value text-warning">19</h3>
+            </div>
         </div>
+
         <div class="stat-card">
-            <span class="stat-title">Pendientes</span>
-            <strong class="stat-number text-warning">24</strong>
-            <span class="stat-sub">En bandeja de docentes</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-title">Sin Asignar / Vencidas</span>
-            <strong class="stat-number text-danger">8</strong>
-            <span class="stat-sub">Requieren reasignación</span>
+            <div class="stat-icon-box stat-icon-cyan"></div>
+            <div>
+                <span class="stat-label">Tiempo Promedio de Respuesta</span>
+                <h3 class="stat-value">3.8 Horas</h3>
+            </div>
         </div>
     </div>
 
-    <!-- Tabla de asignaturas con más demanda -->
-    <div class="section-box">
-        <h3>Consultas por Asignatura</h3>
-        <table class="simple-table">
-            <thead>
-                <tr>
-                    <th>Asignatura</th>
-                    <th>Docente Titular</th>
-                    <th>Solicitudes</th>
-                    <th>Atendidas</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Programación Web</td>
-                    <td>Ing. Roberto Pineda</td>
-                    <td>42</td>
-                    <td>39</td>
-                    <td><span class="badge badge-ok">Al día</span></td>
-                </tr>
-                <tr>
-                    <td>Bases de Datos II</td>
-                    <td>Ing. Laura Gómez</td>
-                    <td>35</td>
-                    <td>25</td>
-                    <td><span class="badge badge-warn">Alta demanda</span></td>
-                </tr>
-                <tr>
-                    <td>Estructura de Datos</td>
-                    <td>Ing. Carlos Ruiz</td>
-                    <td>28</td>
-                    <td>27</td>
-                    <td><span class="badge badge-ok">Al día</span></td>
-                </tr>
-            </tbody>
-        </table>
+    <!-- Dos paneles: Reporte por Curso y Reporte por Docente -->
+    <div class="reports-split">
+
+        <!-- Reporte 1: Consultas por Curso -->
+        <div class="main-card report-panel">
+            <h3>Consultas por Curso</h3>
+            <p class="panel-sub">Total acumulado de consultas radicadas por asignatura.</p>
+
+            <div class="report-list">
+                <div class="report-row">
+                    <div class="row-info">
+                        <span>Estructura de Datos</span>
+                        <strong>68 consultas</strong>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="fill" style="width: 75%;"></div>
+                    </div>
+                </div>
+
+                <div class="report-row">
+                    <div class="row-info">
+                        <span>Bases de Datos Relacionales</span>
+                        <strong>45 consultas</strong>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="fill" style="width: 50%;"></div>
+                    </div>
+                </div>
+
+                <div class="report-row">
+                    <div class="row-info">
+                        <span>Programación Web</span>
+                        <strong>32 consultas</strong>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="fill" style="width: 35%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reporte 2: Consultas por Docente -->
+        <div class="main-card report-panel">
+            <h3>Consultas por Docente</h3>
+            <p class="panel-sub">Carga y efectividad de respuesta por docente asignado.</p>
+
+            <div class="report-list">
+                <div class="report-row">
+                    <div class="row-info">
+                        <span>Ing. Carlos Mendoza</span>
+                        <strong>54 atendidas (96%)</strong>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="fill" style="width: 80%;"></div>
+                    </div>
+                </div>
+
+                <div class="report-row">
+                    <div class="row-info">
+                        <span>Ing. Diana Rodríguez</span>
+                        <strong>48 atendidas (92%)</strong>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="fill" style="width: 70%;"></div>
+                    </div>
+                </div>
+
+                <div class="report-row">
+                    <div class="row-info">
+                        <span>Ing. Roberto Suárez</span>
+                        <strong>30 atendidas (88%)</strong>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="fill" style="width: 45%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 

@@ -1,28 +1,31 @@
-<div class="page-container">
-    <div class="page-header">
-        <h1>Historial de Tutorías Realizadas</h1>
+<div class="view-wrapper">
+    <div class="header-section">
+        <span class="badge-tag">Módulo Docente</span>
+        <h2>Historial de Tutorías Realizadas</h2>
         <p>Registro histórico digital de todas las atenciones académicas completadas (Cero Papel).</p>
     </div>
 
-    <div class="card">
-        <div class="filter-bar">
-            <input
-                type="text"
-                class="input-search"
-                [ngModel]="busqueda()"
-                (ngModelChange)="busqueda.set($event)"
-                placeholder="Buscar por estudiante, cédula o temática...">
-            <select
-                class="select-filter"
-                [ngModel]="filtroAsignatura()"
-                (ngModelChange)="filtroAsignatura.set($event)">
-                <option value="Todas las asignaturas">Todas las asignaturas</option>
-                <option value="Estructura de Datos">Estructura de Datos</option>
-                <option value="Bases de Datos">Bases de Datos</option>
-                <option value="Programación Web">Programación Web</option>
-            </select>
-        </div>
+    <!-- Filtros de búsqueda -->
+    <div class="filters-container">
+        <input
+            type="text"
+            class="search-input"
+            [ngModel]="busqueda()"
+            (ngModelChange)="busqueda.set($event)"
+            placeholder="Buscar por estudiante, documento o temática...">
 
+        <select
+            class="select-filter"
+            [ngModel]="filtroAsignatura()"
+            (ngModelChange)="filtroAsignatura.set($event)">
+            <option value="Todas las asignaturas">Todas las asignaturas</option>
+            <option value="Estructura de Datos">Estructura de Datos</option>
+            <option value="Bases de Datos">Bases de Datos</option>
+            <option value="Programación Web">Programación Web</option>
+        </select>
+    </div>
+
+    <div class="main-card">
         <div class="table-wrapper">
             <table>
                 <thead>
@@ -51,7 +54,7 @@
                             </span>
                         </td>
                         <td>
-                            <button class="btn-secondary" type="button" (click)="abrirFormato(item)">
+                            <button class="btn-action" type="button" (click)="abrirFormato(item)">
                                 Ver Formato
                             </button>
                         </td>

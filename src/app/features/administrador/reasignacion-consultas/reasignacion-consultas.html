@@ -1,65 +1,66 @@
-<div class="admin-view">
+<div class="view-wrapper">
     <!-- Toast -->
     <div class="toast-notification" *ngIf="mensajeToast()">
         <span>✅ {{ mensajeToast() }}</span>
     </div>
 
-    <div class="view-header">
-        <div>
-            <h2>🔄 Reasignación de Consultas</h2>
-            <p>Transfiere solicitudes pendientes o represadas a otro docente disponible del área.</p>
-        </div>
+    <div class="header-section">
+        <span class="badge-tag">Módulo Administrador</span>
+        <h2>🔄 Reasignación de Consultas</h2>
+        <p>Transfiere solicitudes pendientes o represadas a otro docente disponible del área.</p>
     </div>
 
-    <div class="section-box">
-        <table class="simple-table">
-            <thead>
-                <tr>
-                    <th>Ticket</th>
-                    <th>Estudiante</th>
-                    <th>Asignatura / Tema</th>
-                    <th>Docente Titular Actual</th>
-                    <th>Reasignar a</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody>
-                @for (item of solicitudes(); track item.ticket) {
-                <tr>
-                    <td><strong>{{ item.ticket }}</strong></td>
-                    <td>{{ item.estudiante }}</td>
-                    <td>{{ item.asignatura }}</td>
-                    <td>
-                        <span class="teacher-tag">{{ item.docenteActual }}</span>
-                    </td>
-                    <td>
-                        <select
-                            class="input-control"
-                            [(ngModel)]="item.docenteSeleccionado"
-                            [disabled]="item.reasignado">
-                            <option value="">Seleccionar docente...</option>
-                            @for (doc of docentesDisponibles; track doc) {
-                                @if (doc !== item.docenteActual) {
-                                    <option [value]="doc">{{ doc }}</option>
+    <div class="main-card">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ticket</th>
+                        <th>Estudiante</th>
+                        <th>Asignatura / Tema</th>
+                        <th>Docente Titular Actual</th>
+                        <th>Reasignar a</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (item of solicitudes(); track item.ticket) {
+                    <tr>
+                        <td><strong>{{ item.ticket }}</strong></td>
+                        <td>{{ item.estudiante }}</td>
+                        <td>{{ item.asignatura }}</td>
+                        <td>
+                            <span class="teacher-tag">{{ item.docenteActual }}</span>
+                        </td>
+                        <td>
+                            <select
+                                class="form-control"
+                                [(ngModel)]="item.docenteSeleccionado"
+                                [disabled]="item.reasignado">
+                                <option value="">Seleccionar docente...</option>
+                                @for (doc of docentesDisponibles; track doc) {
+                                    @if (doc !== item.docenteActual) {
+                                        <option [value]="doc">{{ doc }}</option>
+                                    }
                                 }
+                            </select>
+                        </td>
+                        <td>
+                            @if (!item.reasignado) {
+                                <button
+                                    class="btn-submit"
+                                    type="button"
+                                    (click)="confirmar(item)">
+                                    Confirmar
+                                </button>
+                            } @else {
+                                <span class="badge-done">✓ Reasignado</span>
                             }
-                        </select>
-                    </td>
-                    <td>
-                        @if (!item.reasignado) {
-                            <button
-                                class="btn-primary btn-sm"
-                                type="button"
-                                (click)="confirmar(item)">
-                                Confirmar
-                            </button>
-                        } @else {
-                            <span class="badge-done">✓ Reasignado</span>
-                        }
-                    </td>
-                </tr>
-                }
-            </tbody>
-        </table>
+                        </td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>

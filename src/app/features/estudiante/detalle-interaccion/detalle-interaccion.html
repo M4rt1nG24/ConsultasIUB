@@ -1,61 +1,71 @@
 <div class="view-wrapper">
     <div class="header-section">
-        <span class="badge-tag">Módulo Estudiante</span>
-        <h2>Detalle de Interacción Académica</h2>
-        <p>Registro oficial de la tutoría realizada, firmas y compromisos pactados.</p>
+        <span class="badge-tag">Trazabilidad de Consulta</span>
+        <h2>Consulta #CNS-2026-0104</h2>
+        <p>Historial cronológico de interacciones, comentarios y respuestas entre docente y estudiante.</p>
     </div>
 
     <div class="main-card">
 
-        <!-- Resumen Superior -->
+        <!-- Metadatos de la consulta -->
         <div class="summary-box">
             <div class="summary-item">
-                <span class="label">Asignatura</span>
+                <span class="label">Materia / Curso</span>
                 <span class="val">Estructura de Datos</span>
             </div>
             <div class="summary-item">
-                <span class="label">Tutor</span>
+                <span class="label">Docente Asignado</span>
                 <span class="val">Ing. Carlos Mendoza</span>
             </div>
             <div class="summary-item">
-                <span class="label">Fecha y Hora</span>
-                <span class="val">14/10/2026 - 03:30 PM</span>
+                <span class="label">Prioridad</span>
+                <span class="val">Alta</span>
             </div>
             <div class="summary-item">
-                <span class="label">Estado Auditoría</span>
-                <span class="badge-pill">Confirmada (1)</span>
+                <span class="label">Estado Actual</span>
+                <span class="badge-status status-en-proceso">En proceso</span>
             </div>
         </div>
 
-        <!-- Contenido del Acta -->
-        <div class="detail-section">
-            <h3>Temática Abordada</h3>
-            <p class="text-content">
-                Implementación de rotaciones simples y dobles en árboles balanceados AVL. Solución de dudas sobre
-                factores de equilibrio y complejidad algorítmica.
-            </p>
-        </div>
+        <!-- Hilo de Conversación / Historial de Interacciones -->
+        <div class="timeline">
 
-        <div class="detail-section">
-            <h3>Compromisos Académicos Pactados</h3>
-            <div class="tasks-box">
-                <div class="task-entry">
-                    <input type="checkbox" checked disabled>
-                    <span>Realizar taller práctico de rotaciones izquierdas y derechas.</span>
+            <!-- Mensaje Inicial del Estudiante -->
+            <div class="message-box student-msg">
+                <div class="msg-header">
+                    <strong>Estudiante (Tú)</strong>
+                    <small>14/10/2026 - 10:15 AM</small>
                 </div>
-                <div class="task-entry">
-                    <input type="checkbox" disabled>
-                    <span>Revisión de implementación en Java para el próximo viernes.</span>
+                <p>Profesor, tengo inconvenientes con el cálculo del factor de equilibrio en la inserción de nodos del
+                    taller 3.</p>
+                <div class="attachments">
+                    <span class="attach-badge">📎 taller_arboles.cpp</span>
+                    <span class="attach-badge">📎 error_consola.png</span>
                 </div>
             </div>
+
+            <!-- Respuesta del Docente -->
+            <div class="message-box teacher-msg">
+                <div class="msg-header">
+                    <strong>Docente: Ing. Carlos Mendoza</strong>
+                    <small>14/10/2026 - 11:30 AM</small>
+                </div>
+                <p>Hola Carlos. Revisé tu código adjunto; la rotación doble derecha-izquierda se está invocando antes de
+                    recalcular la altura del subárbol izquierdo. Prueba actualizando primero las alturas.</p>
+            </div>
+
         </div>
 
-        <!-- Trazabilidad Digital -->
-        <div class="audit-footer">
-            <div>
-                <small class="audit-meta">Marca de tiempo de registro: 14/10/2026 16:15:02 COT</small><br>
-                <small class="audit-meta">Sede: Plaza de la Paz - Sala de Cómputo 10</small>
+        <!-- Caja para que el estudiante agregue un comentario/respuesta -->
+        <div class="reply-section">
+            <h3>Agregar Comentario o Respuesta a esta Consulta</h3>
+            <textarea rows="3" class="form-control" placeholder="Escribe tu mensaje o duda adicional..."></textarea>
+
+            <div class="reply-actions">
+                <input type="file" class="file-input" />
+                <button type="button" class="btn-submit">Enviar Comentario</button>
             </div>
+
             <div class="actions-group">
                 <button type="button" class="btn-cert" (click)="descargarConstancia()">Descargar Constancia</button>
                 <button type="button" class="btn-back" (click)="volver()">Volver a Mis Solicitudes</button>

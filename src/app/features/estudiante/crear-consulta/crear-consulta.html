@@ -1,38 +1,40 @@
 <div class="view-wrapper">
     <div class="header-section">
         <span class="badge-tag">Módulo Estudiante</span>
-        <h2>Crear Nueva Solicitud de Tutoría</h2>
-        <p>Registra tu duda o tema a consultar para programar una sesión académica.</p>
+        <h2>Crear Nueva Consulta</h2>
+        <p>Ingresa la información requerida. El sistema generará un número de radicado único automáticamente.</p>
     </div>
 
     <div class="main-card">
         <form (ngSubmit)="enviarSolicitud()" class="form-content">
 
-            <!-- Asignatura y Docente -->
+            <!-- Asignatura y Docente Preferido -->
             <div class="form-row">
-                <div class="input-block">
+                <div class="input-block flex-1">
                     <label for="asig">Asignatura *</label>
                     <select id="asig" class="form-control" [(ngModel)]="asignatura" name="asig">
                         <option value="Estructura de Datos">Estructura de Datos</option>
                         <option value="Bases de Datos Relacionales">Bases de Datos Relacionales</option>
                         <option value="Programación Web">Programación Web</option>
                         <option value="Arquitectura de Software">Arquitectura de Software</option>
+                        <option value="Sistemas Operativos">Sistemas Operativos</option>
                     </select>
                 </div>
 
-                <div class="input-block">
+                <div class="input-block flex-1">
                     <label for="doc">Docente / Tutor de Preferencia</label>
                     <select id="doc" class="form-control" [(ngModel)]="docente" name="doc">
                         <option value="Asignación Automática (Recomendado)">Asignación Automática (Recomendado)</option>
                         <option value="Ing. Carlos Mendoza">Ing. Carlos Mendoza</option>
                         <option value="Ing. Diana Rodríguez">Ing. Diana Rodríguez</option>
+                        <option value="Ing. Roberto Pineda">Ing. Roberto Pineda</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Tipo de Tutoría y Modalidad -->
+            <!-- Modalidad y Franja Horaria -->
             <div class="form-row">
-                <div class="input-block">
+                <div class="input-block flex-1">
                     <label for="modalidad">Modalidad Deseada *</label>
                     <select id="modalidad" class="form-control" [(ngModel)]="modalidad" name="modalidad">
                         <option value="Presencial (Sede Plaza de la Paz)">Presencial (Sede Plaza de la Paz)</option>
@@ -40,7 +42,7 @@
                     </select>
                 </div>
 
-                <div class="input-block">
+                <div class="input-block flex-1">
                     <label for="franja">Franja Horaria Sugerida *</label>
                     <select id="franja" class="form-control" [(ngModel)]="franja" name="franja">
                         <option value="Mañana (08:00 AM - 12:00 PM)">Mañana (08:00 AM - 12:00 PM)</option>
@@ -50,7 +52,7 @@
                 </div>
             </div>
 
-            <!-- Tema y Detalle -->
+            <!-- Tema o Duda Concreta -->
             <div class="input-block">
                 <label for="tema">Tema o Duda Concreta *</label>
                 <input
@@ -59,10 +61,11 @@
                     class="form-control"
                     [(ngModel)]="tema"
                     name="tema"
-                    placeholder="Ej. Dificultad con balanceo de árboles AVL..."
+                    placeholder="Ej. Inquietud sobre el taller de Árboles AVL..."
                     required />
             </div>
 
+            <!-- Descripción Detallada -->
             <div class="input-block">
                 <label for="desc">Descripción Detallada</label>
                 <textarea
@@ -71,10 +74,17 @@
                     class="form-control"
                     [(ngModel)]="descripcion"
                     name="desc"
-                    placeholder="Describe brevemente qué ejercicios o conceptos necesitas reforzar antes de la sesión..."></textarea>
+                    placeholder="Describe detalladamente qué ejercicios o conceptos necesitas reforzar antes de la sesión..."></textarea>
             </div>
 
-            <!-- Botones de Acción -->
+            <!-- Archivos Adjuntos (Opcional) -->
+            <div class="input-block">
+                <label for="adjuntos">Archivos Adjuntos (Opcional)</label>
+                <input id="adjuntos" type="file" class="form-control file-input" multiple />
+                <small class="hint">Puedes adjuntar documentos PDF, código fuente o capturas de error.</small>
+            </div>
+
+            <!-- Acciones -->
             <div class="button-row">
                 <button type="button" class="btn-cancel" (click)="cancelar()">Cancelar</button>
                 <button type="submit" class="btn-submit">Enviar Solicitud</button>
@@ -104,7 +114,7 @@
             <p class="modal-info-text">Se ha notificado al coordinador de área para la confirmación de la franja horaria y aula/enlace virtual.</p>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" (click)="crearOtra()">Crear Otra Solicitud</button>
-                <button type="button" class="btn-submit" (click)="cerrarModalYVolver()">Ver Mis Solicitudes</button>
+                <button type="submit" class="btn-submit" (click)="cerrarModalYVolver()">Ver Mis Solicitudes</button>
             </div>
         </div>
     </div>
