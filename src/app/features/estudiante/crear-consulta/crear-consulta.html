@@ -2,7 +2,7 @@
     <div class="header-section">
         <span class="badge-tag">Módulo Estudiante</span>
         <h2>Crear Nueva Consulta</h2>
-        <p>Ingresa la información requerida. El sistema generará un número de radicado único automáticamente.</p>
+        <p>Ingresa la información requerida. La solicitud se reflejará automáticamente en la bandeja del docente asignado y coordinación.</p>
     </div>
 
     <div class="main-card">
@@ -13,11 +13,9 @@
                 <div class="input-block flex-1">
                     <label for="asig">Asignatura *</label>
                     <select id="asig" class="form-control" [(ngModel)]="asignatura" name="asig">
-                        <option value="Estructura de Datos">Estructura de Datos</option>
-                        <option value="Bases de Datos Relacionales">Bases de Datos Relacionales</option>
-                        <option value="Programación Web">Programación Web</option>
-                        <option value="Arquitectura de Software">Arquitectura de Software</option>
-                        <option value="Sistemas Operativos">Sistemas Operativos</option>
+                        @for (c of cursosDisponibles(); track c.codigo) {
+                        <option [value]="c.asignatura">{{ c.asignatura }}</option>
+                        }
                     </select>
                 </div>
 
@@ -25,9 +23,9 @@
                     <label for="doc">Docente / Tutor de Preferencia</label>
                     <select id="doc" class="form-control" [(ngModel)]="docente" name="doc">
                         <option value="Asignación Automática (Recomendado)">Asignación Automática (Recomendado)</option>
-                        <option value="Ing. Carlos Mendoza">Ing. Carlos Mendoza</option>
-                        <option value="Ing. Diana Rodríguez">Ing. Diana Rodríguez</option>
-                        <option value="Ing. Roberto Pineda">Ing. Roberto Pineda</option>
+                        @for (d of docentesDisponibles(); track d) {
+                        <option [value]="d">{{ d }}</option>
+                        }
                     </select>
                 </div>
             </div>
@@ -103,7 +101,7 @@
             <button class="btn-close" type="button" (click)="cerrarModalYVolver()">✕</button>
         </div>
         <div class="modal-body">
-            <p>Tu solicitud de tutoría ha sido registrada en el sistema institucional con el radicado <strong>#{{ radicadoGenerado() }}</strong>.</p>
+            <p>Tu solicitud de tutoría ha sido registrada en el sistema institucional con el radicado <strong>{{ radicadoGenerado() }}</strong>.</p>
             <div class="summary-box">
                 <div><strong>Asignatura:</strong> {{ asignatura }}</div>
                 <div><strong>Tutor preferido:</strong> {{ docente }}</div>
@@ -111,7 +109,7 @@
                 <div><strong>Franja:</strong> {{ franja }}</div>
                 <div><strong>Tema:</strong> {{ tema }}</div>
             </div>
-            <p class="modal-info-text">Se ha notificado al coordinador de área para la confirmación de la franja horaria y aula/enlace virtual.</p>
+            <p class="modal-info-text">La consulta ya está disponible en la bandeja del docente y en el panel de coordinación.</p>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" (click)="crearOtra()">Crear Otra Solicitud</button>
                 <button type="submit" class="btn-submit" (click)="cerrarModalYVolver()">Ver Mis Solicitudes</button>

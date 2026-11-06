@@ -4,44 +4,40 @@
         <span>{{ mensajeToast() }}</span>
     </div>
 
-    <div class="header-section">
-        <div class="header-title-row">
-            <div>
-                <span class="badge-tag">Módulo Administrador</span>
-                <h2>📊 Reportes y Estadísticas</h2>
-                <p>Generación y descarga de analítica institucional del cuatrimestre actual.</p>
-            </div>
-            <button class="btn-primary" type="button" (click)="abrirModalExportar()">
-                Exportar Informe PDF
-            </button>
-        </div>
-    </div>
+    <app-page-header
+        badge="Módulo Administrador"
+        titulo="📊 Reportes y Estadísticas"
+        subtitulo="Generación y descarga de analítica institucional del cuatrimestre actual.">
+        <button class="btn-primary" type="button" (click)="abrirModalExportar()">
+            Exportar Informe PDF
+        </button>
+    </app-page-header>
 
-    <!-- Resumen de Estados según requerimientos funcionales (KPIs) -->
+    <!-- Recomendación de IA (Shared Component) -->
+    <app-ai-insight-card></app-ai-insight-card>
+
+    <!-- Resumen de Estados con KPI Cards Compartidas -->
     <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon-box stat-icon-blue"></div>
-            <div>
-                <span class="stat-label">Consultas Resueltas</span>
-                <h3 class="stat-value text-success">142</h3>
-            </div>
-        </div>
+        <app-kpi-card
+            label="Consultas Resueltas"
+            [valor]="totalResueltas()"
+            icono="✅"
+            variante="green">
+        </app-kpi-card>
 
-        <div class="stat-card">
-            <div class="stat-icon-box stat-icon-amber"></div>
-            <div>
-                <span class="stat-label">Consultas Pendientes</span>
-                <h3 class="stat-value text-warning">19</h3>
-            </div>
-        </div>
+        <app-kpi-card
+            label="Consultas Pendientes"
+            [valor]="totalPendientes()"
+            icono="⏳"
+            variante="amber">
+        </app-kpi-card>
 
-        <div class="stat-card">
-            <div class="stat-icon-box stat-icon-cyan"></div>
-            <div>
-                <span class="stat-label">Tiempo Promedio de Respuesta</span>
-                <h3 class="stat-value">3.8 Horas</h3>
-            </div>
-        </div>
+        <app-kpi-card
+            label="Tiempo Promedio de Respuesta"
+            valor="3.8 Horas"
+            icono="⚡"
+            variante="cyan">
+        </app-kpi-card>
     </div>
 
     <!-- Dos paneles: Reporte por Curso y Reporte por Docente -->
@@ -123,6 +119,42 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- Tabla Consolidada de Reportes con DataTables -->
+    <div class="main-card" style="margin-top: 20px;">
+        <h3>📋 Consolidado Detallado de Consultas por Asignatura y Docente</h3>
+        <p class="panel-sub">Vista tabular interactiva con búsqueda, ordenamiento y paginación (DataTables).</p>
+        <div class="table-wrapper">
+            <table [appDataTable]="reportesConsolidados()" class="display">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Asignatura</th>
+                        <th>Docente Titular</th>
+                        <th>Total Consultas</th>
+                        <th>Resueltas</th>
+                        <th>Pendientes</th>
+                        <th>Efectividad</th>
+                        <th>Nivel Demanda</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (r of reportesConsolidados(); track r.codigo) {
+                    <tr>
+                        <td><strong>{{ r.codigo }}</strong></td>
+                        <td>{{ r.asignatura }}</td>
+                        <td>{{ r.docente }}</td>
+                        <td>{{ r.consultas }}</td>
+                        <td class="text-success"><strong>{{ r.resueltas }}</strong></td>
+                        <td class="text-warning"><strong>{{ r.pendientes }}</strong></td>
+                        <td><strong>{{ r.efectividad }}</strong></td>
+                        <td><app-priority-badge [prioridad]="r.demanda"></app-priority-badge></td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

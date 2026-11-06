@@ -69,4 +69,34 @@
             </div>
         </div>
     </div>
+
+    <div class="main-card" style="margin-top: 20px;">
+        <h3>📋 Tabla Detallada de Métricas por Curso (DataTable)</h3>
+        <div class="table-wrapper">
+            <table [appDataTable]="metricas()" class="display">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Asignatura</th>
+                        <th>Recibidas</th>
+                        <th>Resueltas</th>
+                        <th>Pendientes</th>
+                        <th>Tiempo Promedio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (m of metricas(); track m.codigo) {
+                    <tr>
+                        <td><strong>{{ m.codigo }}</strong></td>
+                        <td>{{ m.asignatura }}</td>
+                        <td>{{ m.recibidas }}</td>
+                        <td>{{ m.resueltas }}</td>
+                        <td>{{ m.pendientes }}</td>
+                        <td>{{ m.tiempoPromedio }}</td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>

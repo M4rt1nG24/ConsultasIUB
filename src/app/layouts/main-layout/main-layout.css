@@ -164,20 +164,22 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background-color: rgba(239, 68, 68, 0.15);
-    color: #fca5a5;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background-color: rgba(245, 184, 0, 0.18);
+    color: #fde047;
+    border: 1px solid rgba(255, 201, 40, 0.45);
     padding: 10px;
     border-radius: 8px;
-    color: #f87171;
     text-decoration: none;
     font-size: 0.9rem;
-    font-weight: 500;
-    transition: background-color 0.2s;
+    font-weight: 600;
+    transition: all 0.25s ease;
 }
 
+.btn-logout:hover,
 .logout-btn:hover {
-    background-color: rgba(248, 113, 113, 0.1);
+    background-color: rgba(239, 68, 68, 0.24);
+    color: #fecaca;
+    border-color: rgba(248, 113, 113, 0.5);
 }
 
 /* =========================================================
@@ -338,8 +340,88 @@
     border: 1px solid #e2e8f0;
 }
 
+/* =========================================================
+   BOTÓN FLOTANTE Y VENTANA DEL ASISTENTE IA (OLLAMA)
+   ========================================================= */
+.ia-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 28px;
+    z-index: 1100;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    border-radius: 999px;
+    border: 2px solid #ffc928;
+    background: linear-gradient(135deg, #0b2247 0%, #16437e 100%);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(11, 34, 71, 0.35);
+    transition: all 0.25s ease;
+}
+
+.ia-fab:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 28px rgba(11, 34, 71, 0.45);
+    background: linear-gradient(135deg, #103766 0%, #1e56a0 100%);
+}
+
+.ia-fab.ia-fab-open {
+    background: #dc2626;
+    border-color: #fca5a5;
+}
+
+.ia-fab-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 201, 40, 0.2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.ia-fab-label {
+    letter-spacing: 0.2px;
+}
+
+.ia-chat-window {
+    position: fixed;
+    bottom: 86px;
+    right: 28px;
+    width: 370px;
+    max-width: calc(100vw - 32px);
+    height: 490px;
+    max-height: calc(100vh - 120px);
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.28);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1100;
+    animation: iaSlideUp 0.2s ease-out;
+}
+
+@keyframes iaSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .ia-chat-header {
-    background: #0d47a1;
+    background: linear-gradient(135deg, #0b2247 0%, #16437e 100%);
+    border-bottom: 3px solid #f5b800;
     color: #ffffff;
     padding: 14px 16px;
     display: flex;
@@ -347,10 +429,29 @@
     align-items: center;
 }
 
+.ia-header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ia-header-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(245, 184, 0, 0.2);
+    border: 1px solid rgba(255, 201, 40, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
 .ia-subtitle {
     display: block;
     font-size: 11px;
-    opacity: 0.85;
+    color: #fde047;
+    margin-top: 2px;
 }
 
 .ia-close-btn {

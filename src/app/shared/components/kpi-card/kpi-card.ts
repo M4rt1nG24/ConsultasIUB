@@ -1,9 +1,17 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 @Component({
-  imports: [],
   selector: 'app-kpi-card',
-  styleUrl: './kpi-card.css',
+  standalone: true,
+  imports: [CommonModule],
   templateUrl: './kpi-card.html',
+  styleUrl: './kpi-card.css',
 })
-export class KpiCard {}
+export class KpiCard {
+  @Input() label = 'Indicador';
+  @Input() valor: string | number = '0';
+  @Input() icono = '📊';
+  @Input() tendencia = '';
+  @Input() variante: 'blue' | 'green' | 'amber' | 'cyan' = 'blue';
+}

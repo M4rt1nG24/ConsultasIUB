@@ -1,1 +1,30 @@
-<p>sidebar works!</p>
+<aside class="shared-sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">IUB</div>
+    <div>
+      <h2 class="brand-title">MiTutoría</h2>
+      <span class="brand-badge">Portal Académico IUB</span>
+    </div>
+  </div>
+
+  <div class="role-badge-box">
+    <span class="role-caption">ROL ACTIVO</span>
+    <strong class="role-value">{{ rol }}</strong>
+  </div>
+
+  <nav class="sidebar-nav">
+    @for (item of opciones; track item.ruta) {
+      <a [routerLink]="item.ruta" routerLinkActive="active-link" class="nav-item">
+        <span class="nav-icon">{{ item.icono }}</span>
+        <span class="nav-title">{{ item.titulo }}</span>
+      </a>
+    }
+  </nav>
+
+  <div class="sidebar-footer">
+    <button type="button" class="btn-logout" (click)="cerrarSesion.emit()">
+      <span>🚪</span>
+      <span>Cerrar Sesión</span>
+    </button>
+  </div>
+</aside>

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-// import { roleGuard } from './core/guards/role.guard'; // <-- Cuando crees el Guard, lo importas aquí
+import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   // Ruta raíz: redirige a /principal (o a /login según prefieras)
@@ -45,8 +45,8 @@ export const routes: Routes = [
       // ---------------------------------------------------------------------
       {
         path: 'admin',
-        // canActivate: [roleGuard],
-        // data: { role: 'ADMIN' },
+        canActivate: [roleGuard],
+        data: { role: 'ADMIN' },
         children: [
           {
             path: 'reportes',
@@ -72,6 +72,18 @@ export const routes: Routes = [
               import('./features/administrador/gestion-cursos-roles/gestion-cursos-roles')
                 .then(m => m.GestionCursosRoles)
           },
+          {
+            path: 'sedes',
+            loadComponent: () =>
+              import('./features/administrador/gestion-sedes/gestion-sedes')
+                .then(m => m.GestionSedes)
+          },
+          {
+            path: 'salones',
+            loadComponent: () =>
+              import('./features/administrador/gestion-salones/gestion-salones')
+                .then(m => m.GestionSalones)
+          },
           // Si entra solo a "/admin", lo lleva a "/admin/reportes"
           { path: '', redirectTo: 'reportes', pathMatch: 'full' }
         ]
@@ -82,8 +94,8 @@ export const routes: Routes = [
       // ---------------------------------------------------------------------
       {
         path: 'docente',
-        // canActivate: [roleGuard],
-        // data: { role: 'DOCENTE' },
+        canActivate: [roleGuard],
+        data: { role: 'DOCENTE' },
         children: [
           {
             path: 'asignadas',
@@ -113,8 +125,8 @@ export const routes: Routes = [
       // ---------------------------------------------------------------------
       {
         path: 'estudiante',
-        // canActivate: [roleGuard],
-        // data: { role: 'ESTUDIANTE' },
+        canActivate: [roleGuard],
+        data: { role: 'ESTUDIANTE' },
         children: [
           {
             path: 'mis-solicitudes',

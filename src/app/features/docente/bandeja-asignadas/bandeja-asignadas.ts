@@ -1,55 +1,68 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-
-export interface SolicitudDocente {
-  codigo: string;
-  estudiante: string;
-  asignatura: string;
-  tema: string;
-  fecha: string;
-  estado: string;
-}
+import { Data, ConsultaUnificada } from '../../../core/services/data';
+import { DataTableDirective } from '../../../shared/directives/datatable.directive';
+import { FilterBar } from '../../../shared/components/filter-bar/filter-bar';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { PriorityBadge } from '../../../shared/components/priority-badge/priority-badge';
+import { StatusBadge } from '../../../shared/components/status-badge/status-badge';
 
 @Component({
   selector: 'app-bandeja-asignadas',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, DataTableDirective, FilterBar, PageHeader, PriorityBadge, StatusBadge],
   styleUrl: './bandeja-asignadas.css',
   templateUrl: './bandeja-asignadas.html',
 })
 export class BandejaAsignadas {
   private router = inject(Router);
+  private dataService = inject(Data);
 
-  solicitudes = signal<SolicitudDocente[]>([
-    {
-      codigo: '1045892110',
-      estudiante: 'Carlos Mario Pérez',
-      asignatura: 'Estructura de Datos',
-      tema: 'Árboles binarios y balanceo AVL',
-      fecha: '14/10/2026',
-      estado: 'Pendiente'
-    },
-    {
-      codigo: '1042301994',
-      estudiante: 'María José Herrera',
-      asignatura: 'Bases de Datos Relacionales',
-      tema: 'Normalización de 3ra Forma',
-      fecha: '14/10/2026',
-      estado: 'Pendiente'
-    },
-    {
-      codigo: '1043912003',
-      estudiante: 'Juan Camilo Sarmiento',
-      asignatura: 'Programación Web',
-      tema: 'Arquitectura de Componentes Angular',
-      fecha: '15/10/2026',
-      estado: 'Pendiente'
-    }
-  ]);
+  busqueda = signal<string>('');
+  filtroEstado = signal<string>('');
+  filtroPrioridad = signal<string>('');
 
-  atender(solicitud: SolicitudDocente) {
-    // Redirige al formulario de atención académica
+  solicitudes = this.dataService.consultas;
+
+  solicitudesFiltradas = computed(() => {
+    const q = this.busqueda().toLowerCase().trim();
+    const est = this.filtroEstado();
+    const prio = this.filtroPrioridad();
+
+    return this.solicitudes().filter(item => {
+      const coincideTexto =
+        !q ||
+        item.estudiante.toLowerCase().includes(q) ||
+        item.documento.includes(q) ||
+        item.asignatura.toLowerCase().includes(q) ||
+        item.tema.toLowerCase().includes(q) ||
+        item.radicado.toLowerCase().includes(q);
+
+      const coincideEstado = !est || item.estado === est;
+      const coincidePrio = !prio || item.prioridad === prio;
+
+      return coincideTexto && coincideEstado && coincidePrio;
+    });
+  });
+
+  atender(solicitud: ConsultaUnificada): void {
+    this.dataService.seleccionarConsulta(solicitud.id);
     this.router.navigate(['/docente/atencion']);
+  }
+
+  cambiarEstado(solicitud: ConsultaUnificada): void {
+    const nuevoEstado =
+      solicitud.estado === 'Cancelada' || solicitud.estado === 'Inactiva'
+        ? 'Pendiente'
+        : 'Cancelada';
+    this.dataService.cambiarEstadoConsulta(
+      solicitud.id,
+      nuevoEstado,
+      nuevoEstado === 'Cancelada'
+        ? 'Consulta inactivada / cancelada por el docente asignado.'
+        : 'Consulta reactivada por el docente asignado.'
+    );
   }
 }

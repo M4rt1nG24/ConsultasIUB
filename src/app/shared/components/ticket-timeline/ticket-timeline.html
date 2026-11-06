@@ -1,1 +1,14 @@
-<p>ticket-timeline works!</p>
+<div class="shared-timeline">
+  @for (paso of pasos; track paso.titulo) {
+    <div class="timeline-step" [class.done]="paso.completado">
+      <div class="step-dot">{{ paso.completado ? '✓' : '•' }}</div>
+      <div class="step-info">
+        <div class="step-head">
+          <strong>{{ paso.titulo }}</strong>
+          <small>{{ paso.fecha }}</small>
+        </div>
+        <p>{{ paso.descripcion }}</p>
+      </div>
+    </div>
+  }
+</div>

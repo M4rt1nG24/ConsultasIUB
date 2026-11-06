@@ -1,59 +1,21 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-export interface UsuarioItem {
-  id: number;
-  nombre: string;
-  email: string;
-  rol: 'ADMIN' | 'DOCENTE' | 'ESTUDIANTE';
-  estado: 'Activo' | 'Inactivo';
-  programa: string;
-}
+import { Data, UsuarioSistema } from '../../../core/services/data';
+import { DataTableDirective } from '../../../shared/directives/datatable.directive';
 
 @Component({
   selector: 'app-gestion-usuarios',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DataTableDirective],
   styleUrl: './gestion-usuarios.css',
   templateUrl: './gestion-usuarios.html',
 })
 export class GestionUsuarios {
-  // Lista reactiva de usuarios
-  usuarios = signal<UsuarioItem[]>([
-    {
-      id: 1,
-      nombre: 'Coordinación Sistemas',
-      email: 'coordinacion.sistemas@unibarranquilla.edu.co',
-      rol: 'ADMIN',
-      estado: 'Activo',
-      programa: 'Ingeniería de Sistemas'
-    },
-    {
-      id: 2,
-      nombre: 'Ing. Roberto Pineda',
-      email: 'rpineda@unibarranquilla.edu.co',
-      rol: 'DOCENTE',
-      estado: 'Activo',
-      programa: 'Ingeniería de Sistemas'
-    },
-    {
-      id: 3,
-      nombre: 'Ing. Laura Gómez',
-      email: 'lgomez@unibarranquilla.edu.co',
-      rol: 'DOCENTE',
-      estado: 'Activo',
-      programa: 'Ciencias Básicas'
-    },
-    {
-      id: 4,
-      nombre: 'Carlos Mario Pérez',
-      email: 'estudiante@unibarranquilla.edu.co',
-      rol: 'ESTUDIANTE',
-      estado: 'Activo',
-      programa: 'Ingeniería de Software'
-    }
-  ]);
+  private dataService = inject(Data);
+
+  // Lista reactiva de usuarios compartida con todo el sistema
+  usuarios = this.dataService.usuarios;
 
   // Filtros reactivos
   filtroTexto = signal<string>('');
@@ -64,7 +26,8 @@ export class GestionUsuarios {
     const rol = this.filtroRol();
 
     return this.usuarios().filter(u => {
-      const coincideTexto = !texto ||
+      const coincideTexto =
+        !texto ||
         u.nombre.toLowerCase().includes(texto) ||
         u.email.toLowerCase().includes(texto) ||
         u.programa.toLowerCase().includes(texto);
@@ -81,7 +44,7 @@ export class GestionUsuarios {
   mensajeFeedback = signal<string | null>(null);
 
   // Modelo de formulario temporal
-  formData: UsuarioItem = {
+  formData: UsuarioSistema = {
     id: 0,
     nombre: '',
     email: '',
@@ -90,7 +53,7 @@ export class GestionUsuarios {
     programa: 'Ingeniería de Sistemas'
   };
 
-  abrirModalCrear() {
+  abrirModalCrear(): void {
     this.modoModal.set('crear');
     this.formData = {
       id: Date.now(),
@@ -103,17 +66,17 @@ export class GestionUsuarios {
     this.modalAbierto.set(true);
   }
 
-  abrirModalEditar(usuario: UsuarioItem) {
+  abrirModalEditar(usuario: UsuarioSistema): void {
     this.modoModal.set('editar');
     this.formData = { ...usuario };
     this.modalAbierto.set(true);
   }
 
-  cerrarModal() {
+  cerrarModal(): void {
     this.modalAbierto.set(false);
   }
 
-  guardarUsuario() {
+  guardarUsuario(): void {
     if (!this.formData.nombre.trim() || !this.formData.email.trim()) {
       alert('Por favor complete los campos obligatorios (Nombre y Correo).');
       return;
@@ -127,7 +90,7 @@ export class GestionUsuarios {
       this.mostrarNotificacion('¡Usuario registrado exitosamente en el sistema!');
     } else {
       this.usuarios.update(lista =>
-        lista.map(u => u.id === this.formData.id ? { ...this.formData } : u)
+        lista.map(u => (u.id === this.formData.id ? { ...this.formData } : u))
       );
       this.mostrarNotificacion('¡Información del usuario actualizada correctamente!');
     }
@@ -135,7 +98,17 @@ export class GestionUsuarios {
     this.cerrarModal();
   }
 
-  mostrarNotificacion(msg: string) {
+  cambiarEstadoUsuario(usuario: UsuarioSistema): void {
+    const nuevoEstado = usuario.estado === 'Activo' ? 'Inactivo' : 'Activo';
+    this.usuarios.update(lista =>
+      lista.map(u => (u.id === usuario.id ? { ...u, estado: nuevoEstado } : u))
+    );
+    this.mostrarNotificacion(
+      `¡Estado del usuario ${usuario.nombre} cambiado a ${nuevoEstado}!`
+    );
+  }
+
+  mostrarNotificacion(msg: string): void {
     this.mensajeFeedback.set(msg);
     setTimeout(() => {
       this.mensajeFeedback.set(null);

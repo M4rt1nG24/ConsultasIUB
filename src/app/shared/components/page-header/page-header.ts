@@ -1,9 +1,15 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 @Component({
-  imports: [],
   selector: 'app-page-header',
-  styleUrl: './page-header.css',
+  standalone: true,
+  imports: [CommonModule],
   templateUrl: './page-header.html',
+  styleUrl: './page-header.css',
 })
-export class PageHeader {}
+export class PageHeader {
+  @Input() badge = 'Sistema MiTutoría IUB';
+  @Input() titulo = '';
+  @Input() subtitulo = '';
+}

@@ -53,6 +53,43 @@
         </div>
         }
     </div>
+
+    <!-- Tabla completa del directorio con DataTables -->
+    <div class="tutor-card" style="margin-top: 24px;">
+        <h3 style="margin: 0 0 12px 0; color: #173b6c; font-size: 18px;">📋 Listado General del Directorio (DataTable)</h3>
+        <div style="overflow-x: auto;">
+            <table [appDataTable]="tutoresFiltrados()" class="display">
+                <thead>
+                    <tr>
+                        <th>Docente / Monitor</th>
+                        <th>Cargo</th>
+                        <th>Área / Asignatura</th>
+                        <th>Horario de Atención</th>
+                        <th>Ubicación / Canal</th>
+                        <th>Contacto</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (tutor of tutoresFiltrados(); track tutor.id) {
+                    <tr>
+                        <td><strong>{{ tutor.nombre }}</strong></td>
+                        <td>{{ tutor.cargo }}</td>
+                        <td>{{ tutor.area }}</td>
+                        <td>{{ tutor.horario }}</td>
+                        <td>{{ tutor.ubicacion }}</td>
+                        <td>{{ tutor.correo }}</td>
+                        <td>
+                            <button class="btn-solicitar" type="button" style="padding: 6px 12px; font-size: 12px;" (click)="abrirSolicitudCita(tutor)">
+                                Solicitar Cita
+                            </button>
+                        </td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Solicitar Cita con Tutor -->

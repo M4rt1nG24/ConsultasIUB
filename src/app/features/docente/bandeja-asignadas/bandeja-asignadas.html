@@ -1,60 +1,71 @@
 <div class="view-wrapper">
-    <div class="header-section">
-        <span class="badge-tag">Módulo Docente</span>
-        <h2>Bandeja de Consultas Asignadas</h2>
-        <p>Gestión y seguimiento de consultas académicas enviadas por estudiantes.</p>
-    </div>
+    <app-page-header
+        badge="Módulo Docente"
+        titulo="📥 Bandeja de Consultas Asignadas"
+        subtitulo="Gestión y seguimiento de consultas académicas enviadas por estudiantes en tiempo real.">
+    </app-page-header>
 
-    <!-- Barra de Búsqueda y Filtros -->
-    <div class="filters-container">
-        <input type="text" class="search-input" placeholder="Buscar por asunto, estudiante o curso...">
-
-        <select class="select-filter">
+    <!-- Barra de Búsqueda y Filtros Compartida -->
+    <app-filter-bar
+        placeholder="Buscar por asunto, estudiante, documento o asignatura..."
+        [texto]="busqueda()"
+        (textoChange)="busqueda.set($event)">
+        <select class="select-filter" [ngModel]="filtroEstado()" (ngModelChange)="filtroEstado.set($event)">
             <option value="">Todos los Estados</option>
             <option value="Pendiente">Pendiente</option>
+            <option value="Programada">Programada</option>
             <option value="En proceso">En proceso</option>
-            <option value="Resuelta">Resuelta</option>
-            <option value="Cerrada">Cerrada</option>
+            <option value="Completada">Completada</option>
+            <option value="Cancelada">Cancelada</option>
         </select>
 
-        <select class="select-filter">
-            <option value="">Prioridad</option>
+        <select class="select-filter" [ngModel]="filtroPrioridad()" (ngModelChange)="filtroPrioridad.set($event)">
+            <option value="">Todas las Prioridades</option>
             <option value="Alta">Alta</option>
             <option value="Media">Media</option>
             <option value="Baja">Baja</option>
         </select>
-
-        <input type="date" class="date-filter">
-    </div>
+    </app-filter-bar>
 
     <div class="main-card">
         <div class="table-wrapper">
-            <table>
+            <table [appDataTable]="solicitudesFiltradas()" class="display">
                 <thead>
                     <tr>
-                        <th>Estudiante / ID</th>
+                        <th>Radicado</th>
+                        <th>Estudiante</th>
                         <th>Asignatura</th>
                         <th>Tema / Consulta</th>
+                        <th>Tutor Asignado</th>
                         <th>Fecha Radicación</th>
+                        <th>Prioridad</th>
                         <th>Estado</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @for (item of solicitudes(); track item.codigo) {
+                    @for (item of solicitudesFiltradas(); track item.radicado) {
                     <tr>
+                        <td><strong>{{ item.radicado }}</strong></td>
                         <td>
                             <strong>{{ item.estudiante }}</strong><br>
-                            <small class="text-muted">ID: {{ item.codigo }}</small>
+                            <small class="text-muted">{{ item.correoEstudiante }}</small>
                         </td>
                         <td>{{ item.asignatura }}</td>
                         <td>{{ item.tema }}</td>
+                        <td>{{ item.tutor }}</td>
                         <td>{{ item.fecha }}</td>
-                        <td><span class="badge-status status-pendiente">{{ item.estado }}</span></td>
+                        <td><app-priority-badge [prioridad]="item.prioridad"></app-priority-badge></td>
+                        <td><app-status-badge [estado]="item.estado"></app-status-badge></td>
                         <td>
-                            <button class="btn-action-primary" type="button" (click)="atender(item)">
-                                Atender
-                            </button>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <button class="btn-action-primary" type="button" (click)="atender(item)">
+                                    {{ item.estado === 'Completada' ? 'Editar' : 'Atender' }}
+                                </button>
+                                <button class="btn-action-primary" type="button" style="background: #64748b;" (click)="cambiarEstado(item)">
+                                    {{ item.estado === 'Cancelada' ? 'Reactivar' : 'Inactivar' }}
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     }

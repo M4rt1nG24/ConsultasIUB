@@ -1,1 +1,48 @@
-<p>navbar works!</p>
+<header class="shared-topbar">
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input
+      type="text"
+      class="search-input"
+      placeholder="Buscar en el portal por radicado, asunto, curso o docente..."
+      [ngModel]="busquedaGlobal"
+      (ngModelChange)="busquedaGlobalChange.emit($event)"
+    />
+  </div>
+
+  <div class="header-actions">
+    <div class="notif-wrapper">
+      <button type="button" class="btn-icon" (click)="toggleNotif.emit()">
+        🔔
+        @if (pendientes > 0) {
+          <span class="notif-badge">{{ pendientes }}</span>
+        }
+      </button>
+
+      @if (mostrarNotificaciones) {
+        <div class="notif-dropdown">
+          <div class="notif-header">
+            <strong>Notificaciones</strong>
+            <button type="button" class="btn-text-read" (click)="marcarLeidas.emit()">Marcar leídas</button>
+          </div>
+          <div class="notif-body">
+            @for (notif of notificaciones; track notif.id) {
+              <div class="notif-item" [class.unread]="!notif.leida">
+                <p class="notif-text">{{ notif.mensaje }}</p>
+                <small class="notif-time">{{ notif.fecha }}</small>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="user-profile">
+      <div class="avatar">{{ rol.charAt(0) }}</div>
+      <div class="user-meta">
+        <span class="user-name">Usuario IUB</span>
+        <span class="user-role-badge">{{ rol }}</span>
+      </div>
+    </div>
+  </div>
+</header>

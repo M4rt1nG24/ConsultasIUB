@@ -1,0 +1,130 @@
+.shared-sidebar {
+  width: 260px;
+  height: 100%;
+  background-color: #0f172a;
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-brand {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #f5b800, #d99a00);
+  color: #0f172a;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(245, 184, 0, 0.25);
+}
+
+.brand-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.brand-badge {
+  font-size: 11px;
+  color: #fde047;
+}
+
+.role-badge-box {
+  margin: 14px 14px 6px 14px;
+  padding: 10px 14px;
+  background: rgba(245, 184, 0, 0.1);
+  border: 1px solid rgba(255, 201, 40, 0.3);
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.role-caption {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.role-value {
+  font-size: 12px;
+  color: #ffc928;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  color: #e2e8f0;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.nav-item:hover {
+  background: rgba(245, 184, 0, 0.14);
+  color: #fde047;
+  border-color: rgba(255, 201, 40, 0.35);
+}
+
+.nav-item.active-link {
+  background: linear-gradient(135deg, #f5b800 0%, #ffc928 100%);
+  color: #0f172a;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(245, 184, 0, 0.28);
+}
+
+.sidebar-footer {
+  padding: 14px;
+  border-top: 1px solid #1e293b;
+}
+
+.btn-logout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(245, 184, 0, 0.18);
+  color: #fde047;
+  border: 1px solid rgba(255, 201, 40, 0.45);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-logout:hover {
+  background: rgba(239, 68, 68, 0.24);
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.5);
+}

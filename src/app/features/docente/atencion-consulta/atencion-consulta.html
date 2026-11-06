@@ -1,8 +1,9 @@
 <div class="view-wrapper">
+    @if (consultaActiva(); as c) {
     <div class="header-section">
         <span class="badge-tag">Atención de Consulta</span>
-        <h2>Responder Consulta #CNS-2026-0104</h2>
-        <p>Resuelve las inquietudes del estudiante y formaliza el registro de la tutoría académica.</p>
+        <h2>Responder Consulta {{ c.radicado }}</h2>
+        <p>Resuelve las inquietudes del estudiante y formaliza el registro de la tutoría académica. Los cambios se reflejarán en el panel del estudiante y administración.</p>
     </div>
 
     <div class="main-card">
@@ -11,19 +12,19 @@
         <div class="info-card">
             <div class="info-item">
                 <span class="info-label">Estudiante</span>
-                <span class="info-val">Carlos Mario Pérez (estudiante@unibarranquilla.edu.co)</span>
+                <span class="info-val">{{ c.estudiante }} ({{ c.correoEstudiante }})</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Curso</span>
-                <span class="info-val">Estructura de Datos</span>
+                <span class="info-val">{{ c.asignatura }}</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Asunto</span>
-                <span class="info-val">Duda taller balanceo AVL</span>
+                <span class="info-val">{{ c.tema }}</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Archivos del Estudiante</span>
-                <span class="info-val">📎 taller_arboles.cpp (Descargar)</span>
+                <span class="info-label">Modalidad y Ubicación</span>
+                <span class="info-val">{{ c.modalidad }} • {{ c.ubicacion }}</span>
             </div>
         </div>
 
@@ -31,8 +32,7 @@
         <div class="detail-section">
             <label class="section-label">Descripción del Estudiante:</label>
             <p class="text-content">
-                Profesor, al intentar ejecutar la rotación doble izquierda-derecha en el árbol AVL, el factor de balance
-                queda con valor 2 en lugar de 0 o 1. Adjunto el código fuente.
+                {{ c.descripcion }}
             </p>
         </div>
 
@@ -65,14 +65,14 @@
 
             <!-- Observaciones y Compromisos -->
             <div class="input-block">
-                <label for="obs">Observaciones y Compromisos Académicos</label>
+                <label for="obs">Observaciones, Retroalimentación y Compromisos Académicos *</label>
                 <textarea
                     id="obs"
                     rows="5"
                     class="form-control"
                     [(ngModel)]="observaciones"
                     name="obs"
-                    placeholder="Detalle los compromisos pactados con el estudiante y sugerencias de seguimiento..."></textarea>
+                    placeholder="Detalle la retroalimentación y los compromisos pactados con el estudiante..."></textarea>
             </div>
 
             <!-- Checkbox de Auditoría -->
@@ -90,21 +90,23 @@
         </form>
 
     </div>
-
+    }
 </div>
 
 <!-- Modal de confirmación de registro -->
-<div class="modal-backdrop" *ngIf="modalExitoAbierto()">
+@if (modalExitoAbierto() && consultaActiva(); as c) {
+<div class="modal-backdrop">
     <div class="modal-dialog">
         <div class="modal-header">
             <h3>✅ Tutoría Registrada Exitosamente</h3>
         </div>
         <div class="modal-body">
-            <p><strong>Folio de Auditoría:</strong> #AUD-2026-1045892110</p>
-            <p>La sesión académica de <strong>{{ temaTratado }}</strong> con el estudiante <strong>Carlos Mario Pérez</strong> ha sido radicada digitalmente con control de asistencia <strong>{{ asistenciaConfirmada ? 'Confirmada (1)' : 'Sin Asistencia (0)' }}</strong>.</p>
+            <p><strong>Folio de Auditoría:</strong> {{ c.folioAuditoria }}</p>
+            <p>La sesión académica de <strong>{{ temaTratado }}</strong> con el estudiante <strong>{{ c.estudiante }}</strong> ha sido radicada digitalmente con control de asistencia <strong>{{ asistenciaConfirmada ? 'Confirmada (1)' : 'Sin Asistencia (0)' }}</strong> y ya es visible para el estudiante.</p>
             <div class="modal-footer">
                 <button type="button" class="btn-submit" (click)="confirmarSalida()">Volver a Bandeja</button>
             </div>
         </div>
     </div>
 </div>
+}

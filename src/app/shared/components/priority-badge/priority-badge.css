@@ -1,0 +1,23 @@
+.shared-prio-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.prio-alta {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.prio-media {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.prio-baja {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+

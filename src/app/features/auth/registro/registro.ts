@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { Data } from '../../../core/services/data';
 
 @Component({
   imports: [CommonModule, FormsModule, RouterLink],
@@ -11,6 +12,7 @@ import { Router, RouterLink } from '@angular/router';
 })
 export class Registro {
   private router = inject(Router);
+  private dataService = inject(Data);
 
   nombre = '';
   documento = '';
@@ -39,6 +41,26 @@ export class Registro {
     if (this.password !== this.confirmPassword) {
       this.errorMensaje.set('Las contraseñas no coinciden. Por favor verifica.');
       return;
+    }
+
+    // Registrar en el estado compartido de usuarios si no existe aún
+    const correoLimpio = this.correo.trim().toLowerCase();
+    const existe = this.dataService
+      .usuarios()
+      .some(u => u.email.toLowerCase() === correoLimpio);
+
+    if (!existe) {
+      this.dataService.usuarios.update(lista => [
+        ...lista,
+        {
+          id: Date.now(),
+          nombre: this.nombre.trim(),
+          email: correoLimpio,
+          rol: 'ESTUDIANTE',
+          estado: 'Activo',
+          programa: this.programa
+        }
+      ]);
     }
 
     // Abre el modal de confirmación con las opciones

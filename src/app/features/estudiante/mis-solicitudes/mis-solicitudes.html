@@ -4,20 +4,30 @@
             <div>
                 <span class="badge-tag">Módulo Estudiante</span>
                 <h2>Mis Consultas y Solicitudes</h2>
-                <p>Seguimiento al estado de tus consultas académicas y radicados activos.</p>
+                <p>Seguimiento en tiempo real al estado de tus consultas académicas y respuestas docentes.</p>
             </div>
             <button class="btn-create" type="button" (click)="abrirModalRapido()">+ Nueva Consulta</button>
         </div>
     </div>
 
-    <!-- Barra de Filtros y Búsqueda -->
-    <div class="search-bar">
-        <input type="text" class="search-input" placeholder="Buscar por asunto, número de consulta (# ID) o materia...">
-    </div>
+    <!-- Barra de Filtros y Búsqueda Compartida -->
+    <app-filter-bar
+        placeholder="Buscar por asunto, número de radicado, tutor o asignatura..."
+        [texto]="busqueda()"
+        (textoChange)="busqueda.set($event)">
+        <select class="select-filter" [ngModel]="filtroEstado()" (ngModelChange)="filtroEstado.set($event)">
+            <option value="">Todos los Estados</option>
+            <option value="Programada">Programada</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En proceso">En proceso</option>
+            <option value="Completada">Completada</option>
+            <option value="Cancelada">Cancelada</option>
+        </select>
+    </app-filter-bar>
 
     <div class="main-card">
         <div class="table-wrapper">
-            <table>
+            <table [appDataTable]="solicitudesFiltradas()" class="display">
                 <thead>
                     <tr>
                         <th>Radicado</th>
@@ -30,16 +40,22 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @for (item of solicitudes(); track item.id) {
+                    @for (item of solicitudesFiltradas(); track item.radicado) {
                     <tr>
                         <td><strong>{{ item.radicado }}</strong></td>
                         <td>{{ item.asignatura }}</td>
                         <td>{{ item.tema }}</td>
                         <td>{{ item.tutor }}</td>
                         <td>{{ item.fecha }}</td>
-                        <td><span class="badge-status" [ngClass]="item.estadoClase">{{ item.estado }}</span></td>
+                        <td><app-status-badge [estado]="item.estado"></app-status-badge></td>
                         <td>
-                            <button class="btn-action" type="button" (click)="abrirDetalle(item)">Ver Detalle</button>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <button class="btn-action" type="button" (click)="abrirDetalle(item)">Ver</button>
+                                <button class="btn-action" type="button" (click)="abrirModalEditar(item)">Editar</button>
+                                <button class="btn-action" type="button" (click)="cambiarEstadoSolicitud(item)">
+                                    {{ item.estado === 'Cancelada' ? 'Reactivar' : 'Cancelar' }}
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     }
@@ -60,7 +76,7 @@
         <div class="modal-body">
             <div class="detail-grid">
                 <div><strong>Asignatura:</strong> {{ s.asignatura }}</div>
-                <div><strong>Estado:</strong> <span class="badge-status" [ngClass]="s.estadoClase">{{ s.estado }}</span></div>
+                <div><strong>Estado:</strong> <app-status-badge [estado]="s.estado"></app-status-badge></div>
                 <div><strong>Tutor:</strong> {{ s.tutor }}</div>
                 <div><strong>Modalidad:</strong> {{ s.modalidad }}</div>
                 <div><strong>Fecha/Hora:</strong> {{ s.fecha }}</div>
@@ -73,25 +89,25 @@
             </div>
 
             <div class="detail-box">
-                <span class="detail-subtitle">Observaciones / Trazabilidad Docente:</span>
+                <span class="detail-subtitle">Observaciones / Retroalimentación Docente:</span>
                 <p class="detail-text">{{ s.observaciones }}</p>
             </div>
 
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" (click)="cerrarDetalle()">Cerrar</button>
-                <button type="button" class="btn-primary" (click)="verFichaCompleta(s)">Ver Acta Oficial</button>
+                <button type="button" class="btn-primary" (click)="verFichaCompleta(s)">Ver Interacción y Acta</button>
             </div>
         </div>
     </div>
 </div>
 }
 
-<!-- Modal Formulario Rápido de Solicitud -->
+<!-- Modal Formulario Rápido de Solicitud (Crear / Editar) -->
 @if (modalRapidoAbierto()) {
 <div class="modal-backdrop">
     <div class="modal-dialog">
         <div class="modal-header">
-            <h3>📝 Solicitud Rápida de Tutoría</h3>
+            <h3>{{ modoModalRapido() === 'editar' ? '✏️ Actualizar Solicitud de Tutoría' : '📝 Solicitud Rápida de Tutoría' }}</h3>
             <button class="btn-close" type="button" (click)="cerrarModalRapido()">✕</button>
         </div>
         <div class="modal-body">
@@ -100,10 +116,9 @@
             <div class="form-group">
                 <label>Asignatura *</label>
                 <select class="form-control" [(ngModel)]="nuevaAsignatura">
-                    <option value="Estructura de Datos">Estructura de Datos</option>
-                    <option value="Bases de Datos">Bases de Datos</option>
-                    <option value="Programación Web">Programación Web</option>
-                    <option value="Arquitectura de Software">Arquitectura de Software</option>
+                    @for (c of cursosDisponibles(); track c.codigo) {
+                    <option [value]="c.asignatura">{{ c.asignatura }} ({{ c.docente }})</option>
+                    }
                 </select>
             </div>
 
@@ -135,9 +150,13 @@
             </div>
 
             <div class="modal-footer">
+                @if (modoModalRapido() === 'crear') {
                 <button type="button" class="btn-link-action" (click)="irAFormularioCompleto()">Abrir Formulario Completo ↗</button>
+                }
                 <button type="button" class="btn-secondary" (click)="cerrarModalRapido()">Cancelar</button>
-                <button type="button" class="btn-primary" (click)="guardarSolicitudRapida()">Radicar Consulta</button>
+                <button type="button" class="btn-primary" (click)="guardarSolicitudRapida()">
+                    {{ modoModalRapido() === 'editar' ? 'Guardar Cambios' : 'Radicar Consulta' }}
+                </button>
             </div>
         </div>
     </div>

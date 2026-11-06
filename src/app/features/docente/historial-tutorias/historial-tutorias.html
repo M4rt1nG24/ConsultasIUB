@@ -19,19 +19,20 @@
             [ngModel]="filtroAsignatura()"
             (ngModelChange)="filtroAsignatura.set($event)">
             <option value="Todas las asignaturas">Todas las asignaturas</option>
-            <option value="Estructura de Datos">Estructura de Datos</option>
-            <option value="Bases de Datos">Bases de Datos</option>
-            <option value="Programación Web">Programación Web</option>
+            @for (c of cursosDisponibles(); track c.codigo) {
+            <option [value]="c.asignatura">{{ c.asignatura }}</option>
+            }
         </select>
     </div>
 
     <div class="main-card">
         <div class="table-wrapper">
-            <table>
+            <table [appDataTable]="historialFiltrado()" class="display">
                 <thead>
                     <tr>
+                        <th>Radicado</th>
                         <th>Fecha y Hora</th>
-                        <th>Estudiante / ID</th>
+                        <th>Estudiante</th>
                         <th>Asignatura</th>
                         <th>Tipo</th>
                         <th>Estado Auditoría</th>
@@ -39,30 +40,33 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @for (item of historialFiltrado(); track item.id) {
+                    @for (item of historialFiltrado(); track item.radicado) {
                     <tr>
-                        <td>{{ item.fechaHora }}</td>
+                        <td><strong>{{ item.radicado }}</strong></td>
+                        <td>{{ item.fecha }}</td>
                         <td>
                             <strong>{{ item.estudiante }}</strong><br>
-                            <small class="text-muted">C.C. {{ item.documento }}</small>
+                            <small class="text-muted">Doc: {{ item.documento }}</small>
                         </td>
                         <td>{{ item.asignatura }}</td>
-                        <td>{{ item.tipo }}</td>
+                        <td>{{ item.tipoAtencion }}</td>
                         <td>
                             <span class="badge-status status-completed">
                                 Completada ({{ item.asistencia }})
                             </span>
                         </td>
                         <td>
-                            <button class="btn-action" type="button" (click)="abrirFormato(item)">
-                                Ver Formato
-                            </button>
-                        </td>
-                    </tr>
-                    } @empty {
-                    <tr>
-                        <td colspan="6" class="text-center py-4">
-                            No se encontraron registros de tutoría con los criterios seleccionados.
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <button class="btn-action" type="button" (click)="abrirFormato(item)">
+                                    Ver Formato
+                                </button>
+                                <button class="btn-action" type="button" (click)="editarRegistro(item)">
+                                    Editar
+                                </button>
+                                <button class="btn-action" type="button" (click)="anularTutoria(item)">
+                                    Reabrir
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     }
@@ -82,17 +86,17 @@
         </div>
         <div class="modal-body">
             <div class="format-header">
-                <span class="badge-audit">Folio de Auditoría: {{ reg.folio }}</span>
-                <span class="timestamp-meta">{{ reg.fechaHora }}</span>
+                <span class="badge-audit">Folio de Auditoría: {{ reg.folioAuditoria }}</span>
+                <span class="timestamp-meta">{{ reg.fecha }}</span>
             </div>
 
             <div class="grid-details">
                 <div><strong>Estudiante:</strong> {{ reg.estudiante }}</div>
                 <div><strong>Documento:</strong> {{ reg.documento }}</div>
                 <div><strong>Asignatura:</strong> {{ reg.asignatura }}</div>
-                <div><strong>Tipo de Atención:</strong> {{ reg.tipo }}</div>
+                <div><strong>Tipo de Atención:</strong> {{ reg.tipoAtencion }}</div>
                 <div><strong>Control de Asistencia:</strong> {{ reg.asistencia === 1 ? 'Confirmada (1)' : 'Sin Asistencia (0)' }}</div>
-                <div><strong>Sede:</strong> Plaza de la Paz</div>
+                <div><strong>Ubicación:</strong> {{ reg.ubicacion }}</div>
             </div>
 
             <div class="info-box">
@@ -106,7 +110,7 @@
             </div>
 
             <div class="signature-box">
-                <span>✓ Diligenciado y radicado digitalmente por el docente asignado</span>
+                <span>✓ Diligenciado y radicado digitalmente por el docente asignado ({{ reg.tutor }})</span>
             </div>
 
             <div class="modal-footer">

@@ -1,26 +1,35 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-export interface CursoItem {
-  codigo: string;
-  asignatura: string;
-  docente: string;
-}
+import { Data, CursoSistema } from '../../../core/services/data';
+import { DataTableDirective } from '../../../shared/directives/datatable.directive';
+import { FilterBar } from '../../../shared/components/filter-bar/filter-bar';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { StatusBadge } from '../../../shared/components/status-badge/status-badge';
 
 @Component({
   selector: 'app-gestion-cursos-roles',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DataTableDirective, FilterBar, PageHeader, StatusBadge],
   styleUrl: './gestion-cursos-roles.css',
   templateUrl: './gestion-cursos-roles.html',
 })
 export class GestionCursosRoles {
-  cursos = signal<CursoItem[]>([
-    { codigo: 'SIS-402', asignatura: 'Programación Web', docente: 'Ing. Roberto Pineda' },
-    { codigo: 'SIS-501', asignatura: 'Bases de Datos II', docente: 'Ing. Laura Gómez' },
-    { codigo: 'SIS-603', asignatura: 'Estructura de Datos', docente: 'Ing. Carlos Ruiz' },
-  ]);
+  private dataService = inject(Data);
+
+  busqueda = signal<string>('');
+  cursos = this.dataService.cursos;
+  docentesDisponibles = this.dataService.docentesDisponibles;
+
+  cursosFiltrados = computed(() => {
+    const q = this.busqueda().toLowerCase().trim();
+    if (!q) return this.cursos();
+    return this.cursos().filter(c =>
+      c.codigo.toLowerCase().includes(q) ||
+      c.asignatura.toLowerCase().includes(q) ||
+      c.docente.toLowerCase().includes(q)
+    );
+  });
 
   // Formulario rápido
   nuevoCodigo = '';
@@ -29,12 +38,12 @@ export class GestionCursosRoles {
 
   // Modal para cambiar docente
   modalCambioAbierto = signal<boolean>(false);
-  cursoSeleccionado = signal<CursoItem | null>(null);
+  cursoSeleccionado = signal<CursoSistema | null>(null);
   docenteReemplazo = '';
 
   mensajeToast = signal<string | null>(null);
 
-  guardarAsignacion() {
+  guardarAsignacion(): void {
     if (!this.nuevoCodigo.trim() || !this.nuevaAsignatura.trim()) {
       alert('Por favor complete el código y nombre de la asignatura.');
       return;
@@ -43,9 +52,11 @@ export class GestionCursosRoles {
     this.cursos.update(lista => [
       ...lista,
       {
+        id: Date.now(),
         codigo: this.nuevoCodigo.trim().toUpperCase(),
         asignatura: this.nuevaAsignatura.trim(),
-        docente: this.nuevoDocente
+        docente: this.nuevoDocente,
+        estado: 'Activo'
       }
     ]);
 
@@ -54,30 +65,38 @@ export class GestionCursosRoles {
     this.mostrarToast('¡Curso y docente tutor vinculados con éxito!');
   }
 
-  abrirCambiarDocente(curso: CursoItem) {
+  abrirCambiarDocente(curso: CursoSistema): void {
     this.cursoSeleccionado.set(curso);
     this.docenteReemplazo = curso.docente;
     this.modalCambioAbierto.set(true);
   }
 
-  cerrarModal() {
+  cerrarModal(): void {
     this.modalCambioAbierto.set(false);
     this.cursoSeleccionado.set(null);
   }
 
-  confirmarCambioDocente() {
+  confirmarCambioDocente(): void {
     const curso = this.cursoSeleccionado();
     if (!curso) return;
 
     this.cursos.update(lista =>
-      lista.map(c => c.codigo === curso.codigo ? { ...c, docente: this.docenteReemplazo } : c)
+      lista.map(c => (c.codigo === curso.codigo ? { ...c, docente: this.docenteReemplazo } : c))
     );
 
     this.cerrarModal();
     this.mostrarToast(`¡Tutor del curso ${curso.codigo} actualizado a ${this.docenteReemplazo}!`);
   }
 
-  mostrarToast(msg: string) {
+  cambiarEstadoCurso(curso: CursoSistema): void {
+    const nuevoEstado = curso.estado === 'Activo' ? 'Inactivo' : 'Activo';
+    this.cursos.update(lista =>
+      lista.map(c => (c.codigo === curso.codigo ? { ...c, estado: nuevoEstado } : c))
+    );
+    this.mostrarToast(`¡Estado del curso ${curso.codigo} cambiado a ${nuevoEstado}!`);
+  }
+
+  mostrarToast(msg: string): void {
     this.mensajeToast.set(msg);
     setTimeout(() => {
       this.mensajeToast.set(null);

@@ -1,1 +1,17 @@
-<p>confirm-modal works!</p>
+@if (abierto) {
+  <div class="shared-modal-backdrop">
+    <div class="shared-modal-dialog">
+      <div class="shared-modal-header">
+        <h3>{{ titulo }}</h3>
+        <button type="button" class="btn-close" (click)="cancelar.emit()">✕</button>
+      </div>
+      <div class="shared-modal-body">
+        <p>{{ mensaje }}</p>
+        <div class="shared-modal-footer">
+          <button type="button" class="btn-secondary" (click)="cancelar.emit()">{{ textoCancelar }}</button>
+          <button type="button" class="btn-danger" (click)="confirmar.emit()">{{ textoConfirmar }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

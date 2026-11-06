@@ -1,17 +1,14 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { RouterOutlet, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Header } from '../../shared/components/header/header';
+import { Auth, RolUsuario, RolXModuloItem } from '../../core/services/auth';
 import { Footer } from '../../shared/components/footer/footer';
+import { Header } from '../../shared/components/header/header';
+import { Navbar } from '../../shared/components/navbar/navbar';
+import { Sidebar } from '../../shared/components/sidebar/sidebar';
 
-export type RolUsuario = 'ADMIN' | 'DOCENTE' | 'ESTUDIANTE';
-
-export interface OpcionMenu {
-  titulo: string;
-  ruta: string;
-  icono: string;
-  rol: RolUsuario;
-}
+export type { RolUsuario };
+export type OpcionMenu = RolXModuloItem;
 
 export interface NotificacionItem {
   id: number;
@@ -28,21 +25,24 @@ interface MensajeIA {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, Header, Footer],
+  imports: [RouterOutlet, FormsModule, Header, Footer, Navbar, Sidebar],
   templateUrl: './main-layout.html',
   styleUrl: './main-layout.css'
 })
 export class MainLayout {
   private router = inject(Router);
+  private authService = inject(Auth);
 
-  // Rol activo (Por defecto ESTUDIANTE)
-  rolActual = signal<RolUsuario>('ESTUDIANTE');
+  // Rol activo y menú cargado dinámicamente desde la tabla rolxmodulo (Auth)
+  rolActual = this.authService.rolActivo;
+  menuDelRol = this.authService.modulosDelRolActivo;
+  busquedaRapida = signal<string>('');
 
   // Estado para el panel de notificaciones
   mostrarNotificaciones = signal<boolean>(false);
 
   notificaciones = signal<NotificacionItem[]>([
-    { id: 1, mensaje: 'Su consulta #CNS-2026-0104 cambió de estado a: En proceso', fecha: 'Hace 10 min', leida: false },
+    { id: 1, mensaje: 'Su consulta #TUT-2026-1045 cambió de estado a: Programada', fecha: 'Hace 10 min', leida: false },
     { id: 2, mensaje: 'El docente Ing. Carlos Mendoza ha respondido su consulta', fecha: 'Hace 1 hora', leida: false },
     { id: 3, mensaje: 'Nueva consulta asignada en Estructura de Datos', fecha: 'Ayer', leida: true }
   ]);
@@ -62,90 +62,6 @@ export class MainLayout {
     }
   ]);
 
-  private todasLasOpciones: OpcionMenu[] = [
-    // ==========================================
-    // ROL 1: ADMINISTRADOR
-    // ==========================================
-    {
-      titulo: 'Reportes y Analítica',
-      ruta: '/admin/reportes',
-      icono: '📊',
-      rol: 'ADMIN'
-    },
-    {
-      titulo: 'Gestión de Usuarios',
-      ruta: '/admin/usuarios',
-      icono: '👥',
-      rol: 'ADMIN'
-    },
-    {
-      titulo: 'Reasignar Consultas',
-      ruta: '/admin/consultas',
-      icono: '🔄',
-      rol: 'ADMIN'
-    },
-    {
-      titulo: 'Cursos y Roles',
-      ruta: '/admin/cursos-roles',
-      icono: '🎓',
-      rol: 'ADMIN'
-    },
-
-    // ==========================================
-    // ROL 2: DOCENTE
-    // ==========================================
-    {
-      titulo: 'Bandeja Asignadas',
-      ruta: '/docente/asignadas',
-      icono: '📥',
-      rol: 'DOCENTE'
-    },
-    {
-      titulo: 'Atención de Consulta',
-      ruta: '/docente/atencion',
-      icono: '✏️',
-      rol: 'DOCENTE'
-    },
-    {
-      titulo: 'Historial de Tutorías',
-      ruta: '/docente/historial',
-      icono: '📚',
-      rol: 'DOCENTE'
-    },
-
-    // ==========================================
-    // ROL 3: ESTUDIANTE
-    // ==========================================
-    {
-      titulo: 'Mis Solicitudes',
-      ruta: '/estudiante/mis-solicitudes',
-      icono: '📋',
-      rol: 'ESTUDIANTE'
-    },
-    {
-      titulo: 'Crear Consulta',
-      ruta: '/estudiante/crear',
-      icono: '➕',
-      rol: 'ESTUDIANTE'
-    },
-    {
-      titulo: 'Detalle e Interacción',
-      ruta: '/estudiante/detalle',
-      icono: '💬',
-      rol: 'ESTUDIANTE'
-    },
-    {
-      titulo: 'Directorio de Tutorías',
-      ruta: '/estudiante/directorio-tutorias',
-      icono: '📖',
-      rol: 'ESTUDIANTE'
-    },
-  ];
-
-  menuDelRol = computed(() =>
-    this.todasLasOpciones.filter(opcion => opcion.rol === this.rolActual())
-  );
-
   constructor() {
     this.actualizarRol();
     this.router.events.subscribe(() => {
@@ -155,45 +71,36 @@ export class MainLayout {
 
   private actualizarRol(): void {
     const url = this.router.url;
-    if (url.startsWith('/admin')) {
-      this.rolActual.set('ADMIN');
-    } else if (url.startsWith('/docente')) {
-      this.rolActual.set('DOCENTE');
-    } else if (url.startsWith('/estudiante')) {
-      this.rolActual.set('ESTUDIANTE');
-    } else {
-      const guardado = localStorage.getItem('rolActivo') as RolUsuario | null;
-      if (guardado === 'ADMIN' || guardado === 'DOCENTE' || guardado === 'ESTUDIANTE') {
-        this.rolActual.set(guardado);
-      }
-    }
+    this.authService.sincronizarRolDesdeUrl(url);
   }
 
-  // Cambiar de rol en el simulador y navegar a su primera pantalla
-  cambiarRol(nuevoRol: RolUsuario) {
+  // Cambiar de rol y navegar a su primer módulo según rolxmodulo
+  cambiarRol(nuevoRol: RolUsuario): void {
     this.rolActual.set(nuevoRol);
-    localStorage.setItem('rolActivo', nuevoRol);
-    const primeraRuta = this.menuDelRol()[0]?.ruta;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('rolActivo', nuevoRol);
+    }
+    const primeraRuta = this.authService.obtenerRutaInicialPorRol(nuevoRol);
     if (primeraRuta) {
       this.router.navigate([primeraRuta]);
     }
   }
 
   // Alternar apertura del panel de notificaciones
-  toggleNotificaciones() {
+  toggleNotificaciones(): void {
     this.mostrarNotificaciones.update(v => !v);
   }
 
   // Marcar todas como leídas
-  marcarTodasLeidas() {
+  marcarTodasLeidas(): void {
     this.notificaciones.update(lista =>
       lista.map(item => ({ ...item, leida: true }))
     );
   }
 
-  // Cierre de sesión de usuarios
-  cerrarSesion() {
-    localStorage.removeItem('rolActivo');
+  // Cierre de sesión de usuarios limpiando JWT y estado de Auth
+  cerrarSesion(): void {
+    this.authService.cerrarSesion();
     this.router.navigate(['/login']);
   }
 

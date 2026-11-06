@@ -1,44 +1,11 @@
 <div class="layout-container">
 
-    <!-- BARRA LATERAL (SIDEBAR) -->
-    <aside class="sidebar">
-        <div class="sidebar-brand">
-            <div class="brand-logo">IUB</div>
-            <div>
-                <h2 class="brand-title">MiTutoría</h2>
-                <span class="brand-badge">Sistema Institucional</span>
-            </div>
-        </div>
-
-        <!-- Selector de Rol (Simulador / Switch de rol institucional) -->
-        <div class="role-selector-card">
-            <label for="rolSelect">Rol Activo</label>
-            <select id="rolSelect" [value]="rolActual()" (change)="cambiarRol($any($event.target).value)"
-                class="role-select">
-                <option value="ESTUDIANTE">Estudiante</option>
-                <option value="DOCENTE">Docente</option>
-                <option value="ADMIN">Administrador</option>
-            </select>
-        </div>
-
-        <!-- Menú de Rutas Dinámicas -->
-        <nav class="sidebar-nav">
-            @for (item of menuDelRol(); track item.ruta) {
-            <a [routerLink]="item.ruta" routerLinkActive="active-link" class="nav-item">
-                <span class="nav-icon">{{ item.icono }}</span>
-                <span class="nav-title">{{ item.titulo }}</span>
-            </a>
-            }
-        </nav>
-
-        <!-- Botón de Cierre de Sesión (Requerimiento Funcional) -->
-        <div class="sidebar-footer">
-            <button type="button" class="btn-logout" (click)="cerrarSesion()">
-                <span class="logout-icon">🚪</span>
-                <span>Cerrar Sesión</span>
-            </button>
-        </div>
-    </aside>
+    <!-- BARRA LATERAL COMPARTIDA (SHARED SIDEBAR) -->
+    <app-sidebar
+        [rol]="rolActual()"
+        [opciones]="menuDelRol()"
+        (cerrarSesion)="cerrarSesion()">
+    </app-sidebar>
 
     <!-- CONTENEDOR PRINCIPAL DERECHO -->
     <div class="main-wrapper">
@@ -46,59 +13,17 @@
         <!-- ENCABEZADO INSTITUCIONAL COMPARTIDO -->
         <app-header></app-header>
 
-        <!-- NAVBAR SUPERIOR -->
-        <header class="topbar">
-
-            <!-- Búsqueda rápida (Requerimiento funcional) -->
-            <div class="search-box">
-                <span class="search-icon">🔍</span>
-                <input type="text" placeholder="Buscar por radicado, asunto, curso, docente..." class="search-input" />
-            </div>
-
-            <!-- Acciones de cabecera -->
-            <div class="header-actions">
-
-                <!-- Botón de Notificaciones (Requerimiento funcional) -->
-                <div class="notif-wrapper">
-                    <button type="button" class="btn-icon" (click)="toggleNotificaciones()">
-                        🔔
-                        @if (notificacionesPendientes() > 0) {
-                        <span class="notif-badge">{{ notificacionesPendientes() }}</span>
-                        }
-                    </button>
-
-                    <!-- Ventana flotante de notificaciones -->
-                    @if (mostrarNotificaciones()) {
-                    <div class="notif-dropdown">
-                        <div class="notif-header">
-                            <strong>Notificaciones</strong>
-                            <button type="button" class="btn-text-read" (click)="marcarTodasLeidas()">Marcar leídas</button>
-                        </div>
-                        <div class="notif-body">
-                            @for (notif of notificaciones(); track notif.id) {
-                            <div class="notif-item" [class.unread]="!notif.leida">
-                                <p class="notif-text">{{ notif.mensaje }}</p>
-                                <small class="notif-time">{{ notif.fecha }}</small>
-                            </div>
-                            }
-                        </div>
-                    </div>
-                    }
-                </div>
-
-                <!-- Perfil del usuario activo -->
-                <div class="user-profile">
-                    <div class="avatar">
-                        {{ rolActual().charAt(0) }}
-                    </div>
-                    <div class="user-meta">
-                        <span class="user-name">Usuario IUB</span>
-                        <span class="user-role-badge">{{ rolActual() }}</span>
-                    </div>
-                </div>
-
-            </div>
-        </header>
+        <!-- NAVBAR SUPERIOR COMPARTIDA (SHARED NAVBAR CON BUSCADOR Y NOTIFICACIONES) -->
+        <app-navbar
+            [rol]="rolActual()"
+            [busquedaGlobal]="busquedaRapida()"
+            (busquedaGlobalChange)="busquedaRapida.set($event)"
+            [notificaciones]="notificaciones()"
+            [pendientes]="notificacionesPendientes()"
+            [mostrarNotificaciones]="mostrarNotificaciones()"
+            (toggleNotif)="toggleNotificaciones()"
+            (marcarLeidas)="marcarTodasLeidas()">
+        </app-navbar>
 
         <!-- ÁREA DINÁMICA DE VISTAS ENRUTADAS -->
         <main class="page-content">
@@ -111,16 +36,30 @@
     </div>
 
     <!-- ==================== CHAT FLOTANTE IA (OLLAMA) ==================== -->
-    <button type="button" class="ia-fab" (click)="toggleChat()">
-        {{ chatAbierto() ? 'Cerrar' : 'Asistente IA' }}
+    <button
+        type="button"
+        class="ia-fab"
+        [class.ia-fab-open]="chatAbierto()"
+        (click)="toggleChat()"
+        aria-label="Asistente IA">
+        @if (chatAbierto()) {
+            <span class="ia-fab-icon">✕</span>
+            <span class="ia-fab-label">Cerrar IA</span>
+        } @else {
+            <span class="ia-fab-icon">🤖</span>
+            <span class="ia-fab-label">Asistente IA</span>
+        }
     </button>
 
     @if (chatAbierto()) {
     <div class="ia-chat-window">
         <div class="ia-chat-header">
-            <div>
-                <strong>Asistente IA - MiTutoría</strong>
-                <span class="ia-subtitle">Ollama Local</span>
+            <div class="ia-header-brand">
+                <div class="ia-header-avatar">🤖</div>
+                <div>
+                    <strong>Asistente IA • MiTutoría</strong>
+                    <span class="ia-subtitle">● En línea (Ollama Local)</span>
+                </div>
             </div>
             <button type="button" class="ia-close-btn" (click)="toggleChat()">✕</button>
         </div>

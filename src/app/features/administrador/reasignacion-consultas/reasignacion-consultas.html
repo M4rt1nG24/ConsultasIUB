@@ -1,21 +1,35 @@
 <div class="view-wrapper">
     <!-- Toast -->
-    <div class="toast-notification" *ngIf="mensajeToast()">
+    @if (mensajeToast()) {
+    <div class="toast-notification">
         <span>✅ {{ mensajeToast() }}</span>
     </div>
+    }
 
-    <div class="header-section">
-        <span class="badge-tag">Módulo Administrador</span>
-        <h2>🔄 Reasignación de Consultas</h2>
-        <p>Transfiere solicitudes pendientes o represadas a otro docente disponible del área.</p>
-    </div>
+    <app-page-header
+        badge="Módulo Administrador"
+        titulo="🔄 Reasignación de Consultas"
+        subtitulo="Transfiere solicitudes pendientes o programadas a otro docente disponible. El cambio se refleja en Estudiante y Docente.">
+    </app-page-header>
+
+    <app-filter-bar
+        placeholder="Buscar por radicado, estudiante, asignatura o docente titular..."
+        [texto]="busqueda()"
+        (textoChange)="busqueda.set($event)">
+        <select class="select-filter" [ngModel]="filtroDocente()" (ngModelChange)="filtroDocente.set($event)">
+            <option value="">Todos los Docentes Titulares</option>
+            @for (doc of docentesDisponibles(); track doc) {
+                <option [value]="doc">{{ doc }}</option>
+            }
+        </select>
+    </app-filter-bar>
 
     <div class="main-card">
         <div class="table-wrapper">
-            <table>
+            <table [appDataTable]="solicitudesFiltradas()" class="display">
                 <thead>
                     <tr>
-                        <th>Ticket</th>
+                        <th>Radicado</th>
                         <th>Estudiante</th>
                         <th>Asignatura / Tema</th>
                         <th>Docente Titular Actual</th>
@@ -24,38 +38,36 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @for (item of solicitudes(); track item.ticket) {
+                    @for (item of solicitudesFiltradas(); track item.radicado) {
                     <tr>
-                        <td><strong>{{ item.ticket }}</strong></td>
+                        <td><strong>{{ item.radicado }}</strong></td>
                         <td>{{ item.estudiante }}</td>
-                        <td>{{ item.asignatura }}</td>
                         <td>
-                            <span class="teacher-tag">{{ item.docenteActual }}</span>
+                            <strong>{{ item.asignatura }}</strong><br>
+                            <small class="text-muted">{{ item.tema }}</small>
+                        </td>
+                        <td>
+                            <span class="teacher-tag">{{ item.tutor }}</span>
                         </td>
                         <td>
                             <select
                                 class="form-control"
-                                [(ngModel)]="item.docenteSeleccionado"
-                                [disabled]="item.reasignado">
+                                [(ngModel)]="item.docenteSeleccionado">
                                 <option value="">Seleccionar docente...</option>
-                                @for (doc of docentesDisponibles; track doc) {
-                                    @if (doc !== item.docenteActual) {
+                                @for (doc of docentesDisponibles(); track doc) {
+                                    @if (doc !== item.tutor) {
                                         <option [value]="doc">{{ doc }}</option>
                                     }
                                 }
                             </select>
                         </td>
                         <td>
-                            @if (!item.reasignado) {
-                                <button
-                                    class="btn-submit"
-                                    type="button"
-                                    (click)="confirmar(item)">
-                                    Confirmar
-                                </button>
-                            } @else {
-                                <span class="badge-done">✓ Reasignado</span>
-                            }
+                            <button
+                                class="btn-submit"
+                                type="button"
+                                (click)="confirmar(item)">
+                                Confirmar
+                            </button>
                         </td>
                     </tr>
                     }

@@ -2,6 +2,8 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Data } from '../../../core/services/data';
+import { DataTableDirective } from '../../../shared/directives/datatable.directive';
 
 export interface TutorDocente {
   id: number;
@@ -16,13 +18,14 @@ export interface TutorDocente {
 }
 
 @Component({
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DataTableDirective],
   selector: 'app-directorio-tutorias',
   styleUrl: './directorio-tutorias.css',
   templateUrl: './directorio-tutorias.html',
 })
 export class DirectorioTutorias {
   private router = inject(Router);
+  private dataService = inject(Data);
 
   busqueda = signal<string>('');
 
@@ -111,7 +114,18 @@ export class DirectorioTutorias {
     }
 
     const tutor = this.tutorSeleccionado();
-    alert(`¡Cita solicitada exitosamente con ${tutor?.nombre}!\nFecha: ${this.fechaCita}\nFranja: ${this.franjaCita}\nModalidad: ${this.modalidadCita}\n\nPodrás ver el estado en tu bandeja de "Mis Solicitudes".`);
+    const nueva = this.dataService.crearConsulta({
+      asignatura: tutor?.area || 'Estructura de Datos',
+      tutor: tutor?.nombre || 'Ing. Carlos Mendoza',
+      modalidad: this.modalidadCita,
+      franja: this.franjaCita,
+      fecha: `${this.fechaCita} - ${this.franjaCita.split(' ')[0]}`,
+      ubicacion: tutor?.ubicacion || 'Sede Plaza de la Paz',
+      tema: this.temaCita.trim(),
+      descripcion: `Cita solicitada desde el Directorio de Tutorías con ${tutor?.nombre}.`
+    });
+
+    alert(`¡Cita solicitada exitosamente con ${tutor?.nombre}!\nRadicado: ${nueva.radicado}\nFecha: ${this.fechaCita}\nFranja: ${this.franjaCita}`);
 
     this.cerrarModalCita();
     this.router.navigate(['/estudiante/mis-solicitudes']);

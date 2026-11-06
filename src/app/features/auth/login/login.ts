@@ -2,15 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-
-export type RolUsuario = 'ADMIN' | 'DOCENTE' | 'ESTUDIANTE';
-
-interface CredencialDemo {
-  correo: string;
-  password: string;
-  rol: RolUsuario;
-  ruta: string;
-}
+import { Auth, RolUsuario } from '../../../core/services/auth';
+import { Data } from '../../../core/services/data';
 
 @Component({
   selector: 'app-login',
@@ -21,6 +14,8 @@ interface CredencialDemo {
 })
 export class Login {
   private router = inject(Router);
+  private authService = inject(Auth);
+  private dataService = inject(Data);
 
   rolSeleccionado: RolUsuario = 'ADMIN';
   correo: string = 'coordinacion.sistemas@unibarranquilla.edu.co';
@@ -31,32 +26,20 @@ export class Login {
   correoRecuperacion = signal<string>('');
   recuperacionEnviada = signal<boolean>(false);
 
-  // Credenciales válidas por rol (puedes cambiar la contraseña de cada uno si son distintas)
-  private readonly usuariosValidos: Record<RolUsuario, CredencialDemo> = {
-    ADMIN: {
-      correo: 'coordinacion.sistemas@unibarranquilla.edu.co',
-      password: '12345678',
-      rol: 'ADMIN',
-      ruta: '/admin/reportes'
-    },
-    DOCENTE: {
-      correo: 'rpineda@unibarranquilla.edu.co',
-      password: '12345678',
-      rol: 'DOCENTE',
-      ruta: '/docente/asignadas'
-    },
-    ESTUDIANTE: {
-      correo: 'meclavijo@unibarranquilla.edu.co',
-      password: '12345678',
-      rol: 'ESTUDIANTE',
-      ruta: '/estudiante/mis-solicitudes'
-    }
+  private readonly correosPredeterminados: Record<RolUsuario, string> = {
+    ADMIN: 'coordinacion.sistemas@unibarranquilla.edu.co',
+    DOCENTE: 'rpineda@unibarranquilla.edu.co',
+    ESTUDIANTE: 'meclavijo@unibarranquilla.edu.co'
   };
 
   actualizarCorreoDemo(): void {
-    const credencial = this.usuariosValidos[this.rolSeleccionado];
-    this.correo = credencial.correo;
-    this.password = credencial.password;
+    const usuariosRol = this.dataService
+      .usuarios()
+      .filter(u => u.rol === this.rolSeleccionado && u.estado === 'Activo');
+
+    this.correo =
+      usuariosRol[0]?.email || this.correosPredeterminados[this.rolSeleccionado];
+    this.password = '12345678';
     this.errorMensaje.set('');
   }
 
@@ -79,46 +62,34 @@ export class Login {
   }
 
   ingresar(): void {
-    const correoLimpio = this.correo.trim().toLowerCase();
-    const passwordIngresada = this.password;
-
-    if (!correoLimpio || !passwordIngresada) {
-      this.errorMensaje.set('Por favor ingresa tu correo y contraseña.');
-      alert('Por favor ingresa tu correo y contraseña.');
-      return;
-    }
-
-    // Buscamos el usuario por correo
-    const usuarioEncontrado = Object.values(this.usuariosValidos).find(
-      u => u.correo.toLowerCase() === correoLimpio
+    // 1. Intentar validación inmediata si está en catálogo local
+    const resultadoLocal = this.authService.autenticar(
+      this.correo,
+      this.password,
+      this.rolSeleccionado
     );
 
-    if (!usuarioEncontrado) {
-      this.errorMensaje.set('El correo ingresado no está registrado.');
-      alert('El correo ingresado no está registrado.');
+    if (resultadoLocal.exito) {
+      this.errorMensaje.set('');
+      // Sincronizar también contra la API Principal en Render en segundo plano
+      this.authService
+        .autenticarConApi(this.correo, this.password, this.rolSeleccionado)
+        .subscribe();
+      this.router.navigateByUrl(resultadoLocal.rutaRedireccion || '/login');
       return;
     }
 
-    // Validamos que el correo corresponda al rol seleccionado
-    if (usuarioEncontrado.rol !== this.rolSeleccionado) {
-      this.errorMensaje.set(`Este correo no pertenece al rol ${this.rolSeleccionado}.`);
-      alert(`Este correo pertenece al rol ${usuarioEncontrado.rol}, no a ${this.rolSeleccionado}.`);
-      return;
-    }
-
-    // Validamos la contraseña
-    if (usuarioEncontrado.password !== passwordIngresada) {
-      this.errorMensaje.set('Contraseña incorrecta. Verifica e intenta nuevamente.');
-      alert('Contraseña incorrecta. Verifica e intenta nuevamente.');
-      return;
-
-    }
-
-    // Credenciales válidas: guardamos sesión y redirigimos según su rol
-    this.errorMensaje.set('');
-    localStorage.setItem('rolActivo', usuarioEncontrado.rol);
-    localStorage.setItem('correoActivo', usuarioEncontrado.correo);
-
-    this.router.navigateByUrl(usuarioEncontrado.ruta);
+    // 2. Si el usuario solo existe en la base de datos de Render, autenticar contra POST /auth/login
+    this.authService
+      .autenticarConApi(this.correo, this.password, this.rolSeleccionado)
+      .subscribe((resultadoApi) => {
+        if (!resultadoApi.exito) {
+          this.errorMensaje.set(resultadoApi.mensaje);
+          alert(resultadoApi.mensaje);
+          return;
+        }
+        this.errorMensaje.set('');
+        this.router.navigateByUrl(resultadoApi.rutaRedireccion || '/login');
+      });
   }
 }

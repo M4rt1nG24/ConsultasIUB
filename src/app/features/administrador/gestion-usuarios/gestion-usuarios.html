@@ -35,10 +35,10 @@
         </select>
     </div>
 
-    <!-- Tabla de usuarios dinámica -->
+    <!-- Tabla de usuarios dinámica con librería DataTables -->
     <div class="main-card">
         <div class="table-wrapper">
-            <table>
+            <table [appDataTable]="usuariosFiltrados()" class="display">
                 <thead>
                     <tr>
                         <th>Nombre Completo</th>
@@ -66,13 +66,12 @@
                             </span>
                         </td>
                         <td>
-                            <button class="btn-action" type="button" (click)="abrirModalEditar(u)">Editar</button>
-                        </td>
-                    </tr>
-                    } @empty {
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">
-                            No se encontraron usuarios que coincidan con los filtros de búsqueda.
+                            <div style="display: flex; gap: 6px;">
+                                <button class="btn-action" type="button" (click)="abrirModalEditar(u)">Editar</button>
+                                <button class="btn-action" type="button" (click)="cambiarEstadoUsuario(u)">
+                                    {{ u.estado === 'Activo' ? 'Inactivar' : 'Activar' }}
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     }

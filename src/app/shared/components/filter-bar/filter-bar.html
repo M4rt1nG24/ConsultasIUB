@@ -1,1 +1,30 @@
-<p>filter-bar works!</p>
+<div class="shared-filter-bar">
+  <div class="search-input-wrap">
+    <span class="search-icon">🔍</span>
+    <input
+      type="text"
+      class="shared-search-input"
+      [placeholder]="placeholder"
+      [ngModel]="texto"
+      (ngModelChange)="onTextoChange($event)"
+    />
+    @if (texto) {
+      <button type="button" class="btn-clear-search" (click)="limpiarFiltros()" title="Limpiar búsqueda">✕</button>
+    }
+  </div>
+
+  @if (mostrarSelect && opcionesSelect.length > 0) {
+    <select
+      class="shared-select-filter"
+      [ngModel]="valorSelect"
+      (ngModelChange)="onSelectChange($event)"
+    >
+      <option value="">{{ etiquetaSelect }}</option>
+      @for (op of opcionesSelect; track op.valor) {
+        <option [value]="op.valor">{{ op.label }}</option>
+      }
+    </select>
+  }
+
+  <ng-content></ng-content>
+</div>

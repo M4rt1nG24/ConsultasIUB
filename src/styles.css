@@ -1,1 +1,165 @@
-/* You can add global styles to this file, and also import other style files */
+/* ==================== ESTILOS GLOBALES PARA TODOS LOS CAMPOS, BUSCADORES Y TABLAS ==================== */
+
+/* Estilización universal para inputs, selects, textareas y campos de búsqueda en toda la aplicación */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="search"],
+select,
+textarea,
+.search-input,
+.input-search,
+.select-filter,
+.date-filter,
+.input-control,
+.form-control {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 13.5px;
+  color: #1e293b;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 9px 14px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="search"]:focus,
+select:focus,
+textarea:focus,
+.search-input:focus,
+.input-search:focus,
+.select-filter:focus,
+.date-filter:focus,
+.input-control:focus,
+.form-control:focus {
+  border-color: #d99a00;
+  box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.22);
+  background-color: #ffffff;
+}
+
+input[type="file"] {
+  font-size: 13px;
+  color: #334155;
+  padding: 8px 12px;
+  border: 1px dashed #94a3b8;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  cursor: pointer;
+}
+
+/* Contenedores de barra de búsqueda y filtros en todos los módulos */
+.filters-container,
+.search-bar,
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(15, 39, 71, 0.04);
+}
+
+.filters-container .search-input,
+.search-bar .search-input,
+.filter-bar .input-search {
+  flex: 1;
+  min-width: 240px;
+}
+
+/* Botones de acción con acento amarillo/dorado institucional */
+.btn-action,
+.btn-action-primary {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-action:hover,
+.btn-action-primary:hover {
+  background-color: #f5b800;
+  color: #0f172a;
+  border-color: #d99a00;
+}
+
+/* ==================== DATATABLES ESTILOS INSTITUCIONALES IUB ==================== */
+.dt-container {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #334155;
+  width: 100%;
+}
+
+.dt-container .dt-layout-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.dt-container .dt-length label,
+.dt-container .dt-search label,
+.dt-container .dt-info {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.dt-container .dt-input {
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  font-size: 13px !important;
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  outline: none;
+  margin-left: 6px;
+}
+
+.dt-container .dt-input:focus {
+  border-color: #173b6c !important;
+  box-shadow: 0 0 0 3px rgba(23, 59, 108, 0.12);
+}
+
+.dt-container .dt-paging .dt-paging-button {
+  border-radius: 6px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  padding: 5px 11px !important;
+  margin: 0 2px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.dt-container .dt-paging .dt-paging-button.current,
+.dt-container .dt-paging .dt-paging-button.current:hover {
+  background: #f5b800 !important;
+  color: #0f172a !important;
+  border-color: #d99a00 !important;
+  font-weight: 700 !important;
+}
+
+table.dataTable thead > tr > th.dt-orderable-asc,
+table.dataTable thead > tr > th.dt-orderable-desc {
+  background-color: #1e293b;
+  color: #fde047;
+  border-bottom: 2px solid #f5b800;
+}

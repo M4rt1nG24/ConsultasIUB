@@ -1,0 +1,65 @@
+.shared-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.timeline-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.step-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.timeline-step.done .step-dot {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.step-info {
+  flex: 1;
+}
+
+.step-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.step-head strong {
+  font-size: 13px;
+  color: #0f2747;
+}
+
+.step-head small {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.step-info p {
+  margin: 2px 0 0 0;
+  font-size: 12.5px;
+  color: #475569;
+}
+

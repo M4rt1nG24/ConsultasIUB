@@ -1,8 +1,9 @@
 <div class="view-wrapper">
+    @if (consulta(); as c) {
     <div class="header-section">
         <span class="badge-tag">Trazabilidad de Consulta</span>
-        <h2>Consulta #CNS-2026-0104</h2>
-        <p>Historial cronológico de interacciones, comentarios y respuestas entre docente y estudiante.</p>
+        <h2>Consulta {{ c.radicado }}</h2>
+        <p>Historial cronológico de interacciones, retroalimentación y respuestas entre docente y estudiante.</p>
     </div>
 
     <div class="main-card">
@@ -11,59 +12,65 @@
         <div class="summary-box">
             <div class="summary-item">
                 <span class="label">Materia / Curso</span>
-                <span class="val">Estructura de Datos</span>
+                <span class="val">{{ c.asignatura }}</span>
             </div>
             <div class="summary-item">
                 <span class="label">Docente Asignado</span>
-                <span class="val">Ing. Carlos Mendoza</span>
+                <span class="val">{{ c.tutor }}</span>
             </div>
             <div class="summary-item">
                 <span class="label">Prioridad</span>
-                <span class="val">Alta</span>
+                <app-priority-badge [prioridad]="c.prioridad"></app-priority-badge>
             </div>
             <div class="summary-item">
                 <span class="label">Estado Actual</span>
-                <span class="badge-status status-en-proceso">En proceso</span>
+                <app-status-badge [estado]="c.estado"></app-status-badge>
             </div>
         </div>
 
+        <!-- Línea de Tiempo del Ticket (Shared Component) -->
+        <app-ticket-timeline></app-ticket-timeline>
+
         <!-- Hilo de Conversación / Historial de Interacciones -->
         <div class="timeline">
-
-            <!-- Mensaje Inicial del Estudiante -->
-            <div class="message-box student-msg">
+            @for (msg of c.mensajes; track $index) {
+            <div class="message-box" [ngClass]="msg.rol === 'ESTUDIANTE' ? 'student-msg' : 'teacher-msg'">
                 <div class="msg-header">
-                    <strong>Estudiante (Tú)</strong>
-                    <small>14/10/2026 - 10:15 AM</small>
+                    <strong>{{ msg.autor }}</strong>
+                    <small>{{ msg.fechaHora }}</small>
                 </div>
-                <p>Profesor, tengo inconvenientes con el cálculo del factor de equilibrio en la inserción de nodos del
-                    taller 3.</p>
+                <p>{{ msg.mensaje }}</p>
+                @if (msg.adjuntos && msg.adjuntos.length) {
                 <div class="attachments">
-                    <span class="attach-badge">📎 taller_arboles.cpp</span>
-                    <span class="attach-badge">📎 error_consola.png</span>
+                    @for (adj of msg.adjuntos; track adj) {
+                    <span class="attach-badge">📎 {{ adj }}</span>
+                    }
                 </div>
+                }
             </div>
+            }
+        </div>
 
-            <!-- Respuesta del Docente -->
-            <div class="message-box teacher-msg">
-                <div class="msg-header">
-                    <strong>Docente: Ing. Carlos Mendoza</strong>
-                    <small>14/10/2026 - 11:30 AM</small>
-                </div>
-                <p>Hola Carlos. Revisé tu código adjunto; la rotación doble derecha-izquierda se está invocando antes de
-                    recalcular la altura del subárbol izquierdo. Prueba actualizando primero las alturas.</p>
+        <!-- Observaciones oficiales registradas por el docente -->
+        <div class="summary-box" style="margin-top: 16px;">
+            <div class="summary-item" style="grid-column: 1 / -1;">
+                <span class="label">Retroalimentación y Compromisos Registrados por el Docente</span>
+                <span class="val">{{ c.observaciones }}</span>
             </div>
-
         </div>
 
         <!-- Caja para que el estudiante agregue un comentario/respuesta -->
         <div class="reply-section">
             <h3>Agregar Comentario o Respuesta a esta Consulta</h3>
-            <textarea rows="3" class="form-control" placeholder="Escribe tu mensaje o duda adicional..."></textarea>
+            <textarea
+                rows="3"
+                class="form-control"
+                [(ngModel)]="nuevoComentario"
+                placeholder="Escribe tu mensaje o duda adicional..."></textarea>
 
             <div class="reply-actions">
                 <input type="file" class="file-input" />
-                <button type="button" class="btn-submit">Enviar Comentario</button>
+                <button type="button" class="btn-submit" (click)="enviarComentario()">Enviar Comentario</button>
             </div>
 
             <div class="actions-group">
@@ -73,10 +80,11 @@
         </div>
 
     </div>
+    }
 </div>
 
 <!-- Modal de Constancia Digital -->
-@if (modalConstanciaAbierto()) {
+@if (modalConstanciaAbierto() && consulta(); as c) {
 <div class="modal-backdrop">
     <div class="modal-dialog">
         <div class="modal-header">
@@ -90,13 +98,15 @@
                     <span>Sistema MiTutoría IUB • Formato Oficial F-IUB-04</span>
                 </div>
                 <hr>
-                <p>Se hace constar que el estudiante asistió puntualmente y completó los compromisos de la sesión:</p>
+                <p>Se hace constar que el estudiante <strong>{{ c.estudiante }}</strong> registró y dio seguimiento a la sesión:</p>
                 <ul class="cert-list">
-                    <li><strong>Asignatura:</strong> Estructura de Datos</li>
-                    <li><strong>Tutor Docente:</strong> Ing. Carlos Mendoza</li>
-                    <li><strong>Fecha y Hora:</strong> 14/10/2026 - 03:30 PM a 04:30 PM</li>
-                    <li><strong>Temática:</strong> Rotaciones simples y dobles en árboles AVL</li>
-                    <li><strong>Auditoría Cero Papel:</strong> Folio #AUD-2026-1045892110 (Asistencia 1)</li>
+                    <li><strong>Radicado:</strong> {{ c.radicado }}</li>
+                    <li><strong>Asignatura:</strong> {{ c.asignatura }}</li>
+                    <li><strong>Tutor Docente:</strong> {{ c.tutor }}</li>
+                    <li><strong>Fecha y Hora:</strong> {{ c.fecha }}</li>
+                    <li><strong>Temática:</strong> {{ c.tema }}</li>
+                    <li><strong>Retroalimentación Docente:</strong> {{ c.observaciones }}</li>
+                    <li><strong>Auditoría Cero Papel:</strong> Folio {{ c.folioAuditoria }} (Asistencia {{ c.asistencia }})</li>
                 </ul>
                 <div class="cert-stamp">
                     <span>✓ Sello y Firma Digital Validada IUB</span>

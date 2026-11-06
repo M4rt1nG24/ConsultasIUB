@@ -1,1 +1,12 @@
-<p>kpi-card works!</p>
+<div class="kpi-card-box">
+  <div class="kpi-icon" [ngClass]="'kpi-icon-' + variante">
+    <span>{{ icono }}</span>
+  </div>
+  <div class="kpi-info">
+    <span class="kpi-label">{{ label }}</span>
+    <h3 class="kpi-value" [ngClass]="'kpi-text-' + variante">{{ valor }}</h3>
+    @if (tendencia) {
+      <small class="kpi-trend">{{ tendencia }}</small>
+    }
+  </div>
+</div>

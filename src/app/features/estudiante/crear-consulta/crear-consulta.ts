@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Data } from '../../../core/services/data';
 
 @Component({
   imports: [CommonModule, FormsModule],
@@ -11,6 +12,10 @@ import { Router } from '@angular/router';
 })
 export class CrearConsulta {
   private router = inject(Router);
+  private dataService = inject(Data);
+
+  cursosDisponibles = this.dataService.cursos;
+  docentesDisponibles = this.dataService.docentesDisponibles;
 
   asignatura = 'Estructura de Datos';
   docente = 'Asignación Automática (Recomendado)';
@@ -28,8 +33,16 @@ export class CrearConsulta {
       return;
     }
 
-    const radicado = `TUT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    this.radicadoGenerado.set(radicado);
+    const creada = this.dataService.crearConsulta({
+      asignatura: this.asignatura,
+      tutor: this.docente,
+      modalidad: this.modalidad,
+      franja: this.franja,
+      tema: this.tema.trim(),
+      descripcion: this.descripcion.trim()
+    });
+
+    this.radicadoGenerado.set(creada.radicado);
     this.modalConfirmacionAbierto.set(true);
   }
 
@@ -54,4 +67,3 @@ export class CrearConsulta {
     }
   }
 }
-

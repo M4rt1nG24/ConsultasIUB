@@ -4,12 +4,11 @@
         <span>✅ {{ mensajeToast() }}</span>
     </div>
 
-    <div class="view-header">
-        <div>
-            <h2>🎓 Gestión de Cursos y Asignaciones</h2>
-            <p>Vincula las asignaturas del programa con los docentes tutores y monitorías.</p>
-        </div>
-    </div>
+    <app-page-header
+        badge="Módulo Administrador"
+        titulo="🎓 Gestión de Cursos y Asignaciones"
+        subtitulo="Vincula las asignaturas del programa con los docentes tutores y monitorías.">
+    </app-page-header>
 
     <div class="two-columns">
         <!-- Columna Izquierda: Formulario rápido -->
@@ -36,11 +35,9 @@
 
                 <label>Docente Tutor Asignado *</label>
                 <select class="input-control" [(ngModel)]="nuevoDocente" name="docente">
-                    <option value="Ing. Roberto Pineda">Ing. Roberto Pineda</option>
-                    <option value="Ing. Laura Gómez">Ing. Laura Gómez</option>
-                    <option value="Ing. Carlos Ruiz">Ing. Carlos Ruiz</option>
-                    <option value="Ing. Carlos Mendoza">Ing. Carlos Mendoza</option>
-                    <option value="Ing. Diana Rodríguez">Ing. Diana Rodríguez</option>
+                    @for (doc of docentesDisponibles(); track doc) {
+                    <option [value]="doc">{{ doc }}</option>
+                    }
                 </select>
 
                 <button type="submit" class="btn-primary">Guardar Asignación</button>
@@ -50,28 +47,43 @@
         <!-- Columna Derecha: Cursos activos -->
         <div class="section-box">
             <h3>Cursos Configurados</h3>
-            <table class="simple-table">
+            <app-filter-bar
+                placeholder="Buscar curso por código, asignatura o docente tutor..."
+                [texto]="busqueda()"
+                (textoChange)="busqueda.set($event)">
+            </app-filter-bar>
+            <table [appDataTable]="cursosFiltrados()" class="simple-table display">
                 <thead>
                     <tr>
                         <th>Código</th>
                         <th>Asignatura</th>
                         <th>Docente Tutor</th>
-                        <th>Acción</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @for (curso of cursos(); track curso.codigo) {
+                    @for (curso of cursosFiltrados(); track curso.codigo) {
                     <tr>
                         <td><strong>{{ curso.codigo }}</strong></td>
                         <td>{{ curso.asignatura }}</td>
                         <td>{{ curso.docente }}</td>
+                        <td><app-status-badge [estado]="curso.estado"></app-status-badge></td>
                         <td>
-                            <button
-                                class="btn-outline"
-                                type="button"
-                                (click)="abrirCambiarDocente(curso)">
-                                Cambiar
-                            </button>
+                            <div style="display: flex; gap: 6px;">
+                                <button
+                                    class="btn-outline"
+                                    type="button"
+                                    (click)="abrirCambiarDocente(curso)">
+                                    Editar
+                                </button>
+                                <button
+                                    class="btn-outline"
+                                    type="button"
+                                    (click)="cambiarEstadoCurso(curso)">
+                                    {{ curso.estado === 'Activo' ? 'Inactivar' : 'Activar' }}
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     }
@@ -93,11 +105,9 @@
             <div class="form-group">
                 <label>Seleccionar Nuevo Docente Tutor</label>
                 <select class="input-control" [(ngModel)]="docenteReemplazo" name="reemplazo">
-                    <option value="Ing. Roberto Pineda">Ing. Roberto Pineda</option>
-                    <option value="Ing. Laura Gómez">Ing. Laura Gómez</option>
-                    <option value="Ing. Carlos Ruiz">Ing. Carlos Ruiz</option>
-                    <option value="Ing. Carlos Mendoza">Ing. Carlos Mendoza</option>
-                    <option value="Ing. Diana Rodríguez">Ing. Diana Rodríguez</option>
+                    @for (doc of docentesDisponibles(); track doc) {
+                    <option [value]="doc">{{ doc }}</option>
+                    }
                 </select>
             </div>
             <div class="modal-footer">

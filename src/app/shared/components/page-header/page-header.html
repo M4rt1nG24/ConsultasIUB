@@ -1,1 +1,14 @@
-<p>page-header works!</p>
+<div class="shared-page-header">
+  <div class="header-text">
+    @if (badge) {
+      <span class="badge-tag">{{ badge }}</span>
+    }
+    <h2>{{ titulo }}</h2>
+    @if (subtitulo) {
+      <p>{{ subtitulo }}</p>
+    }
+  </div>
+  <div class="header-actions">
+    <ng-content></ng-content>
+  </div>
+</div>
