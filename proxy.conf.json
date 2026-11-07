@@ -1,0 +1,10 @@
+{
+  "/api-proxy": {
+    "target": "https://sistemaconsultas-api.onrender.com",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api-proxy": ""
+    }
+  }
+}

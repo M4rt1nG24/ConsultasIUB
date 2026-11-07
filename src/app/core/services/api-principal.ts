@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, catchError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 // ============================================================================
@@ -416,9 +416,18 @@ export class ApiPrincipal {
   private readonly http = inject(HttpClient);
 
   /**
-   * URL base configurada en src/environments/environment.ts
+   * URL base configurada en src/environments/environment.ts.
+   * En despliegue sobre Render (mismo origen con regla Rewrite /api-proxy/*) evita el bloqueo CORS.
    */
-  readonly baseUrl = environment.apiUrl;
+  readonly urlRemotaDirecta = environment.apiUrl;
+  private usarProxyMismoOrigen =
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1';
+
+  get baseUrl(): string {
+    return this.usarProxyMismoOrigen ? '/api-proxy' : this.urlRemotaDirecta;
+  }
 
   /**
    * Verifica si existe un token JWT activo en localStorage.
@@ -455,7 +464,15 @@ export class ApiPrincipal {
   // ==========================================================================
 
   login(payload: LoginRequestApi): Observable<LoginResponseApi> {
-    return this.http.post<LoginResponseApi>(`${this.baseUrl}/auth/login`, payload);
+    return this.http.post<LoginResponseApi>(`${this.baseUrl}/auth/login`, payload).pipe(
+      catchError((err) => {
+        if (this.usarProxyMismoOrigen && (err?.status === 404 || err?.status === 405)) {
+          this.usarProxyMismoOrigen = false;
+          return this.http.post<LoginResponseApi>(`${this.urlRemotaDirecta}/auth/login`, payload);
+        }
+        throw err;
+      })
+    );
   }
 
   registrarUsuarioPublico(payload: RegistroUsuarioRequestApi): Observable<string> {
