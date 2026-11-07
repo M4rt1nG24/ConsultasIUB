@@ -6,6 +6,12 @@ export const roleGuard: CanActivateFn = (route, state) => {
   const authService = inject(Auth);
   const router = inject(Router);
 
+  // Si no hay un token JWT activo o ya expiró (30 min), redirigir a /login para evitar errores 401
+  if (!authService.esTokenValido()) {
+    authService.cerrarSesion();
+    return router.createUrlTree(['/login']);
+  }
+
   const rolEsperado = route.data?.['role'] as RolUsuario | undefined;
   const rolGuardado =
     typeof localStorage !== 'undefined'

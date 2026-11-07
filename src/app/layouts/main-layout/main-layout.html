@@ -16,6 +16,7 @@
         <!-- NAVBAR SUPERIOR COMPARTIDA (SHARED NAVBAR CON BUSCADOR Y NOTIFICACIONES) -->
         <app-navbar
             [rol]="rolActual()"
+            [nombreUsuario]="nombreUsuario()"
             [busquedaGlobal]="busquedaRapida()"
             (busquedaGlobalChange)="busquedaRapida.set($event)"
             [notificaciones]="notificaciones()"

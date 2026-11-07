@@ -84,6 +84,12 @@ export const routes: Routes = [
               import('./features/administrador/gestion-salones/gestion-salones')
                 .then(m => m.GestionSalones)
           },
+          {
+            path: 'programas',
+            loadComponent: () =>
+              import('./features/administrador/gestion-programas/gestion-programas')
+                .then(m => m.GestionProgramas)
+          },
           // Si entra solo a "/admin", lo lleva a "/admin/reportes"
           { path: '', redirectTo: 'reportes', pathMatch: 'full' }
         ]
@@ -114,6 +120,12 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/docente/historial-tutorias/historial-tutorias')
                 .then(m => m.HistorialTutorias)
+          },
+          {
+            path: 'disponibilidad',
+            loadComponent: () =>
+              import('./features/docente/disponibilidad-docente/disponibilidad-docente')
+                .then(m => m.DisponibilidadDocente)
           },
           // Si entra solo a "/docente", lo lleva a "/docente/asignadas"
           { path: '', redirectTo: 'asignadas', pathMatch: 'full' }

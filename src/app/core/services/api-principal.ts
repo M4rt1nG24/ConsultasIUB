@@ -1,9 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 // ============================================================================
-// ENUMS Y TIPOS DEL ESQUEMA OPENAPI (https://sistemaconsultas-api.onrender.com)
+// ENUMS Y TIPOS DEL ESQUEMA DE LA API PRINCIPAL
 // ============================================================================
 
 export type RolApi = 'ADMINISTRADOR' | 'DOCENTE' | 'ESTUDIANTE';
@@ -200,6 +201,12 @@ export interface PeriodoResponseApi {
   estado: boolean;
 }
 
+export interface RegistroPeriodoRequestApi {
+  nombre: string;
+  fechaInicio: string; // YYYY-MM-DD
+  fechaFin: string; // YYYY-MM-DD
+}
+
 export interface TipoDocumentoResponseApi {
   id: number;
   nombre: string;
@@ -207,19 +214,49 @@ export interface TipoDocumentoResponseApi {
   estado: boolean;
 }
 
+export interface RegistroTipoDocumentoRequestApi {
+  nombre: string;
+  sigla: string;
+}
+
 export interface DisponibilidadResponseApi {
   id: number;
   docenteId: number;
   nombreDocente: string;
+  diaSemana: number; // 1 (Lunes) .. 7 (Domingo)
+  horaInicio: string; // HH:mm
+  horaFin: string; // HH:mm
+  estado: boolean;
+}
+
+export interface RegistroDisponibilidadRequestApi {
+  docenteId?: number | null;
   diaSemana: number;
   horaInicio: string;
   horaFin: string;
-  estado: boolean;
+}
+
+export interface UpdateDisponibilidadRequestApi {
+  diaSemana: number;
+  horaInicio: string;
+  horaFin: string;
+}
+
+export interface PromedioCalificacionesResponseApi {
+  docenteId: number;
+  promedio: number;
+  total: number;
 }
 
 // ============================================================================
 // INTERFACES DE SOLICITUDES DE CONSULTA Y COMENTARIOS (/solicitudes-consultas, /comentarios)
 // ============================================================================
+
+export interface CalificacionResumenSolicitudApi {
+  puntaje: number;
+  comentario: string | null;
+  fecha: string;
+}
 
 export interface SolicitudConsultaResponseApi {
   id: number;
@@ -242,6 +279,8 @@ export interface SolicitudConsultaResponseApi {
   nombrePrograma?: string | null;
   recursoFisicoId?: number | null;
   nombreRecursoFisico?: string | null;
+  calificacion?: CalificacionResumenSolicitudApi | null;
+  retroalimentacionDocente?: string | null;
 }
 
 export interface RegistroSolicitudConsultaRequestApi {
@@ -377,9 +416,24 @@ export class ApiPrincipal {
   private readonly http = inject(HttpClient);
 
   /**
-   * URL base oficial desplegada en Render (FastAPI + PostgreSQL)
+   * URL base configurada en src/environments/environment.ts
    */
-  readonly baseUrl = 'https://sistemaconsultas-api.onrender.com';
+  readonly baseUrl = environment.apiUrl;
+
+  /**
+   * Verifica si existe un token JWT activo en localStorage.
+   * No compara contra Date.now() local para evitar falsos positivos cuando el reloj
+   * del sistema operativo del cliente difiere de la hora UTC del servidor.
+   */
+  tieneTokenActivo(): boolean {
+    try {
+      if (typeof localStorage === 'undefined') return false;
+      const token = localStorage.getItem(STORAGE_KEY_TOKEN);
+      return Boolean(token && token.split('.').length === 3);
+    } catch {
+      return false;
+    }
+  }
 
   private obtenerHeaders(): HttpHeaders {
     const token =
@@ -513,13 +567,122 @@ export class ApiPrincipal {
   }
 
   // ==========================================================================
-  // 4. PROGRAMAS Y MÓDULOS ACADÉMICOS (/programas, /modulos, /docentes-modulos)
+  // 4. PROGRAMAS, MÓDULOS, PERIODOS, TIPOS DE DOCUMENTO Y DISPONIBILIDAD
   // ==========================================================================
 
   listarProgramas(): Observable<ProgAcademicoResponseApi[]> {
     return this.http.get<ProgAcademicoResponseApi[]>(`${this.baseUrl}/programas`, {
       headers: this.obtenerHeaders()
     });
+  }
+
+  crearPrograma(nombre: string): Observable<ProgAcademicoResponseApi> {
+    return this.http.post<ProgAcademicoResponseApi>(
+      `${this.baseUrl}/programas`,
+      { nombre },
+      { headers: this.obtenerHeaders() }
+    );
+  }
+
+  actualizarPrograma(idPrograma: number, nombre: string): Observable<ProgAcademicoResponseApi> {
+    return this.http.put<ProgAcademicoResponseApi>(
+      `${this.baseUrl}/programas/${idPrograma}`,
+      { nombre },
+      { headers: this.obtenerHeaders() }
+    );
+  }
+
+  eliminarPrograma(idPrograma: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/programas/${idPrograma}`, {
+      headers: this.obtenerHeaders()
+    });
+  }
+
+  listarTiposDocumento(incluirInactivos = false): Observable<TipoDocumentoResponseApi[]> {
+    const params = new HttpParams().set('incluir_inactivos', String(incluirInactivos));
+    return this.http.get<TipoDocumentoResponseApi[]>(`${this.baseUrl}/tipos-documento`, {
+      headers: this.obtenerHeaders(),
+      params
+    });
+  }
+
+  crearTipoDocumento(payload: RegistroTipoDocumentoRequestApi): Observable<TipoDocumentoResponseApi> {
+    return this.http.post<TipoDocumentoResponseApi>(`${this.baseUrl}/tipos-documento`, payload, {
+      headers: this.obtenerHeaders()
+    });
+  }
+
+  listarPeriodosAcademicos(incluirInactivos = false): Observable<PeriodoResponseApi[]> {
+    const params = new HttpParams().set('incluir_inactivos', String(incluirInactivos));
+    return this.http.get<PeriodoResponseApi[]>(`${this.baseUrl}/periodos-academicos`, {
+      headers: this.obtenerHeaders(),
+      params
+    });
+  }
+
+  crearPeriodoAcademico(payload: RegistroPeriodoRequestApi): Observable<PeriodoResponseApi> {
+    return this.http.post<PeriodoResponseApi>(`${this.baseUrl}/periodos-academicos`, payload, {
+      headers: this.obtenerHeaders()
+    });
+  }
+
+  listarDisponibilidadDocente(
+    docenteId?: number,
+    incluirInactivos = false
+  ): Observable<DisponibilidadResponseApi[]> {
+    let params = new HttpParams().set('incluir_inactivos', String(incluirInactivos));
+    if (docenteId) {
+      params = params.set('docenteId', String(docenteId));
+    }
+    return this.http.get<DisponibilidadResponseApi[]>(`${this.baseUrl}/disponibilidad-docente`, {
+      headers: this.obtenerHeaders(),
+      params
+    });
+  }
+
+  crearDisponibilidadDocente(
+    payload: RegistroDisponibilidadRequestApi
+  ): Observable<DisponibilidadResponseApi> {
+    return this.http.post<DisponibilidadResponseApi>(
+      `${this.baseUrl}/disponibilidad-docente`,
+      payload,
+      { headers: this.obtenerHeaders() }
+    );
+  }
+
+  actualizarDisponibilidadDocente(
+    idDisponibilidad: number,
+    payload: UpdateDisponibilidadRequestApi
+  ): Observable<DisponibilidadResponseApi> {
+    return this.http.put<DisponibilidadResponseApi>(
+      `${this.baseUrl}/disponibilidad-docente/${idDisponibilidad}`,
+      payload,
+      { headers: this.obtenerHeaders() }
+    );
+  }
+
+  eliminarDisponibilidadDocente(idDisponibilidad: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.baseUrl}/disponibilidad-docente/${idDisponibilidad}`,
+      { headers: this.obtenerHeaders() }
+    );
+  }
+
+  activarDisponibilidadDocente(idDisponibilidad: number): Observable<DisponibilidadResponseApi> {
+    return this.http.patch<DisponibilidadResponseApi>(
+      `${this.baseUrl}/disponibilidad-docente/${idDisponibilidad}/activar`,
+      {},
+      { headers: this.obtenerHeaders() }
+    );
+  }
+
+  obtenerPromedioCalificacionesDocente(
+    idDocente: number
+  ): Observable<PromedioCalificacionesResponseApi> {
+    return this.http.get<PromedioCalificacionesResponseApi>(
+      `${this.baseUrl}/docentes/${idDocente}/calificaciones/promedio`,
+      { headers: this.obtenerHeaders() }
+    );
   }
 
   listarModulosAsignaturas(): Observable<ModuloResponseApi[]> {
@@ -666,6 +829,13 @@ export class ApiPrincipal {
     );
   }
 
+  obtenerCalificacionSolicitud(idSolicitud: number): Observable<CalificacionResponseApi> {
+    return this.http.get<CalificacionResponseApi>(
+      `${this.baseUrl}/solicitudes-consultas/${idSolicitud}/calificacion`,
+      { headers: this.obtenerHeaders() }
+    );
+  }
+
   // ==========================================================================
   // 6. COMENTARIOS Y NOTIFICACIONES (/comentarios, /notificaciones)
   // ==========================================================================
@@ -679,6 +849,20 @@ export class ApiPrincipal {
 
   registrarComentario(payload: RegistroComentarioRequestApi): Observable<ComentarioResponseApi> {
     return this.http.post<ComentarioResponseApi>(`${this.baseUrl}/comentarios`, payload, {
+      headers: this.obtenerHeaders()
+    });
+  }
+
+  actualizarComentario(idComentario: number, contenido: string): Observable<ComentarioResponseApi> {
+    return this.http.put<ComentarioResponseApi>(
+      `${this.baseUrl}/comentarios/${idComentario}`,
+      { contenido },
+      { headers: this.obtenerHeaders() }
+    );
+  }
+
+  eliminarComentario(idComentario: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/comentarios/${idComentario}`, {
       headers: this.obtenerHeaders()
     });
   }
@@ -701,6 +885,12 @@ export class ApiPrincipal {
       {},
       { headers: this.obtenerHeaders() }
     );
+  }
+
+  eliminarNotificacion(idNotificacion: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/notificaciones/${idNotificacion}`, {
+      headers: this.obtenerHeaders()
+    });
   }
 
   // ==========================================================================
@@ -758,6 +948,62 @@ export class ApiPrincipal {
     });
   }
 
+  actualizarZona(idZona: number, payload: RegistroZonaRequestApi): Observable<ZonaResponseApi> {
+    return this.http.put<ZonaResponseApi>(`${this.baseUrl}/zonas/${idZona}`, payload, {
+      headers: this.obtenerHeaders()
+    });
+  }
+
+  desactivarZona(idZona: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/zonas/${idZona}`, {
+      headers: this.obtenerHeaders()
+    });
+  }
+
+  activarZona(idZona: number): Observable<ZonaResponseApi> {
+    return this.http.patch<ZonaResponseApi>(
+      `${this.baseUrl}/zonas/${idZona}/activar`,
+      {},
+      { headers: this.obtenerHeaders() }
+    );
+  }
+
+  listarZonasDeSede(idSede: number, incluirInactivos = false): Observable<ZonaResponseApi[]> {
+    const params = new HttpParams().set('incluirInactivos', String(incluirInactivos));
+    return this.http.get<ZonaResponseApi[]>(`${this.baseUrl}/sedes/${idSede}/zonas`, {
+      headers: this.obtenerHeaders(),
+      params
+    });
+  }
+
+  listarRecursosDeSede(
+    idSede: number,
+    incluirInactivos = false
+  ): Observable<RecursoFisicoResponseApi[]> {
+    const params = new HttpParams().set('incluirInactivos', String(incluirInactivos));
+    return this.http.get<RecursoFisicoResponseApi[]>(
+      `${this.baseUrl}/sedes/${idSede}/recursos-fisicos`,
+      {
+        headers: this.obtenerHeaders(),
+        params
+      }
+    );
+  }
+
+  listarRecursosDeZona(
+    idZona: number,
+    incluirInactivos = false
+  ): Observable<RecursoFisicoResponseApi[]> {
+    const params = new HttpParams().set('incluirInactivos', String(incluirInactivos));
+    return this.http.get<RecursoFisicoResponseApi[]>(
+      `${this.baseUrl}/zonas/${idZona}/recursos-fisicos`,
+      {
+        headers: this.obtenerHeaders(),
+        params
+      }
+    );
+  }
+
   listarRecursosFisicos(
     sedeId?: number,
     zonaId?: number,
@@ -801,6 +1047,37 @@ export class ApiPrincipal {
       {},
       { headers: this.obtenerHeaders() }
     );
+  }
+
+  /**
+   * Extrae el mensaje de error legible del formato uniforme del backend FastAPI/Express:
+   * { timestamp, status, error, message, errors }
+   */
+  extraerMensajeError(err: any, porDefecto = 'Ocurrió un error al procesar la solicitud.'): string {
+    if (!err) return porDefecto;
+    const body = err.error;
+    if (body) {
+      if (body.errors && typeof body.errors === 'object') {
+        const detalles = Object.entries(body.errors)
+          .map(([campo, msg]) => `${campo}: ${msg}`)
+          .join(' | ');
+        if (detalles) {
+          return body.message && body.message !== 'Error de validación.'
+            ? `${body.message} (${detalles})`
+            : detalles;
+        }
+      }
+      if (typeof body.message === 'string' && body.message.trim()) {
+        return body.message;
+      }
+      if (typeof body.detail === 'string' && body.detail.trim()) {
+        return body.detail;
+      }
+      if (typeof body === 'string' && body.trim()) {
+        return body;
+      }
+    }
+    return err.message || porDefecto;
   }
 }
 

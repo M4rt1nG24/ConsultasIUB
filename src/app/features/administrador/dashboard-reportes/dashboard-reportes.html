@@ -34,7 +34,7 @@
 
         <app-kpi-card
             label="Tiempo Promedio de Respuesta"
-            valor="3.8 Horas"
+            [valor]="tiempoPromedio()"
             icono="⚡"
             variante="cyan">
         </app-kpi-card>
@@ -49,35 +49,19 @@
             <p class="panel-sub">Total acumulado de consultas radicadas por asignatura.</p>
 
             <div class="report-list">
+                @for (item of consultasPorCurso(); track item.etiqueta) {
                 <div class="report-row">
                     <div class="row-info">
-                        <span>Estructura de Datos</span>
-                        <strong>68 consultas</strong>
+                        <span>{{ item.etiqueta }}</span>
+                        <strong>{{ item.valorTexto }}</strong>
                     </div>
                     <div class="progress-bar">
-                        <div class="fill" style="width: 75%;"></div>
+                        <div class="fill" [style.width.%]="item.porcentaje"></div>
                     </div>
                 </div>
-
-                <div class="report-row">
-                    <div class="row-info">
-                        <span>Bases de Datos Relacionales</span>
-                        <strong>45 consultas</strong>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="fill" style="width: 50%;"></div>
-                    </div>
-                </div>
-
-                <div class="report-row">
-                    <div class="row-info">
-                        <span>Programación Web</span>
-                        <strong>32 consultas</strong>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="fill" style="width: 35%;"></div>
-                    </div>
-                </div>
+                } @empty {
+                <p class="panel-sub">Sin datos registrados aún.</p>
+                }
             </div>
         </div>
 
@@ -87,35 +71,19 @@
             <p class="panel-sub">Carga y efectividad de respuesta por docente asignado.</p>
 
             <div class="report-list">
+                @for (item of consultasPorDocente(); track item.etiqueta) {
                 <div class="report-row">
                     <div class="row-info">
-                        <span>Ing. Carlos Mendoza</span>
-                        <strong>54 atendidas (96%)</strong>
+                        <span>{{ item.etiqueta }}</span>
+                        <strong>{{ item.valorTexto }}</strong>
                     </div>
                     <div class="progress-bar">
-                        <div class="fill" style="width: 80%;"></div>
+                        <div class="fill" [style.width.%]="item.porcentaje"></div>
                     </div>
                 </div>
-
-                <div class="report-row">
-                    <div class="row-info">
-                        <span>Ing. Diana Rodríguez</span>
-                        <strong>48 atendidas (92%)</strong>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="fill" style="width: 70%;"></div>
-                    </div>
-                </div>
-
-                <div class="report-row">
-                    <div class="row-info">
-                        <span>Ing. Roberto Suárez</span>
-                        <strong>30 atendidas (88%)</strong>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="fill" style="width: 45%;"></div>
-                    </div>
-                </div>
+                } @empty {
+                <p class="panel-sub">Sin datos registrados aún.</p>
+                }
             </div>
         </div>
 

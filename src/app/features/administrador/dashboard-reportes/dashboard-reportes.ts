@@ -19,6 +19,12 @@ export interface ReporteCursoItem {
   demanda: 'Alta' | 'Media' | 'Baja';
 }
 
+export interface ResumenBarraItem {
+  etiqueta: string;
+  valorTexto: string;
+  porcentaje: number;
+}
+
 @Component({
   selector: 'app-dashboard-reportes',
   standalone: true,
@@ -34,49 +40,47 @@ export class DashboardReportes {
 
   totalResueltas = computed(() =>
     String(
-      140 +
-        this.dataService
-          .consultas()
-          .filter(c => c.estado === 'Completada' || c.estado === 'Resuelta').length
+      this.dataService
+        .consultas()
+        .filter(c => c.estado === 'Completada' || c.estado === 'Resuelta').length
     )
   );
 
   totalPendientes = computed(() =>
     String(
-      17 +
-        this.dataService
-          .consultas()
-          .filter(
-            c =>
-              c.estado === 'Pendiente' ||
-              c.estado === 'Programada' ||
-              c.estado === 'En proceso'
-          ).length
+      this.dataService
+        .consultas()
+        .filter(
+          c =>
+            c.estado === 'Pendiente' ||
+            c.estado === 'Programada' ||
+            c.estado === 'En proceso'
+        ).length
     )
   );
+
+  tiempoPromedio = computed(() => {
+    const total = this.dataService.consultas().length;
+    return total > 0 ? 'Calculado por API' : '0 Horas';
+  });
 
   reportesConsolidados = computed<ReporteCursoItem[]>(() => {
     const consultas = this.dataService.consultas();
     const cursos = this.dataService.cursos();
 
-    return cursos.map((c, idx) => {
+    return cursos.map((c) => {
       const delCurso = consultas.filter(
         q => q.asignatura.toLowerCase() === c.asignatura.toLowerCase()
       );
-      const baseTotal = idx === 0 ? 32 : idx === 1 ? 45 : idx === 2 ? 68 : 16;
-      const baseRes = idx === 0 ? 28 : idx === 1 ? 41 : idx === 2 ? 65 : 14;
-      const resueltasReales = delCurso.filter(
+      const total = delCurso.length;
+      const resueltas = delCurso.filter(
         q => q.estado === 'Completada' || q.estado === 'Resuelta'
       ).length;
-      const pendientesReales = delCurso.filter(
+      const pendientes = delCurso.filter(
         q => q.estado !== 'Completada' && q.estado !== 'Resuelta'
       ).length;
-
-      const total = baseTotal + delCurso.length;
-      const resueltas = baseRes + resueltasReales;
-      const pendientes = Math.max(0, total - resueltas + pendientesReales);
       const porcentaje =
-        total > 0 ? Math.min(100, Math.round((resueltas / total) * 100)) : 90;
+        total > 0 ? Math.min(100, Math.round((resueltas / total) * 100)) : 0;
 
       return {
         codigo: c.codigo,
@@ -86,7 +90,37 @@ export class DashboardReportes {
         resueltas,
         pendientes,
         efectividad: `${porcentaje}%`,
-        demanda: total >= 50 ? 'Alta' : total >= 30 ? 'Media' : 'Baja'
+        demanda: total >= 10 ? 'Alta' : total >= 5 ? 'Media' : 'Baja'
+      };
+    });
+  });
+
+  consultasPorCurso = computed<ResumenBarraItem[]>(() => {
+    const consolidado = this.reportesConsolidados();
+    const max = Math.max(...consolidado.map(c => c.consultas), 1);
+    return consolidado.map(c => ({
+      etiqueta: c.asignatura,
+      valorTexto: `${c.consultas} consultas`,
+      porcentaje: Math.round((c.consultas / max) * 100)
+    }));
+  });
+
+  consultasPorDocente = computed<ResumenBarraItem[]>(() => {
+    const consultas = this.dataService.consultas();
+    const docentes = this.dataService.docentesDisponibles();
+    return docentes.map(doc => {
+      const delDocente = consultas.filter(
+        c => c.tutor.toLowerCase() === doc.toLowerCase()
+      );
+      const total = delDocente.length;
+      const atendidas = delDocente.filter(
+        c => c.estado === 'Completada' || c.estado === 'Resuelta'
+      ).length;
+      const pct = total > 0 ? Math.round((atendidas / total) * 100) : 0;
+      return {
+        etiqueta: doc,
+        valorTexto: `${atendidas} atendidas (${pct}%)`,
+        porcentaje: pct
       };
     });
   });

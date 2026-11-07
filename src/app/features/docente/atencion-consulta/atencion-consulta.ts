@@ -18,7 +18,7 @@ export class AtencionConsulta {
   consultaActiva = this.dataService.consultaActiva;
 
   tipoAtencion = 'Tutoría Individual';
-  temaTratado = 'Árboles binarios y balanceo AVL';
+  temaTratado = '';
   observaciones = '';
   asistenciaConfirmada = true;
 

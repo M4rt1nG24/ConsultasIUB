@@ -1,0 +1,123 @@
+<div class="view-wrapper">
+    @if (mensajeFeedback()) {
+    <div class="toast-notification">
+        <span>✅ {{ mensajeFeedback() }}</span>
+    </div>
+    }
+
+    <app-page-header
+        badge="Módulo Administrador • Académico"
+        titulo="🎓 Gestión de Programas Académicos"
+        subtitulo="Registra, edita e inactiva los programas académicos a los que se vinculan estudiantes y docentes.">
+        <button class="btn-primary" type="button" (click)="abrirModalCrear()">+ Nuevo Programa</button>
+    </app-page-header>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🎓</div>
+            <div>
+                <span class="stat-label">Programas Activos</span>
+                <h3 class="stat-value">{{ totalProgramas() }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">👩‍🎓</div>
+            <div>
+                <span class="stat-label">Estudiantes con Programa</span>
+                <h3 class="stat-value text-success">{{ totalEstudiantesConPrograma() }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <app-filter-bar
+        placeholder="Buscar programa académico por nombre..."
+        [texto]="filtroTexto()"
+        (textoChange)="filtroTexto.set($event)">
+    </app-filter-bar>
+
+    <div class="main-card">
+        <div class="table-wrapper">
+            <table [appDataTable]="programasFiltrados()" class="display">
+                <thead>
+                    <tr>
+                        <th>Programa Académico</th>
+                        <th>Modalidad Institucional</th>
+                        <th>Usuarios Vinculados</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (p of programasFiltrados(); track p.nombre) {
+                    <tr>
+                        <td><strong>{{ p.nombre }}</strong></td>
+                        <td>Pregrado / Presencial y Virtual</td>
+                        <td>{{ contarUsuarios(p.id) }} usuario(s)</td>
+                        <td>
+                            <app-status-badge [estado]="p.estado ? 'Activo' : 'Inactivo'"></app-status-badge>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-action" type="button" (click)="abrirModalEditar(p)">Editar</button>
+                                <button class="btn-delete" type="button" (click)="confirmarEliminar(p)">Inactivar</button>
+                            </div>
+                        </td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (cargando()) {
+        <p class="text-muted" style="padding: 12px;">Cargando programas desde el servidor...</p>
+        }
+    </div>
+</div>
+
+@if (modalAbierto()) {
+<div class="modal-backdrop">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>{{ modoModal() === 'crear' ? '➕ Registrar Programa Académico' : '✏️ Editar Programa Académico' }}</h3>
+            <button class="btn-close" type="button" (click)="cerrarModal()">✕</button>
+        </div>
+
+        <form (ngSubmit)="guardarPrograma()" class="modal-body">
+            <div class="form-group">
+                <label>Nombre del Programa *</label>
+                <input
+                    type="text"
+                    class="input-control"
+                    [(ngModel)]="nombrePrograma"
+                    name="nombre"
+                    maxlength="100"
+                    placeholder="Ej. Ingeniería de Sistemas"
+                    required />
+                <small class="text-muted">Entre 4 y 100 caracteres.</small>
+            </div>
+
+            @if (errorFormulario()) {
+            <div style="padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; background: #fef2f2; border: 1px solid #ef4444; color: #991b1b; font-size: 13px;">
+                ⚠️ {{ errorFormulario() }}
+            </div>
+            }
+
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+                <button type="submit" class="btn-primary" [disabled]="guardando()">
+                    {{ guardando() ? 'Guardando...' : (modoModal() === 'crear' ? 'Registrar Programa' : 'Guardar Cambios') }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+}
+
+<app-confirm-modal
+    [abierto]="modalEliminarAbierto() && !!programaAEliminar()"
+    titulo="⚠️ Confirmar Inactivación de Programa"
+    [mensaje]="'¿Deseas inactivar el programa ' + (programaAEliminar()?.nombre || '') + '? Dejará de aparecer en los formularios de registro.'"
+    textoConfirmar="Sí, Inactivar"
+    (confirmar)="eliminarPrograma()"
+    (cancelar)="cerrarModalEliminar()">
+</app-confirm-modal>
+

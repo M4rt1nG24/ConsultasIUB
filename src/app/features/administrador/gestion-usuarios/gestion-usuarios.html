@@ -52,7 +52,12 @@
                 <tbody>
                     @for (u of usuariosFiltrados(); track u.id) {
                     <tr>
-                        <td><strong>{{ u.nombre }}</strong></td>
+                        <td>
+                            <strong>{{ u.nombre }}</strong>
+                            @if (u.identificacion) {
+                            <br><small class="text-muted">{{ u.tipoDocumentoSigla || 'ID' }}: {{ u.identificacion }}</small>
+                            }
+                        </td>
                         <td>{{ u.email }}</td>
                         <td>{{ u.programa }}</td>
                         <td>
@@ -90,15 +95,50 @@
         </div>
 
         <form (ngSubmit)="guardarUsuario()" class="modal-body">
-            <div class="form-group">
-                <label>Nombre Completo *</label>
-                <input
-                    type="text"
-                    class="input-control"
-                    [(ngModel)]="formData.nombre"
-                    name="nombre"
-                    placeholder="Ej. Ing. Martín Clavijo"
-                    required />
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <label>Nombres *</label>
+                    <input
+                        type="text"
+                        class="input-control"
+                        [(ngModel)]="formData.nombreSolo"
+                        name="nombreSolo"
+                        placeholder="Ej. Martín"
+                        required />
+                </div>
+                <div class="form-group flex-1">
+                    <label>Apellidos *</label>
+                    <input
+                        type="text"
+                        class="input-control"
+                        [(ngModel)]="formData.apellido"
+                        name="apellido"
+                        placeholder="Ej. Clavijo"
+                        required />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <label>Tipo de Documento</label>
+                    <select class="input-control" [(ngModel)]="formData.tipoDocumentoId" name="tipoDocumentoId">
+                        <option [ngValue]="null">Seleccionar...</option>
+                        @for (td of tiposDocumento(); track td.id) {
+                        <option [ngValue]="td.id">{{ td.sigla }} - {{ td.nombre }}</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group flex-1">
+                    <label>No. Identificación *</label>
+                    <input
+                        type="text"
+                        class="input-control"
+                        [(ngModel)]="formData.identificacion"
+                        name="identificacion"
+                        placeholder="Ej. 1045892110"
+                        [disabled]="modoModal() === 'editar'"
+                        required />
+                </div>
             </div>
 
             <div class="form-group">
@@ -112,10 +152,23 @@
                     required />
             </div>
 
+            @if (modoModal() === 'crear') {
+            <div class="form-group">
+                <label>Contraseña Inicial * (Mín. 10 caract., Mayús, Minús, Número y Símbolo)</label>
+                <input
+                    type="text"
+                    class="input-control"
+                    [(ngModel)]="formData.passwordInicial"
+                    name="passwordInicial"
+                    placeholder="Ej. ClaveIub#2026!"
+                    required />
+            </div>
+            }
+
             <div class="form-row">
                 <div class="form-group flex-1">
                     <label>Rol en el Sistema *</label>
-                    <select class="input-control" [(ngModel)]="formData.rol" name="rol">
+                    <select class="input-control" [(ngModel)]="formData.rol" name="rol" [disabled]="modoModal() === 'editar'">
                         <option value="ESTUDIANTE">Estudiante</option>
                         <option value="DOCENTE">Docente</option>
                         <option value="ADMIN">Administrador</option>
@@ -132,13 +185,13 @@
             </div>
 
             <div class="form-group">
-                <label>Programa Académico / Facultad</label>
-                <input
-                    type="text"
-                    class="input-control"
-                    [(ngModel)]="formData.programa"
-                    name="programa"
-                    placeholder="Ej. Ingeniería de Sistemas" />
+                <label>Programa Académico</label>
+                <select class="input-control" [(ngModel)]="formData.programaId" name="programaId">
+                    <option [ngValue]="null">Sin programa específico / Institucional</option>
+                    @for (prog of programas(); track prog.id) {
+                    <option [ngValue]="prog.id">{{ prog.nombre }}</option>
+                    }
+                </select>
             </div>
 
             <div class="modal-footer">

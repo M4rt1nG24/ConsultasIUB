@@ -93,10 +93,14 @@
             <div class="grid-details">
                 <div><strong>Estudiante:</strong> {{ reg.estudiante }}</div>
                 <div><strong>Documento:</strong> {{ reg.documento }}</div>
+                <div><strong>Programa:</strong> {{ reg.nombrePrograma || 'Sin programa' }}</div>
                 <div><strong>Asignatura:</strong> {{ reg.asignatura }}</div>
                 <div><strong>Tipo de Atención:</strong> {{ reg.tipoAtencion }}</div>
                 <div><strong>Control de Asistencia:</strong> {{ reg.asistencia === 1 ? 'Confirmada (1)' : 'Sin Asistencia (0)' }}</div>
                 <div><strong>Ubicación:</strong> {{ reg.ubicacion }}</div>
+                @if (reg.calificacion) {
+                <div><strong>Calificación Estudiante:</strong> ⭐ {{ reg.calificacion.puntaje }} / 5</div>
+                }
             </div>
 
             <div class="info-box">
@@ -106,7 +110,7 @@
 
             <div class="info-box">
                 <span class="box-title">Observaciones y Compromisos Docentes:</span>
-                <p>{{ reg.observaciones }}</p>
+                <p>{{ reg.retroalimentacionDocente || reg.observaciones }}</p>
             </div>
 
             <div class="signature-box">

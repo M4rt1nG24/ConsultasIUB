@@ -19,7 +19,20 @@ export class DetalleInteraccion {
 
   consulta = this.dataService.consultaActiva;
   nuevoComentario = '';
+  puntajeCalificacion = 5;
+  comentarioCalificacion = '';
   modalConstanciaAbierto = signal<boolean>(false);
+
+  enviarCalificacion(): void {
+    const actual = this.consulta();
+    if (!actual) return;
+    this.dataService.calificarConsulta(
+      actual.id,
+      Number(this.puntajeCalificacion) || 5,
+      this.comentarioCalificacion
+    );
+    this.comentarioCalificacion = '';
+  }
 
   enviarComentario(): void {
     const actual = this.consulta();

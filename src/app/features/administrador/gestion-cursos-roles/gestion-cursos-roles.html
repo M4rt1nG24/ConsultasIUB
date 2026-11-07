@@ -6,8 +6,8 @@
 
     <app-page-header
         badge="Módulo Administrador"
-        titulo="🎓 Gestión de Cursos y Asignaciones"
-        subtitulo="Vincula las asignaturas del programa con los docentes tutores y monitorías.">
+        titulo="🎓 Gestión de Cursos y Permisos por Rol"
+        subtitulo="Vincula las asignaturas con los docentes tutores y administra los módulos habilitados por rol en la base de datos (rolxmodulo).">
     </app-page-header>
 
     <div class="two-columns">
@@ -35,12 +35,38 @@
 
                 <label>Docente Tutor Asignado *</label>
                 <select class="input-control" [(ngModel)]="nuevoDocente" name="docente">
+                    <option value="">Seleccionar docente...</option>
                     @for (doc of docentesDisponibles(); track doc) {
                     <option [value]="doc">{{ doc }}</option>
                     }
                 </select>
 
                 <button type="submit" class="btn-primary">Guardar Asignación</button>
+            </form>
+
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;" />
+
+            <h3>Registrar Programa Académico</h3>
+            <form (ngSubmit)="guardarProgramaAcademico()" class="simple-form">
+                <label>Código del Programa *</label>
+                <input
+                    type="text"
+                    placeholder="Ej. ING-SIS"
+                    class="input-control"
+                    [(ngModel)]="nuevoProgramaCodigo"
+                    name="progCodigo"
+                    required />
+
+                <label>Nombre del Programa *</label>
+                <input
+                    type="text"
+                    placeholder="Ej. Ingeniería de Sistemas"
+                    class="input-control"
+                    [(ngModel)]="nuevoProgramaNombre"
+                    name="progNombre"
+                    required />
+
+                <button type="submit" class="btn-outline">Registrar Programa ({{ programas().length }} activos)</button>
             </form>
         </div>
 
@@ -90,6 +116,64 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <!-- Sección de Permisos de Módulos por Rol (Tabla modulo_x_rol / rolxmodulo) -->
+    <div class="section-box" style="margin-top: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+            <div>
+                <h3 style="margin: 0;">🔐 Módulos Permitidos por Rol (Tabla rolxmodulo)</h3>
+                <p style="margin: 4px 0 0; color: #64748b; font-size: 0.9rem;">
+                    Controla desde la base de datos qué módulos del sistema se habilitan para cada perfil.
+                </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="font-weight: 600; color: #1e293b;">Rol a configurar:</label>
+                <select
+                    class="input-control"
+                    style="min-width: 210px; margin: 0;"
+                    [ngModel]="rolSeleccionadoNombre()"
+                    (ngModelChange)="rolSeleccionadoNombre.set($event)">
+                    @for (rol of rolesSistema(); track rol.nombre) {
+                    <option [value]="rol.nombre">{{ rol.nombre }}</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <table [appDataTable]="permisosRolSeleccionado()" class="simple-table display">
+            <thead>
+                <tr>
+                    <th>Rol</th>
+                    <th>Módulo del Sistema</th>
+                    <th>Descripción</th>
+                    <th>Ruta Base</th>
+                    <th>Estado en Rol</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (perm of permisosRolSeleccionado(); track perm.moduloNombre) {
+                <tr>
+                    <td><strong>{{ perm.rolNombre }}</strong></td>
+                    <td><strong>{{ perm.moduloNombre }}</strong></td>
+                    <td>{{ perm.descripcion }}</td>
+                    <td><code>{{ perm.ruta }}</code></td>
+                    <td>
+                        <app-status-badge [estado]="perm.estadoTexto"></app-status-badge>
+                    </td>
+                    <td>
+                        <button
+                            type="button"
+                            class="btn-outline"
+                            (click)="alternarPermisoModulo(perm)">
+                            {{ perm.asignado ? 'Deshabilitar' : 'Habilitar' }}
+                        </button>
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 

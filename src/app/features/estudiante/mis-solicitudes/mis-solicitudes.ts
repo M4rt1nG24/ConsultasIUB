@@ -1,11 +1,16 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Data, ConsultaUnificada } from '../../../core/services/data';
+import { EspaciosAux, SalonSedeItem } from '../../../core/services/espacios-aux';
 import { DataTableDirective } from '../../../shared/directives/datatable.directive';
 import { FilterBar } from '../../../shared/components/filter-bar/filter-bar';
 import { StatusBadge } from '../../../shared/components/status-badge/status-badge';
+
+export interface EspacioDisponibleItem extends SalonSedeItem {
+  disponibleEnHorario: boolean;
+}
 
 @Component({
   imports: [CommonModule, FormsModule, DataTableDirective, FilterBar, StatusBadge],
@@ -16,6 +21,7 @@ import { StatusBadge } from '../../../shared/components/status-badge/status-badg
 export class MisSolicitudes {
   private router = inject(Router);
   private dataService = inject(Data);
+  private espaciosService = inject(EspaciosAux);
 
   busqueda = signal<string>('');
   filtroEstado = signal<string>('');
@@ -23,6 +29,7 @@ export class MisSolicitudes {
   // Lista reactiva compartida con Docente y Administrador
   solicitudes = this.dataService.consultas;
   cursosDisponibles = this.dataService.cursos;
+  sedesDisponibles = computed(() => this.espaciosService.obtenerSedesActivas());
 
   solicitudesFiltradas = computed(() => {
     const q = this.busqueda().toLowerCase().trim();
@@ -34,42 +41,164 @@ export class MisSolicitudes {
         item.radicado.toLowerCase().includes(q) ||
         item.asignatura.toLowerCase().includes(q) ||
         item.tema.toLowerCase().includes(q) ||
-        item.tutor.toLowerCase().includes(q);
+        item.tutor.toLowerCase().includes(q) ||
+        item.ubicacion.toLowerCase().includes(q);
       const coincideEstado = !est || item.estado === est;
       return coincideTexto && coincideEstado;
     });
   });
 
   modalDetalleAbierto = signal<boolean>(false);
-  solicitudSeleccionada = signal<ConsultaUnificada | null>(null);
+  solicitudSeleccionada = this.dataService.consultaActiva;
+  docentesDisponibles = this.dataService.docentesDisponibles;
 
   modalRapidoAbierto = signal<boolean>(false);
   modoModalRapido = signal<'crear' | 'editar'>('crear');
   idEditando = signal<number | null>(null);
-  nuevaAsignatura = 'Estructura de Datos';
+  nuevaAsignatura = '';
+  nuevoDocente = 'Asignación Automática (Recomendado)';
+  nuevaPrioridad: 'Alta' | 'Media' | 'Baja' = 'Media';
   nuevoTema = '';
-  nuevaModalidad = 'Presencial';
-  nuevaFranja = 'Mañana (08:00 AM - 12:00 PM)';
+  nuevaDescripcion = '';
+  nuevaModalidad = signal<string>('Presencial');
+  nuevaSede = signal<string>('');
+  nuevoEspacioId = signal<number>(0);
+  nuevaFecha = signal<string>(this.obtenerMananaIso());
+  nuevaHora = signal<string>('09:00');
+
+  horariosDisponibles = [
+    { valor: '08:00', etiqueta: '08:00 AM - 09:00 AM (Mañana)' },
+    { valor: '09:00', etiqueta: '09:00 AM - 10:00 AM (Mañana)' },
+    { valor: '10:00', etiqueta: '10:00 AM - 11:00 AM (Mañana)' },
+    { valor: '11:00', etiqueta: '11:00 AM - 12:00 PM (Mañana)' },
+    { valor: '14:00', etiqueta: '02:00 PM - 03:00 PM (Tarde)' },
+    { valor: '15:00', etiqueta: '03:00 PM - 04:00 PM (Tarde)' },
+    { valor: '16:00', etiqueta: '04:00 PM - 05:00 PM (Tarde)' },
+    { valor: '17:00', etiqueta: '05:00 PM - 06:00 PM (Tarde)' },
+    { valor: '18:00', etiqueta: '06:00 PM - 07:00 PM (Noche)' },
+    { valor: '19:00', etiqueta: '07:00 PM - 08:00 PM (Noche)' }
+  ];
+
+  espaciosDeSede = computed<EspacioDisponibleItem[]>(() => {
+    const sede = this.nuevaSede();
+    const fecha = this.nuevaFecha();
+    const hora = this.nuevaHora();
+    const editId = this.idEditando() || undefined;
+    const lista = this.espaciosService.obtenerEspaciosPorSede(sede);
+
+    return lista.map(esp => {
+      const check = this.dataService.verificarDisponibilidadEspacio(
+        sede,
+        esp.nombre,
+        fecha,
+        hora,
+        esp.id,
+        editId
+      );
+      return {
+        ...esp,
+        disponibleEnHorario: esp.estado === 'Disponible' && check.disponible
+      };
+    });
+  });
+
+  espacioActualObj = computed(() => {
+    const id = Number(this.nuevoEspacioId());
+    return this.espaciosDeSede().find(e => e.id === id) || null;
+  });
+
+  verificacionDisponibilidad = computed(() => {
+    if (this.nuevaModalidad() === 'Virtual') {
+      return {
+        disponible: true,
+        mensaje: 'Modalidad Virtual: No requiere salón físico.'
+      };
+    }
+
+    const esp = this.espacioActualObj();
+    if (!esp) {
+      return {
+        disponible: false,
+        mensaje: 'Selecciona una sede y un espacio disponible para verificar.'
+      };
+    }
+
+    return this.dataService.verificarDisponibilidadEspacio(
+      this.nuevaSede(),
+      esp.nombre,
+      this.nuevaFecha(),
+      this.nuevaHora(),
+      esp.id,
+      this.idEditando() || undefined
+    );
+  });
+
+  constructor() {
+    if (this.espaciosService.sedes().length === 0) {
+      this.espaciosService.sincronizarDesdeBackend();
+    }
+
+    effect(() => {
+      const cursos = this.cursosDisponibles();
+      if (cursos.length > 0 && !this.nuevaAsignatura) {
+        this.nuevaAsignatura = cursos[0].asignatura;
+      }
+    });
+
+    effect(() => {
+      const sedes = this.sedesDisponibles();
+      if (sedes.length > 0 && !this.nuevaSede()) {
+        this.nuevaSede.set(sedes[0].nombre);
+      }
+    });
+
+    effect(() => {
+      const espacios = this.espaciosDeSede();
+      const actualId = Number(this.nuevoEspacioId());
+      if (espacios.length > 0 && !espacios.some(e => e.id === actualId)) {
+        const primeroLibre = espacios.find(e => e.disponibleEnHorario) || espacios[0];
+        this.nuevoEspacioId.set(primeroLibre.id);
+      }
+    });
+  }
+
+  private obtenerMananaIso(): string {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  cambiarSedeModal(sede: string): void {
+    this.nuevaSede.set(sede);
+    const espacios = this.espaciosService.obtenerEspaciosPorSede(sede);
+    this.nuevoEspacioId.set(espacios[0]?.id || 0);
+  }
 
   abrirDetalle(item: ConsultaUnificada): void {
     this.dataService.seleccionarConsulta(item.id);
-    this.solicitudSeleccionada.set(item);
     this.modalDetalleAbierto.set(true);
   }
 
   cerrarDetalle(): void {
     this.modalDetalleAbierto.set(false);
-    this.solicitudSeleccionada.set(null);
   }
 
   abrirModalRapido(): void {
     this.modoModalRapido.set('crear');
     this.idEditando.set(null);
-    const primerCurso = this.cursosDisponibles()[0]?.asignatura || 'Estructura de Datos';
+    const primerCurso = this.cursosDisponibles()[0]?.asignatura || '';
     this.nuevaAsignatura = primerCurso;
+    this.nuevoDocente = 'Asignación Automática (Recomendado)';
+    this.nuevaPrioridad = 'Media';
     this.nuevoTema = '';
-    this.nuevaModalidad = 'Presencial';
-    this.nuevaFranja = 'Mañana (08:00 AM - 12:00 PM)';
+    this.nuevaDescripcion = '';
+    this.nuevaModalidad.set('Presencial');
+    this.nuevaFecha.set(this.obtenerMananaIso());
+    this.nuevaHora.set('09:00');
+    const primeraSede = this.sedesDisponibles()[0]?.nombre || '';
+    if (primeraSede) {
+      this.cambiarSedeModal(primeraSede);
+    }
     this.modalRapidoAbierto.set(true);
   }
 
@@ -77,9 +206,17 @@ export class MisSolicitudes {
     this.modoModalRapido.set('editar');
     this.idEditando.set(item.id);
     this.nuevaAsignatura = item.asignatura;
+    this.nuevoDocente = item.tutor || 'Asignación Automática (Recomendado)';
+    this.nuevaPrioridad = item.prioridad || 'Media';
     this.nuevoTema = item.tema;
-    this.nuevaModalidad = item.modalidad;
-    this.nuevaFranja = item.franja || 'Mañana (08:00 AM - 12:00 PM)';
+    this.nuevaDescripcion = item.descripcion || '';
+    this.nuevaModalidad.set(item.modalidad === 'Virtual' ? 'Virtual' : 'Presencial');
+    if (item.fechaConsulta) {
+      this.nuevaFecha.set(item.fechaConsulta.substring(0, 10));
+    }
+    if (item.horaConsulta) {
+      this.nuevaHora.set(item.horaConsulta.substring(0, 5));
+    }
     this.modalRapidoAbierto.set(true);
   }
 
@@ -104,28 +241,60 @@ export class MisSolicitudes {
       return;
     }
 
+    const estadoEspacio = this.verificacionDisponibilidad();
+    if (this.nuevaModalidad() === 'Presencial' && !estadoEspacio.disponible) {
+      alert(estadoEspacio.mensaje);
+      return;
+    }
+
+    const esp = this.espacioActualObj();
+    const ubicacionFinal =
+      this.nuevaModalidad() === 'Virtual'
+        ? 'Campus Virtual Institucional'
+        : `${this.nuevaSede()} - ${esp?.nombre || ''}`;
+    const horarioObj = this.horariosDisponibles.find(h => h.valor === this.nuevaHora());
+
     if (this.modoModalRapido() === 'editar' && this.idEditando() !== null) {
       this.dataService.actualizarConsulta(this.idEditando()!, {
         asignatura: this.nuevaAsignatura,
+        tutor:
+          this.nuevoDocente && !this.nuevoDocente.includes('Automática')
+            ? this.nuevoDocente
+            : undefined,
+        prioridad: this.nuevaPrioridad,
         tema: this.nuevoTema.trim(),
-        modalidad: this.nuevaModalidad,
-        franja: this.nuevaFranja
+        descripcion: this.nuevaDescripcion.trim() || this.nuevoTema.trim(),
+        modalidad: this.nuevaModalidad(),
+        ubicacion: ubicacionFinal,
+        recursoFisicoId: this.nuevaModalidad() === 'Presencial' ? esp?.id || null : null,
+        fechaConsulta: this.nuevaFecha(),
+        horaConsulta: `${this.nuevaHora()}:00`,
+        fecha: `${this.nuevaFecha()} • ${this.nuevaHora()}`,
+        franja: horarioObj?.etiqueta || this.nuevaHora()
       });
       this.modalRapidoAbierto.set(false);
-      alert('¡Solicitud actualizada correctamente! Los cambios se reflejan en todos los roles.');
+      alert('¡Solicitud actualizada correctamente!');
       return;
     }
 
     const nuevoItem = this.dataService.crearConsulta({
       asignatura: this.nuevaAsignatura,
+      tutor: this.nuevoDocente,
+      prioridad: this.nuevaPrioridad,
       tema: this.nuevoTema.trim(),
-      modalidad: this.nuevaModalidad,
-      franja: this.nuevaFranja
+      descripcion: this.nuevaDescripcion.trim() || this.nuevoTema.trim(),
+      modalidad: this.nuevaModalidad(),
+      franja: horarioObj?.etiqueta || this.nuevaHora(),
+      fecha: this.nuevaFecha(),
+      hora: this.nuevaHora(),
+      ubicacion: ubicacionFinal,
+      recursoFisicoId: this.nuevaModalidad() === 'Presencial' ? esp?.id || null : null
     });
 
     this.nuevoTema = '';
+    this.nuevaDescripcion = '';
     this.modalRapidoAbierto.set(false);
-    alert(`¡Solicitud radicada con éxito! Número de radicado: ${nuevoItem.radicado}`);
+    alert(`¡Solicitud radicada con éxito!\nRadicado: ${nuevoItem.radicado}\nLugar: ${ubicacionFinal}`);
   }
 
   irAFormularioCompleto(): void {

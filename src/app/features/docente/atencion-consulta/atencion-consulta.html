@@ -12,7 +12,7 @@
         <div class="info-card">
             <div class="info-item">
                 <span class="info-label">Estudiante</span>
-                <span class="info-val">{{ c.estudiante }} ({{ c.correoEstudiante }})</span>
+                <span class="info-val">{{ c.estudiante }} ({{ c.nombrePrograma || c.correoEstudiante }})</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Curso</span>
@@ -25,6 +25,14 @@
             <div class="info-item">
                 <span class="info-label">Modalidad y Ubicación</span>
                 <span class="info-val">{{ c.modalidad }} • {{ c.ubicacion }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Fecha y Hora Programada</span>
+                <span class="info-val">{{ c.fecha }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Prioridad</span>
+                <span class="info-val">{{ c.prioridad }}</span>
             </div>
         </div>
 
@@ -89,6 +97,10 @@
 
         </form>
 
+    </div>
+    } @else {
+    <div class="main-card">
+        <p class="text-content">No hay ninguna consulta seleccionada o cargada desde el servidor.</p>
     </div>
     }
 </div>

@@ -1,6 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { catchError, of, switchMap } from 'rxjs';
+import { ApiPrincipal, TipoEstructuraApi } from '../../../core/services/api-principal';
 import { EspaciosAux, SedeItem } from '../../../core/services/espacios-aux';
 import { ConfirmModal, DataTableDirective, FilterBar, PageHeader, StatusBadge } from '../../../shared';
 
@@ -13,8 +15,13 @@ import { ConfirmModal, DataTableDirective, FilterBar, PageHeader, StatusBadge } 
 })
 export class GestionSedes {
   private espaciosService = inject(EspaciosAux);
+  private api = inject(ApiPrincipal, { optional: true });
 
   sedes = this.espaciosService.sedes;
+
+  constructor() {
+    this.espaciosService.sincronizarDesdeBackend();
+  }
 
   filtroTexto = signal<string>('');
   filtroEstado = signal<string>('');
@@ -50,11 +57,12 @@ export class GestionSedes {
     id: 0,
     codigo: '',
     nombre: '',
+    tipoEstructura: 'BLOQUES',
     ciudad: 'Barranquilla',
     direccion: '',
     telefono: '',
-    coordinador: 'Ing. Roberto Pineda',
-    capacidadAulas: 20,
+    coordinador: '',
+    capacidadAulas: 0,
     estado: 'Activa'
   };
 
@@ -65,11 +73,12 @@ export class GestionSedes {
       id: Date.now(),
       codigo: `SED-IUB-${consecutivo}`,
       nombre: '',
+      tipoEstructura: 'BLOQUES',
       ciudad: 'Barranquilla',
-      direccion: '',
-      telefono: '(605) 385 5050',
-      coordinador: 'Ing. Roberto Pineda',
-      capacidadAulas: 20,
+      direccion: 'Bloque Principal',
+      telefono: '',
+      coordinador: '',
+      capacidadAulas: 0,
       estado: 'Activa'
     };
     this.modalAbierto.set(true);
@@ -77,7 +86,10 @@ export class GestionSedes {
 
   abrirModalEditar(sede: SedeItem): void {
     this.modoModal.set('editar');
-    this.formData = { ...sede };
+    this.formData = {
+      ...sede,
+      tipoEstructura: sede.tipoEstructura || 'BLOQUES'
+    };
     this.modalAbierto.set(true);
   }
 
@@ -86,30 +98,100 @@ export class GestionSedes {
   }
 
   guardarSede(): void {
-    if (!this.formData.codigo.trim() || !this.formData.nombre.trim() || !this.formData.direccion.trim()) {
-      alert('Por favor completa los campos obligatorios (Código, Nombre de la Sede y Dirección).');
+    const nombreLimpio = this.formData.nombre.trim();
+    if (nombreLimpio.length < 3) {
+      alert('El nombre de la sede debe tener al menos 3 caracteres.');
       return;
     }
 
-    if (this.modoModal() === 'crear') {
-      this.sedes.update(lista => [
-        ...lista,
-        {
-          ...this.formData,
-          id: Date.now(),
-          codigo: this.formData.codigo.trim().toUpperCase(),
-          nombre: this.formData.nombre.trim()
-        }
-      ]);
-      this.mostrarNotificacion('¡Sede institucional registrada exitosamente!');
-    } else {
-      this.sedes.update(lista =>
-        lista.map(s => (s.id === this.formData.id ? { ...this.formData } : s))
-      );
-      this.mostrarNotificacion(`¡Sede ${this.formData.nombre} actualizada correctamente!`);
-    }
+    const tipoEstructura: TipoEstructuraApi = this.formData.tipoEstructura || 'BLOQUES';
+    const zonaInicial = this.formData.direccion.trim() || 'Bloque Principal';
 
-    this.cerrarModal();
+    if (this.modoModal() === 'crear') {
+      if (this.api && this.api.baseUrl) {
+        this.api
+          .crearSede({
+            nombre: nombreLimpio,
+            tipoEstructura
+          })
+          .pipe(
+            switchMap((sedeCreada) => {
+              this.espaciosService.guardarMetaSede(sedeCreada.id, {
+                codigo: this.formData.codigo.trim().toUpperCase(),
+                ciudad: this.formData.ciudad,
+                direccion: this.formData.direccion.trim(),
+                telefono: this.formData.telefono.trim(),
+                coordinador: this.formData.coordinador.trim(),
+                capacidadAulas: Number(this.formData.capacidadAulas || 0)
+              });
+              if (sedeCreada.tipoEstructura !== 'SALONES' && zonaInicial.length >= 2) {
+                return this.api!
+                  .crearZona({
+                    sedeId: sedeCreada.id,
+                    nombre: zonaInicial.substring(0, 100)
+                  })
+                  .pipe(catchError(() => of(null)));
+              }
+              return of(null);
+            })
+          )
+          .subscribe({
+            next: () => {
+              this.espaciosService.sincronizarDesdeBackend();
+              this.cerrarModal();
+              this.mostrarNotificacion('¡Sede institucional registrada exitosamente en la base de datos!');
+            },
+            error: (err) => {
+              alert(this.api!.extraerMensajeError(err, 'No se pudo registrar la sede en el servidor.'));
+            }
+          });
+      } else {
+        this.sedes.update(lista => [
+          ...lista,
+          {
+            ...this.formData,
+            id: Date.now(),
+            codigo: this.formData.codigo.trim().toUpperCase(),
+            nombre: nombreLimpio,
+            tipoEstructura
+          }
+        ]);
+        this.cerrarModal();
+        this.mostrarNotificacion('¡Sede institucional registrada exitosamente!');
+      }
+    } else {
+      if (this.api && this.api.baseUrl) {
+        this.api
+          .actualizarSede(this.formData.id, {
+            nombre: nombreLimpio,
+            tipoEstructura
+          })
+          .subscribe({
+            next: (sedeAct) => {
+              this.espaciosService.guardarMetaSede(sedeAct?.id || this.formData.id, {
+                codigo: this.formData.codigo.trim().toUpperCase(),
+                ciudad: this.formData.ciudad,
+                direccion: this.formData.direccion.trim(),
+                telefono: this.formData.telefono.trim(),
+                coordinador: this.formData.coordinador.trim(),
+                capacidadAulas: Number(this.formData.capacidadAulas || 0)
+              });
+              this.espaciosService.sincronizarDesdeBackend();
+              this.cerrarModal();
+              this.mostrarNotificacion(`¡Sede ${nombreLimpio} actualizada correctamente!`);
+            },
+            error: (err) => {
+              alert(this.api!.extraerMensajeError(err, 'No se pudo actualizar la sede en el servidor.'));
+            }
+          });
+      } else {
+        this.sedes.update(lista =>
+          lista.map(s => (s.id === this.formData.id ? { ...this.formData } : s))
+        );
+        this.cerrarModal();
+        this.mostrarNotificacion(`¡Sede ${nombreLimpio} actualizada correctamente!`);
+      }
+    }
   }
 
   confirmarEliminar(sede: SedeItem): void {
@@ -130,6 +212,21 @@ export class GestionSedes {
     this.sedes.update(lista =>
       lista.map(s => (s.id === sede.id ? { ...s, estado: nuevoEstado } : s))
     );
+
+    if (this.api && this.api.baseUrl) {
+      if (nuevoEstado === 'Activa') {
+        this.api.activarSede(sede.id).subscribe({
+          next: () => this.espaciosService.sincronizarDesdeBackend(),
+          error: () => {}
+        });
+      } else {
+        this.api.desactivarSede(sede.id).subscribe({
+          next: () => this.espaciosService.sincronizarDesdeBackend(),
+          error: () => {}
+        });
+      }
+    }
+
     this.cerrarModalEliminar();
     this.mostrarNotificacion(
       `Estado de la sede "${sede.nombre}" actualizado a "${nuevoEstado}".`
