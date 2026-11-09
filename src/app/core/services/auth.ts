@@ -131,13 +131,14 @@ export class Auth {
         rutasActivas.has('/docente/asignadas')
       ) {
         agregarItem('Bandeja Asignadas', '/docente/asignadas', '📥', 1);
-        agregarItem('Atención de Consulta', '/docente/atencion', '✏️', 2);
+        agregarItem('Crear Consulta', '/docente/crear-consulta', '➕', 2);
+        agregarItem('Atención de Consulta', '/docente/atencion', '✏️', 3);
       }
       if (codigosActivos.has('CALIFICACIONES') || rutasActivas.has('/calificaciones') || rutasActivas.has('/docente/historial')) {
-        agregarItem('Historial de Tutorías', '/docente/historial', '📚', 3);
+        agregarItem('Historial de Tutorías', '/docente/historial', '📚', 4);
       }
       if (codigosActivos.has('DISPONIBILIDAD_DOCENTE') || rutasActivas.has('/disponibilidad-docente') || rutasActivas.has('/docente/disponibilidad')) {
-        agregarItem('Mi Disponibilidad', '/docente/disponibilidad', '🕒', 4);
+        agregarItem('Mi Disponibilidad', '/docente/disponibilidad', '🕒', 5);
       }
     } else if (rol === 'ESTUDIANTE') {
       if (

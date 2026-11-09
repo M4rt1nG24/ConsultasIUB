@@ -1,0 +1,331 @@
+<div class="consulta-container">
+    <div class="header-section mb-4">
+        <span class="badge bg-primary text-uppercase px-3 py-2 mb-2">Módulo Docente</span>
+        <h2 class="title text-primary fw-bold">➕ Registrar Consulta con Estudiante</h2>
+        <p class="subtitle text-muted">
+            Permite al docente radicar una nueva consulta vinculando al estudiante directamente por su número de documento y configurando todos los campos requeridos en la base de datos.
+        </p>
+    </div>
+
+    <form (ngSubmit)="registrarConsulta()" class="row g-4" #formConsulta="ngForm">
+        <!-- BLOQUE 1: DATOS DEL ESTUDIANTE -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0 border-start border-4 border-primary">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title mb-0 fw-semibold text-dark">
+                        <i class="bi bi-person-badge text-primary me-2"></i>1. Identificación del Estudiante
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Número de Documento (CC / TI) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-card-heading"></i></span>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    placeholder="Ej. 1001234567"
+                                    list="listaEstudiantes"
+                                    [ngModel]="documentoEstudiante()"
+                                    (ngModelChange)="documentoEstudiante.set($event)"
+                                    name="docEstudiante"
+                                    required
+                                />
+                                <datalist id="listaEstudiantes">
+                                    @for (est of estudiantesSistema(); track est.id) {
+                                    <option [value]="est.identificacion">{{ est.nombre }} - {{ est.programa }}</option>
+                                    }
+                                </datalist>
+                            </div>
+                            @if (estudianteAutocompletado()) {
+                            <div class="mt-1">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-check-circle me-1"></i>Estudiante registrado en BD
+                                </span>
+                            </div>
+                            } @else if (documentoEstudiante().trim().length >= 5) {
+                            <div class="mt-1">
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                    <i class="bi bi-info-circle me-1"></i>Nuevo o no encontrado en BD (se creará vinculación)
+                                </span>
+                            </div>
+                            }
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Nombre Completo del Estudiante <span class="text-danger">*</span></label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                placeholder="Nombre y apellidos"
+                                [ngModel]="nombreEstudiante()"
+                                (ngModelChange)="nombreEstudiante.set($event)"
+                                name="nomEstudiante"
+                                required
+                            />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Correo Electrónico Institucional</label>
+                            <input
+                                type="email"
+                                class="form-control"
+                                placeholder="estudiante@iub.edu.co"
+                                [ngModel]="correoEstudiante()"
+                                (ngModelChange)="correoEstudiante.set($event)"
+                                name="corEstudiante"
+                            />
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold">Programa Académico</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                placeholder="Ej: Ingeniería de Sistemas, Administración..."
+                                [ngModel]="programaEstudiante()"
+                                (ngModelChange)="programaEstudiante.set($event)"
+                                name="progEstudiante"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BLOQUE 2: DETALLES ACADÉMICOS DE LA CONSULTA -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0 border-start border-4 border-info">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title mb-0 fw-semibold text-dark">
+                        <i class="bi bi-book text-info me-2"></i>2. Detalles Académicos (Campos de Tabla solicitudes_consultas)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Asignatura / Módulo <span class="text-danger">*</span></label>
+                            <select
+                                class="form-select"
+                                [ngModel]="moduloId()"
+                                (ngModelChange)="cambiarCurso($event)"
+                                name="moduloIdSel"
+                                required>
+                                @for (curso of cursosDisponibles(); track curso.id) {
+                                <option [value]="curso.id">
+                                    {{ curso.codigo }} - {{ curso.asignatura }}
+                                </option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Nivel de Prioridad <span class="text-danger">*</span></label>
+                            <select class="form-select" [(ngModel)]="prioridad" name="prioridad" required>
+                                <option value="Baja">Baja (Asesoría general de refuerzo)</option>
+                                <option value="Media">Media (Dudas puntuales de temas de clase)</option>
+                                <option value="Alta">Alta (Urgente - previo a entrega o parcial)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold">Asunto de la Consulta <span class="text-danger">*</span></label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                placeholder="Ej: Aclaración sobre Modelo Entidad-Relación y Normalización 3FN"
+                                [(ngModel)]="tema"
+                                name="tema"
+                                minlength="5"
+                                maxlength="200"
+                                required
+                            />
+                            <div class="form-text">Mínimo 5 caracteres (se almacena en el campo <code>asunto</code> de la base de datos).</div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold">Descripción Detallada</label>
+                            <textarea
+                                class="form-control"
+                                rows="3"
+                                placeholder="Escribe los antecedentes, preguntas o temas que se abordarán en la sesión de asesoría..."
+                                [(ngModel)]="descripcion"
+                                name="descripcion">
+                            </textarea>
+                            <div class="form-text">Se almacena en el campo <code>descripcion</code> de la tabla de consultas.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BLOQUE 3: AGENDAMIENTO Y RECURSO FÍSICO / VIRTUAL -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0 border-start border-4 border-success">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title mb-0 fw-semibold text-dark">
+                        <i class="bi bi-geo-alt text-success me-2"></i>3. Agendamiento y Asignación de Espacio (Infraestructura)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Modalidad <span class="text-danger">*</span></label>
+                            <select
+                                class="form-select"
+                                [ngModel]="modalidad()"
+                                (ngModelChange)="modalidad.set($event)"
+                                name="modalidad"
+                                required>
+                                <option value="Presencial">Presencial (Sede Institucional)</option>
+                                <option value="Virtual">Virtual (Teams / Google Meet)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Fecha de la Consulta <span class="text-danger">*</span></label>
+                            <input
+                                type="date"
+                                class="form-control"
+                                [ngModel]="fechaConsulta()"
+                                (ngModelChange)="fechaConsulta.set($event)"
+                                name="fechaConsulta"
+                                required
+                            />
+                            <div class="form-text">Campo <code>fecha_consulta</code> en la BD.</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Hora / Franja <span class="text-danger">*</span></label>
+                            <select
+                                class="form-select"
+                                [ngModel]="horaConsulta()"
+                                (ngModelChange)="horaConsulta.set($event)"
+                                name="horaConsulta"
+                                required>
+                                @for (h of horariosDisponibles; track h.valor) {
+                                <option [value]="h.valor">{{ h.etiqueta }}</option>
+                                }
+                            </select>
+                            <div class="form-text">Campo <code>hora_consulta</code> en la BD.</div>
+                        </div>
+
+                        @if (modalidad() === 'Presencial') {
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Sede Institucional <span class="text-danger">*</span></label>
+                            <select
+                                class="form-select"
+                                [ngModel]="sedeSeleccionada()"
+                                (ngModelChange)="cambiarSede($event)"
+                                name="sedeSeleccionada"
+                                required>
+                                @for (s of sedesDisponibles(); track s.id) {
+                                <option [value]="s.nombre">{{ s.nombre }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Salón / Laboratorio (Recurso Físico) <span class="text-danger">*</span></label>
+                            <select
+                                class="form-select"
+                                [ngModel]="espacioSeleccionadoId()"
+                                (ngModelChange)="espacioSeleccionadoId.set(+$event)"
+                                name="espacioSeleccionadoId"
+                                required>
+                                @for (esp of espaciosDeSede(); track esp.id) {
+                                <option [value]="esp.id" [disabled]="!esp.disponibleEnHorario">
+                                    {{ esp.nombre }} ({{ esp.tipo }}) - {{ esp.ubicacion || esp.bloquePiso || 'Espacio Físico' }}
+                                    {{ esp.disponibleEnHorario ? '✓ Disponible' : '✗ OCUPADO' }}
+                                </option>
+                                }
+                            </select>
+                            <div class="form-text">Campo <code>recurso_fisico_id</code> en la BD.</div>
+                        </div>
+
+                        <!-- Panel de validación de disponibilidad -->
+                        <div class="col-12">
+                            @if (verificacionDisponibilidad().disponible) {
+                            <div class="alert alert-success d-flex align-items-center mb-0" role="alert">
+                                <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+                                <div>
+                                    <strong>Espacio Disponible:</strong> El espacio seleccionado está libre para la fecha {{ fechaConsulta() }} a las {{ horaConsulta() }}.
+                                </div>
+                            </div>
+                            } @else {
+                            <div class="alert alert-danger d-flex align-items-center mb-0" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+                                <div>
+                                    <strong>Conflicto de Horario:</strong> {{ verificacionDisponibilidad().mensaje }}
+                                </div>
+                            </div>
+                            }
+                        </div>
+                        } @else {
+                        <div class="col-12">
+                            <div class="alert alert-info d-flex align-items-center mb-0">
+                                <i class="bi bi-camera-video-fill fs-5 me-2"></i>
+                                <div>
+                                    <strong>Modalidad Virtual:</strong> Se habilitará una sala virtual institucional segura para la atención en la fecha y hora seleccionadas.
+                                </div>
+                            </div>
+                        </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTÓN DE ENVÍO -->
+        <div class="col-12 d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-outline-secondary px-4" (click)="cerrarModalYVolver()">
+                <i class="bi bi-x-circle me-1"></i> Cancelar
+            </button>
+            <button
+                type="submit"
+                class="btn btn-primary px-4 fw-bold shadow-sm"
+                [disabled]="formConsulta.invalid || (modalidad() === 'Presencial' && !verificacionDisponibilidad().disponible)">
+                <i class="bi bi-check-circle me-1"></i> Registrar Consulta en el Sistema
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- MODAL DE CONFIRMACIÓN -->
+@if (modalConfirmacionAbierto()) {
+<div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-check2-circle me-2"></i>¡Consulta Registrada Exitosamente!
+                </h5>
+                <button type="button" class="btn-close btn-close-white" (click)="cerrarModalYVolver()"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3 text-success">
+                    <i class="bi bi-patch-check-fill display-4"></i>
+                </div>
+                <h6 class="fw-bold mb-2">Se ha radicado la consulta para el estudiante:</h6>
+                <p class="text-primary fs-5 fw-bold mb-3">{{ nombreEstudiante() }} (Doc: {{ documentoEstudiante() }})</p>
+                <div class="bg-light p-3 rounded text-start mb-3 border">
+                    <p class="mb-1"><strong>Radicado:</strong> <span class="badge bg-dark">{{ radicadoGenerado() }}</span></p>
+                    <p class="mb-1"><strong>Asignatura:</strong> {{ asignatura() }}</p>
+                    <p class="mb-1"><strong>Fecha y Hora:</strong> {{ fechaConsulta() }} - {{ horaConsulta() }}</p>
+                    <p class="mb-0"><strong>Ubicación:</strong> {{ ubicacionConfirmada() }}</p>
+                </div>
+                <p class="small text-muted mb-0">La consulta ha quedado guardada en la base de datos y aparecerá en tu bandeja docente y en las solicitudes del estudiante.</p>
+            </div>
+            <div class="modal-footer d-flex justify-content-between bg-light">
+                <button type="button" class="btn btn-outline-secondary" (click)="cerrarModalYVolver()">
+                    <i class="bi bi-inbox me-1"></i> Ir a Bandeja Asignadas
+                </button>
+                <button type="button" class="btn btn-success" (click)="irAAtencionDirecta()">
+                    <i class="bi bi-pencil-square me-1"></i> Atender Inmediatamente
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+}

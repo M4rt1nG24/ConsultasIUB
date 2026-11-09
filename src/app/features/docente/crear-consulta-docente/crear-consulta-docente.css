@@ -1,0 +1,22 @@
+.consulta-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding-bottom: 2rem;
+}
+
+.card {
+    border-radius: 10px;
+}
+
+.card-header {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.form-label {
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+}

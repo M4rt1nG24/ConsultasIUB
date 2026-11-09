@@ -32,6 +32,8 @@ export function extraerMetadatosDescripcion(rawDesc: string): {
   asignatura: string | null;
   fechaAgenda: string | null;
   horaAgenda: string | null;
+  estudianteDoc: string | null;
+  estudianteNombre: string | null;
 } {
   let texto = (rawDesc || '').trim();
   let ubicacion: string | null = null;
@@ -40,8 +42,10 @@ export function extraerMetadatosDescripcion(rawDesc: string): {
   let asignatura: string | null = null;
   let fechaAgenda: string | null = null;
   let horaAgenda: string | null = null;
+  let estudianteDoc: string | null = null;
+  let estudianteNombre: string | null = null;
 
-  const matchBloque = texto.match(/^\[((?:Espacio|Modalidad|Asignatura|Agenda):[^\]]+)\]\s*/i);
+  const matchBloque = texto.match(/^\[((?:Espacio|Modalidad|Asignatura|Agenda|EstudianteDoc|Estudiante):[^\]]+)\]\s*/i);
   if (matchBloque) {
     const interior = matchBloque[1];
     const segmentos = interior.split('|').map((seg) => seg.trim());
@@ -60,6 +64,10 @@ export function extraerMetadatosDescripcion(rawDesc: string): {
         const [f, h] = valAgenda.split('_');
         if (f && /^\d{4}-\d{2}-\d{2}$/.test(f)) fechaAgenda = f;
         if (h && /^\d{2}:\d{2}/.test(h)) horaAgenda = h.length === 5 ? `${h}:00` : h;
+      } else if (/^EstudianteDoc:/i.test(seg)) {
+        estudianteDoc = seg.replace(/^EstudianteDoc:\s*/i, '').trim() || null;
+      } else if (/^Estudiante:/i.test(seg)) {
+        estudianteNombre = seg.replace(/^Estudiante:\s*/i, '').trim() || null;
       }
     }
     texto = texto.slice(matchBloque[0].length).trim() || texto;
@@ -72,7 +80,9 @@ export function extraerMetadatosDescripcion(rawDesc: string): {
     recursoId,
     asignatura,
     fechaAgenda,
-    horaAgenda
+    horaAgenda,
+    estudianteDoc,
+    estudianteNombre
   };
 }
 
@@ -123,6 +133,8 @@ export function construirEtiquetaMetaConsulta(info: {
   asignatura?: string;
   fechaAgenda?: string;
   horaAgenda?: string;
+  estudianteDoc?: string;
+  estudianteNombre?: string;
 }): string {
   const partes: string[] = [];
   if (info.ubicacion && info.ubicacion !== 'Por asignar') {
@@ -139,6 +151,12 @@ export function construirEtiquetaMetaConsulta(info: {
   }
   if (info.fechaAgenda && info.horaAgenda) {
     partes.push(`Agenda: ${info.fechaAgenda}_${info.horaAgenda.substring(0, 5)}`);
+  }
+  if (info.estudianteDoc) {
+    partes.push(`EstudianteDoc: ${info.estudianteDoc}`);
+  }
+  if (info.estudianteNombre) {
+    partes.push(`Estudiante: ${info.estudianteNombre}`);
   }
   return partes.length > 0 ? `[${partes.join(' | ')}] ` : '';
 }
@@ -388,8 +406,8 @@ export function mapearSolicitudApiAFront(
     radicado: s.numeroConsulta || `CON-${s.id}`,
     fechaCreacion: formatearFechaHora(s.fechaCreacion),
     estudianteId: s.estudianteId,
-    estudiante: s.nombreCompletoEstudiante,
-    documento: s.identificacionEstudiante || 'N/A',
+    estudiante: metaDesc.estudianteNombre || s.nombreCompletoEstudiante,
+    documento: s.identificacionEstudiante || metaDesc.estudianteDoc || 'N/A',
     correoEstudiante: correoOPrograma,
     nombrePrograma: s.nombrePrograma || usuarioEstudiante?.programa || 'Sin programa',
     moduloId: s.moduloId,

@@ -247,6 +247,7 @@ export class Data {
     estudiante?: string;
     documento?: string;
     correoEstudiante?: string;
+    estudianteId?: number;
     asignatura: string;
     tema: string;
     descripcion?: string;
@@ -273,42 +274,54 @@ export class Data {
       this.usuarios()
     );
 
-    const nombreEstudianteSesion =
+    const rolActual =
+      typeof localStorage !== 'undefined'
+        ? localStorage.getItem('rolActivo') || 'ESTUDIANTE'
+        : 'ESTUDIANTE';
+    const nombreUsuarioSesion =
       typeof localStorage !== 'undefined'
         ? localStorage.getItem('nombreUsuarioActivo') || ''
         : '';
-    const correoEstudianteSesion =
+    const correoUsuarioSesion =
       typeof localStorage !== 'undefined'
         ? localStorage.getItem('correoActivo') || ''
         : '';
-    const docEstudianteSesion =
+    const docUsuarioSesion =
       typeof localStorage !== 'undefined'
         ? localStorage.getItem('identificacionUsuarioActivo') || ''
         : '';
+    const idUsuarioSesion =
+      typeof localStorage !== 'undefined'
+        ? Number(localStorage.getItem('idUsuarioActivo')) || undefined
+        : undefined;
 
     const modalidadFinal = datos.modalidad.includes('Virtual') ? 'Virtual' : 'Presencial';
     const ubicacionFinal =
       datos.ubicacion ||
       (modalidadFinal === 'Virtual' ? 'Sala Virtual Institucional' : 'Por asignar');
 
-    const idUsuarioSesion =
-      typeof localStorage !== 'undefined'
-        ? Number(localStorage.getItem('idUsuarioActivo')) || undefined
-        : undefined;
+    const estudianteIdFinal =
+      datos.estudianteId || (rolActual === 'ESTUDIANTE' ? idUsuarioSesion : undefined);
+    const docenteIdFinal =
+      datos.docenteId || (rolActual === 'DOCENTE' ? idUsuarioSesion : docenteObj?.id || cursoMatch?.docenteId);
+    const tutorFinal =
+      (rolActual === 'DOCENTE' && nombreUsuarioSesion ? nombreUsuarioSesion : docenteObj?.nombre) ||
+      tutorAsignado ||
+      'Docente Asignado';
 
     const nueva: ConsultaUnificada = {
       id: Date.now(),
       radicado,
-      estudianteId: idUsuarioSesion,
-      estudiante: datos.estudiante || nombreEstudianteSesion,
-      documento: datos.documento || docEstudianteSesion,
-      correoEstudiante: datos.correoEstudiante || correoEstudianteSesion,
+      estudianteId: estudianteIdFinal,
+      estudiante: datos.estudiante || (rolActual === 'ESTUDIANTE' ? nombreUsuarioSesion : 'Estudiante'),
+      documento: datos.documento || (rolActual === 'ESTUDIANTE' ? docUsuarioSesion : ''),
+      correoEstudiante: datos.correoEstudiante || (rolActual === 'ESTUDIANTE' ? correoUsuarioSesion : ''),
       moduloId: datos.moduloId || cursoMatch?.id,
       asignatura: datos.asignatura || cursoMatch?.asignatura || 'Asignatura General',
       tema: datos.tema,
       descripcion: datos.descripcion || datos.tema,
-      docenteId: datos.docenteId || docenteObj?.id || cursoMatch?.docenteId,
-      tutor: docenteObj?.nombre || tutorAsignado || 'Docente Asignado',
+      docenteId: docenteIdFinal,
+      tutor: tutorFinal,
       fechaConsulta: fechaIso,
       horaConsulta: horaIso,
       fecha: fechaFormateada,
@@ -320,10 +333,10 @@ export class Data {
       estado: 'Pendiente',
       observaciones: 'Pendiente de revisión y respuesta del docente.',
       asistencia: 0,
-      docenteSeleccionado: docenteObj?.nombre || tutorAsignado || '',
+      docenteSeleccionado: tutorFinal,
       mensajes: [
         {
-          autor: datos.estudiante || nombreEstudianteSesion,
+          autor: datos.estudiante || (rolActual === 'ESTUDIANTE' ? nombreUsuarioSesion : 'Estudiante'),
           rol: 'ESTUDIANTE',
           fechaHora: fechaFormateada,
           mensaje: datos.descripcion || datos.tema
@@ -345,11 +358,7 @@ export class Data {
         nueva.prioridad === 'Alta' ? 'ALTA' : nueva.prioridad === 'Baja' ? 'BAJA' : 'MEDIA';
 
       const moduloIdPreferido = datos.moduloId || cursoMatch?.id || 1;
-      const docenteId = datos.docenteId || docenteObj?.id || cursoMatch?.docenteId || 1;
-      const rolActual =
-        typeof localStorage !== 'undefined'
-          ? localStorage.getItem('rolActivo') || 'ESTUDIANTE'
-          : 'ESTUDIANTE';
+      const docenteId = docenteIdFinal || 1;
 
       const asuntoSeguro =
         nueva.tema.trim().length >= 5
@@ -362,7 +371,9 @@ export class Data {
         recursoFisicoId: datos.recursoFisicoId || null,
         asignatura: nueva.asignatura,
         fechaAgenda: fechaIso,
-        horaAgenda: horaIso
+        horaAgenda: horaIso,
+        estudianteDoc: datos.documento,
+        estudianteNombre: datos.estudiante
       });
       const descripcionParaApi = `${etiquetaMeta}${nueva.descripcion}`.trim();
 

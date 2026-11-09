@@ -51,6 +51,10 @@ export class BandejaAsignadas implements OnInit {
     });
   });
 
+  irACrearConsulta(): void {
+    this.router.navigate(['/docente/crear-consulta']);
+  }
+
   atender(solicitud: ConsultaUnificada): void {
     this.dataService.seleccionarConsulta(solicitud.id);
     this.router.navigate(['/docente/atencion']);
