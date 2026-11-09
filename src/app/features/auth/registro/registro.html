@@ -1,8 +1,10 @@
 <div class="card-container">
 
-    <!-- Columna Izquierda: Información Institucional -->
+    <!-- Columna Izquierda: Identidad Institucional IUB (mismos tonos del Login) -->
     <div class="col-info">
-        <span class="badge">Plataforma Académica con IA</span>
+        <div class="badge">
+            <i class="bi bi-cpu-fill me-2"></i>Plataforma Académica con IA
+        </div>
 
         <h1>MiTutoría IUB</h1>
         <p class="desc">
@@ -10,27 +12,29 @@
             investigación en la Institución Universitaria de Barranquilla.
         </p>
 
-        <div class="item">
-            <div class="box-icon"></div>
-            <div>
-                <h3>Cero Papel</h3>
-                <p>Eliminación de pérdidas y errores en formatos físicos.</p>
+        <div class="features-list">
+            <div class="item">
+                <div class="box-icon"><i class="bi bi-file-earmark-check-fill"></i></div>
+                <div>
+                    <h3>Cero Papel</h3>
+                    <p>Eliminación de pérdidas y errores en formatos físicos.</p>
+                </div>
             </div>
-        </div>
 
-        <div class="item">
-            <div class="box-icon"></div>
-            <div>
-                <h3>Trazabilidad de Auditoría</h3>
-                <p>Control de estados (1/0) y marcas de tiempo en tiempo real.</p>
+            <div class="item">
+                <div class="box-icon"><i class="bi bi-shield-check"></i></div>
+                <div>
+                    <h3>Trazabilidad de Auditoría</h3>
+                    <p>Control de estados (1/0) y marcas de tiempo en tiempo real.</p>
+                </div>
             </div>
-        </div>
 
-        <div class="item">
-            <div class="box-icon"></div>
-            <div>
-                <h3>Analítica Predictiva</h3>
-                <p>Detección de asignaturas críticas y patrones de consulta.</p>
+            <div class="item">
+                <div class="box-icon"><i class="bi bi-graph-up-arrow"></i></div>
+                <div>
+                    <h3>Analítica Predictiva</h3>
+                    <p>Detección de asignaturas críticas y patrones de consulta.</p>
+                </div>
             </div>
         </div>
 
@@ -41,8 +45,13 @@
 
     <!-- Columna Derecha: Formulario de Registro -->
     <div class="col-form">
-        <h2>Registro de Usuario</h2>
-        <p class="sub">Ingresa tus datos institucionales para solicitar tu cuenta</p>
+        <div class="form-header">
+            <div class="logo-circle">
+                <i class="bi bi-person-plus-fill"></i>
+            </div>
+            <h2>Registro de Usuario</h2>
+            <p class="sub">Ingresa tus datos institucionales para solicitar tu cuenta</p>
+        </div>
 
         @if (errorMensaje()) {
         <div class="error-banner">
@@ -104,11 +113,16 @@
                 </div>
             </div>
 
-            <button type="submit">Registrarse en el Sistema</button>
+            <button type="submit" class="btn-submit">
+                <span>Registrarse en el Sistema</span>
+                <i class="bi bi-arrow-right-circle-fill ms-2"></i>
+            </button>
         </form>
 
         <div class="links">
-            <a routerLink="/principal">Volver a la página principal</a>
+            <a routerLink="/principal" class="back-link">
+                <i class="bi bi-arrow-left me-1"></i> Volver a la página principal
+            </a>
             <p>¿Ya tienes cuenta? <a routerLink="/login" class="bold">Inicia sesión aquí</a></p>
         </div>
     </div>

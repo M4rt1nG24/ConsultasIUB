@@ -1,234 +1,296 @@
 :host {
     min-height: 100vh;
-    background: linear-gradient(135deg, #324c75, #192a43);
+    width: 100%;
+    background: linear-gradient(135deg, #071936 0%, #103766 55%, #1e56a0 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 1.5rem;
     box-sizing: border-box;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
-/* Tarjeta principal */
+/* Tarjeta principal con los mismos tonos y sombras del Login */
 .card-container {
-    width: 900px;
-    max-width: 100%;
-    background: #f1f4f9;
-    border-radius: 16px;
+    width: 100%;
+    max-width: 1020px;
+    background-color: #ffffff;
+    border-radius: 20px;
     overflow: hidden;
-    display: flex;
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.35);
+    display: grid;
+    grid-template-columns: 1.02fr 1.15fr;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
 }
 
-/* Columna Izquierda */
+/* ================= PANEL IZQUIERDO (BANNER IUB IGUAL AL LOGIN) ================= */
 .col-info {
-    width: 45%;
-    background-color: #173b6c;
+    background: linear-gradient(160deg, #0b2247 0%, #16437e 100%);
     color: #ffffff;
-    padding: 35px 30px;
+    padding: 3rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .badge {
-    background-color: #1f497f;
-    color: #55bef0;
-    font-size: 11px;
-    padding: 5px 12px;
-    border-radius: 12px;
-    display: inline-block;
-    margin-bottom: 20px;
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    background: rgba(56, 189, 248, 0.18);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    color: #7dd3fc;
+    padding: 0.4rem 0.9rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin-bottom: 1.25rem;
 }
 
 .col-info h1 {
-    font-size: 26px;
-    margin-bottom: 15px;
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin: 0 0 0.75rem 0;
+    color: #ffffff;
 }
 
 .col-info .desc {
-    font-size: 13px;
-    color: #b5c7df;
-    line-height: 1.4;
-    margin-bottom: 25px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.82);
+    margin-bottom: 2rem;
+}
+
+.features-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    margin-bottom: 2rem;
 }
 
 .item {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 10px 12px;
-    border-radius: 8px;
-    margin-bottom: 12px;
+    align-items: flex-start;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .box-icon {
-    width: 34px;
-    height: 34px;
-    background-color: #38bdf8;
-    border-radius: 6px;
+    width: 38px;
+    height: 38px;
+    background: #38bdf8;
+    color: #0b2247;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
     flex-shrink: 0;
 }
 
 .item h3 {
-    font-size: 13px;
-    margin: 0;
+    margin: 0 0 0.2rem 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #ffffff;
 }
 
 .item p {
-    font-size: 11px;
-    color: #b5c7df;
     margin: 0;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.75);
 }
 
 .footer-info {
-    margin-top: 25px;
-    font-size: 11px;
-    color: #92a9cb;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.55);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding-top: 1rem;
 }
 
-/* Columna Derecha */
+/* ================= PANEL DERECHO (FORMULARIO BLANCO LIMPIO COMO LOGIN) ================= */
 .col-form {
-    width: 55%;
-    padding: 35px 30px;
+    padding: 2.5rem 2.75rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    background-color: #ffffff;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 1.4rem;
+}
+
+.logo-circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.7rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.12);
 }
 
 .col-form h2 {
-    font-size: 22px;
-    color: #162a45;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #0f172a;
     text-align: center;
-    margin-bottom: 4px;
+    margin: 0 0 0.35rem 0;
 }
 
 .col-form .sub {
-    font-size: 12px;
+    font-size: 0.88rem;
     color: #64748b;
     text-align: center;
-    margin-bottom: 16px;
-}
-
-/* Caja de selección de rol */
-.role-box {
-    background-color: #dce7f5;
-    border: 1px solid #c2d5ec;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 14px;
-}
-
-.role-box label {
-    display: block;
-    font-size: 12px;
-    font-weight: bold;
-    color: #173b6c;
-    margin-bottom: 6px;
-}
-
-.role-box select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    background: #ffffff;
-    outline: none;
-}
-
-.role-box span {
-    display: block;
-    font-size: 11px;
-    color: #4b6485;
-    margin-top: 5px;
+    margin: 0;
 }
 
 /* Campos de entrada */
 .field {
     display: flex;
     flex-direction: column;
-    margin-bottom: 12px;
+    margin-bottom: 0.95rem;
 }
 
 .field label {
-    font-size: 12px;
-    font-weight: bold;
+    font-size: 0.84rem;
+    font-weight: 600;
     color: #334155;
-    margin-bottom: 4px;
+    margin-bottom: 0.4rem;
 }
 
-.field input {
+.field input,
+.select-control {
     width: 100%;
-    padding: 9px 12px;
-    border: 1px solid #c7d2e1;
-    background: #ffffff;
-    border-radius: 6px;
-    font-size: 13px;
+    padding: 0.68rem 0.9rem;
+    border: 1px solid #cbd5e1;
+    background-color: #ffffff;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    color: #0f172a;
     outline: none;
     box-sizing: border-box;
+    transition: all 0.2s ease;
 }
 
-/* Botón */
-button {
-    width: 100%;
-    padding: 11px;
-    background-color: #173b6c;
-    color: #ffffff;
-    border: none;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: bold;
-    cursor: pointer;
-    margin-top: 8px;
-}
-
-/* Enlaces */
-.links {
-    text-align: center;
-    margin-top: 15px;
-    font-size: 12px;
-}
-
-.links a {
-    color: #556987;
-    text-decoration: none;
-}
-
-.links p {
-    margin-top: 6px;
-    color: #64748b;
-}
-
-.links .bold {
-    color: #173b6c;
-    font-weight: bold;
+.field input:focus,
+.select-control:focus {
+    border-color: #1d4ed8;
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.14);
 }
 
 .field-row {
     display: flex;
-    gap: 10px;
+    gap: 12px;
 }
 
 .flex-1 {
     flex: 1;
 }
 
-.select-control {
+/* Botón principal con el mismo degradado del Login */
+.btn-submit {
+    margin-top: 0.4rem;
     width: 100%;
-    padding: 9px 12px;
-    border: 1px solid #c7d2e1;
-    background: #ffffff;
-    border-radius: 6px;
-    font-size: 13px;
-    outline: none;
-    box-sizing: border-box;
+    padding: 0.85rem 1.2rem;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1e56a0 0%, #0b2247 100%);
+    color: #ffffff;
+    font-size: 0.96rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+    box-shadow: 0 10px 20px -5px rgba(11, 34, 71, 0.35);
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 24px -5px rgba(11, 34, 71, 0.45);
+}
+
+/* Enlaces inferiores */
+.links {
+    margin-top: 1.1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.84rem;
+}
+
+.links .back-link {
+    color: #64748b;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.links .back-link:hover {
+    color: #0f172a;
+}
+
+.links p {
+    margin: 0;
+    color: #475569;
+}
+
+.links .bold {
+    color: #1d4ed8;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.links .bold:hover {
+    text-decoration: underline;
 }
 
 .error-banner {
     background: #fef2f2;
     color: #991b1b;
     border: 1px solid #fecaca;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.84rem;
+    margin-bottom: 14px;
+}
+
+/* Responsive */
+@media (max-width: 860px) {
+    .card-container {
+        grid-template-columns: 1fr;
+        max-width: 520px;
+    }
+
+    .col-info {
+        padding: 2rem 1.75rem;
+    }
+
+    .features-list {
+        display: none;
+    }
+
+    .col-form {
+        padding: 2rem 1.75rem;
+    }
+
+    .field-row {
+        flex-direction: column;
+        gap: 0;
+    }
 }
 
 /* Modal de Registro */
@@ -238,11 +300,11 @@ button {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(15, 23, 42, 0.7);
+    background: rgba(15, 23, 42, 0.65);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 2000;
     padding: 1rem;
     box-sizing: border-box;
 }
@@ -252,7 +314,7 @@ button {
     border-radius: 12px;
     width: 100%;
     max-width: 480px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
     overflow: hidden;
     animation: popIn 0.2s ease-out;
 }
@@ -297,7 +359,7 @@ button {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    font-size: 13px;
+    font-size: 13.5px;
     color: #334155;
     line-height: 1.5;
 }
@@ -307,18 +369,19 @@ button {
 }
 
 .summary-card {
-    background: #f1f5f9;
-    border-radius: 8px;
-    padding: 12px;
+    background: #f0f7ff;
+    border-radius: 10px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 12.5px;
-    border: 1px solid #e2e8f0;
+    font-size: 13px;
+    border: 1px solid #bfdbfe;
+    color: #0f172a;
 }
 
 .modal-note {
-    font-size: 11.5px;
+    font-size: 12px;
     color: #64748b;
     font-style: italic;
 }
@@ -338,7 +401,7 @@ button {
     border: none;
     padding: 8px 14px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
     width: auto;
@@ -350,12 +413,12 @@ button {
 }
 
 .btn-primary-modal {
-    background: #173b6c;
+    background: linear-gradient(135deg, #1e56a0 0%, #0b2247 100%);
     color: #ffffff;
     border: none;
     padding: 8px 16px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
     width: auto;
@@ -363,5 +426,5 @@ button {
 }
 
 .btn-primary-modal:hover {
-    background: #0f2747;
+    opacity: 0.95;
 }
