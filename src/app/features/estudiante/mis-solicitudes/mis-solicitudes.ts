@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -18,7 +18,7 @@ export interface EspacioDisponibleItem extends SalonSedeItem {
   styleUrl: './mis-solicitudes.css',
   templateUrl: './mis-solicitudes.html',
 })
-export class MisSolicitudes {
+export class MisSolicitudes implements OnInit {
   private router = inject(Router);
   private dataService = inject(Data);
   private espaciosService = inject(EspaciosAux);
@@ -31,11 +31,43 @@ export class MisSolicitudes {
   cursosDisponibles = this.dataService.cursos;
   sedesDisponibles = computed(() => this.espaciosService.obtenerSedesActivas());
 
+  ngOnInit(): void {
+    this.dataService.sincronizarDesdeBackend();
+  }
+
   solicitudesFiltradas = computed(() => {
     const q = this.busqueda().toLowerCase().trim();
     const est = this.filtroEstado();
 
+    const idActivo = typeof localStorage !== 'undefined'
+      ? Number(localStorage.getItem('idUsuarioActivo')) || 0
+      : 0;
+    const correoActivo = typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('correoActivo') || '').toLowerCase().trim()
+      : '';
+    const identificacionActiva = typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('identificacionUsuarioActivo') || '').trim()
+      : '';
+    const nombreActivo = typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('nombreUsuarioActivo') || '').toLowerCase().trim()
+      : '';
+    const rolActivo = typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('rolActivo') || '').toUpperCase().trim()
+      : '';
+
     return this.solicitudes().filter(item => {
+      // Si el rol es ESTUDIANTE, mostrar solo las consultas del estudiante actual
+      if (rolActivo === 'ESTUDIANTE' && (idActivo || correoActivo || identificacionActiva || nombreActivo)) {
+        const esPropia =
+          (idActivo > 0 && item.estudianteId === idActivo) ||
+          (correoActivo && item.correoEstudiante?.toLowerCase() === correoActivo) ||
+          (identificacionActiva && item.documento === identificacionActiva) ||
+          (nombreActivo && item.estudiante?.toLowerCase() === nombreActivo) ||
+          (!item.estudianteId && !item.documento);
+
+        if (!esPropia) return false;
+      }
+
       const coincideTexto =
         !q ||
         item.radicado.toLowerCase().includes(q) ||

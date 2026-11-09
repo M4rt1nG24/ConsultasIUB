@@ -1,10 +1,10 @@
 export const environment = {
   production: false,
   /**
-   * Coloca aquí la URL base de tu backend cuando esté listo
-   * Ejemplo local: 'http://localhost:8000' o 'http://localhost:3000/api'
+   * Proxy de mismo origen (/api-proxy) configurado en proxy.conf.json hacia Render
+   * para prevenir cualquier bloqueo de CORS en el navegador en localhost.
    */
-  apiUrl: 'https://sistemaconsultas-api.onrender.com'
+  apiUrl: '/api-proxy'
 };
 
 

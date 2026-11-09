@@ -171,6 +171,9 @@ export class CrearConsulta {
   ubicacionConfirmada = signal<string>('');
 
   constructor() {
+    if (this.cursosDisponibles().length === 0 || this.dataService.usuarios().length === 0) {
+      this.dataService.sincronizarDesdeBackend();
+    }
     if (this.espaciosService.sedes().length === 0) {
       this.espaciosService.sincronizarDesdeBackend();
     }

@@ -137,6 +137,8 @@ export class Registro {
                   correo: this.correo.trim().toLowerCase(),
                   password: this.password
                 })
+
+                
                 .subscribe({
                   next: (loginRes) => {
                     if (typeof localStorage !== 'undefined' && loginRes?.token) {
