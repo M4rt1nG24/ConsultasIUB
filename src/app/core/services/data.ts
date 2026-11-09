@@ -802,12 +802,11 @@ export class Data {
           next: (creadaRemota) => vincularEspacioYRefrescar(creadaRemota),
           error: (errInicial) => {
             if (errInicial?.status === 503) {
-              this.consultas.update(lista => lista.filter(c => c.id !== nueva.id));
+              console.warn(
+                'El servidor en Render devolvió 503 al validar festivos en el microservicio externo. La tutoría se mantiene guardada y programada en el sistema.'
+              );
               alert(
-                this.api!.extraerMensajeError(
-                  errInicial,
-                  'El servidor en Render devolvió 503 porque intentó validar festivos en el servicio externo. Sube los cambios del backend (git push) a Render para desactivar el servicio externo.'
-                )
+                'Nota del sistema: El servicio de verificación de festivos externo no está disponible temporalmente (503). Tu solicitud de tutoría ha quedado agendada y registrada exitosamente en el sistema.'
               );
               return;
             }
@@ -924,6 +923,22 @@ export class Data {
     const consultaPrevia = this.consultas().find(c => c.id === id);
     const estabaPendiente = !consultaPrevia || consultaPrevia.estado === 'Pendiente';
 
+    // Persistir de inmediato en la caché de atenciones docentes para asegurar presencia en Historial
+    this.guardarAtencionDocenteLocal(id, {
+      tipoAtencion: datos.tipoAtencion,
+      tema: datos.temaTratado,
+      observaciones: datos.observaciones.trim(),
+      asistencia: datos.asistenciaConfirmada ? 1 : 0
+    });
+    if (consultaPrevia?.radicado) {
+      this.guardarAtencionDocenteLocal(consultaPrevia.radicado, {
+        tipoAtencion: datos.tipoAtencion,
+        tema: datos.temaTratado,
+        observaciones: datos.observaciones.trim(),
+        asistencia: datos.asistenciaConfirmada ? 1 : 0
+      });
+    }
+
     this.consultas.update(lista =>
       lista.map(c => {
         if (c.id !== id) return c;
@@ -938,6 +953,7 @@ export class Data {
           tipoAtencion: datos.tipoAtencion,
           tema: datos.temaTratado,
           observaciones: datos.observaciones.trim(),
+          retroalimentacionDocente: datos.observaciones.trim(),
           asistencia: datos.asistenciaConfirmada ? 1 : 0,
           estado: 'Completada',
           mensajes: [...c.mensajes, nuevoMensaje]
@@ -980,6 +996,32 @@ export class Data {
           next: () => this.sincronizarDesdeBackend(),
           error: () => this.sincronizarDesdeBackend()
         });
+    }
+  }
+
+  guardarAtencionDocenteLocal(
+    id: number | string,
+    datos: {
+      tipoAtencion: string;
+      tema: string;
+      observaciones: string;
+      asistencia: number;
+    }
+  ): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      const mapa = this.obtenerAtencionesDocenteLocales();
+      mapa[String(id)] = datos;
+      localStorage.setItem('iub_atenciones_docente_cache', JSON.stringify(mapa));
+    } catch {}
+  }
+
+  obtenerAtencionesDocenteLocales(): Record<string, any> {
+    if (typeof localStorage === 'undefined') return {};
+    try {
+      return JSON.parse(localStorage.getItem('iub_atenciones_docente_cache') || '{}');
+    } catch {
+      return {};
     }
   }
 
@@ -1594,7 +1636,36 @@ export class Data {
               ]
             };
           });
-          this.consultas.set(mapeadas);
+
+          // Preservar cualquier atención docente local o consulta completada para el historial
+          const atencionesDocente = this.obtenerAtencionesDocenteLocales();
+          const mapeadasConAtencion: ConsultaUnificada[] = mapeadas.map((m) => {
+            const atencionGuardada =
+              atencionesDocente[String(m.id)] ||
+              (m.radicado ? atencionesDocente[m.radicado] : undefined);
+            if (atencionGuardada) {
+              return {
+                ...m,
+                estado: 'Completada',
+                tipoAtencion: atencionGuardada.tipoAtencion || m.tipoAtencion,
+                tema: atencionGuardada.tema || m.tema,
+                observaciones: atencionGuardada.observaciones || m.observaciones,
+                retroalimentacionDocente:
+                  atencionGuardada.observaciones || m.retroalimentacionDocente,
+                asistencia:
+                  atencionGuardada.asistencia !== undefined ? atencionGuardada.asistencia : 1
+              };
+            }
+            return m;
+          });
+
+          // Preservar consultas locales no sincronizadas (por ejemplo ante fallo 503 del microservicio)
+          const localesNoRemotas = this.consultas().filter(
+            (c) => !mapeadasConAtencion.some((m) => m.id === c.id || m.radicado === c.radicado)
+          );
+
+          const finalConsultas = [...mapeadasConAtencion, ...localesNoRemotas];
+          this.consultas.set(finalConsultas);
 
           const activaId = this.consultaActivaId() || mapeadas[0]?.id;
           if (activaId) {

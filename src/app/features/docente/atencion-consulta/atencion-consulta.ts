@@ -61,6 +61,11 @@ export class AtencionConsulta {
     this.router.navigate(['/docente/asignadas']);
   }
 
+  irAHistorial(): void {
+    this.modalExitoAbierto.set(false);
+    this.router.navigate(['/docente/historial']);
+  }
+
   cancelar(): void {
     if (confirm('¿Deseas cancelar el diligenciamiento y volver a la bandeja de solicitudes?')) {
       this.router.navigate(['/docente/asignadas']);
