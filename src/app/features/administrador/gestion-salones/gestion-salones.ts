@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ApiPrincipal, TipoRecursoFisicoApi } from '../../../core/services/api-principal';
 import { EspaciosAux, SalonSedeItem, TipoSalon } from '../../../core/services/espacios-aux';
 import { ConfirmModal, DataTableDirective, FilterBar, PageHeader, StatusBadge } from '../../../shared';
 
@@ -13,6 +14,7 @@ import { ConfirmModal, DataTableDirective, FilterBar, PageHeader, StatusBadge } 
 })
 export class GestionSalones {
   private espaciosService = inject(EspaciosAux);
+  private apiPrincipal = inject(ApiPrincipal, { optional: true });
 
   salones = this.espaciosService.salones;
   sedes = this.espaciosService.sedes;
@@ -111,22 +113,56 @@ export class GestionSalones {
       return;
     }
 
+    let tipoApi: TipoRecursoFisicoApi = 'SALON';
+    if (this.formData.tipo === 'Laboratorio') tipoApi = 'LABORATORIO';
+    else if (this.formData.tipo === 'Sala de Informática') tipoApi = 'SALA';
+    else if (this.formData.tipo === 'Aula de Tutoría') tipoApi = 'OFICINA';
+
+    const sedeObj = this.sedes().find(s => s.nombre === this.formData.sedeNombre);
+    const sedeId = sedeObj ? sedeObj.id : 1;
+
     if (this.modoModal() === 'crear') {
-      this.salones.update(lista => [
-        ...lista,
-        {
-          ...this.formData,
-          id: Date.now(),
-          codigo: this.formData.codigo.trim().toUpperCase(),
-          nombre: this.formData.nombre.trim()
-        }
-      ]);
+      const idTemp = Date.now();
+      const nuevoSalon: SalonSedeItem = {
+        ...this.formData,
+        id: idTemp,
+        codigo: this.formData.codigo.trim().toUpperCase(),
+        nombre: this.formData.nombre.trim()
+      };
+      this.salones.update(lista => [...lista, nuevoSalon]);
       this.mostrarNotificacion('¡Salón / espacio académico registrado exitosamente en la sede!');
+
+      if (this.apiPrincipal && typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
+        this.apiPrincipal
+          .crearRecursoFisico({
+            sedeId,
+            nombre: nuevoSalon.nombre,
+            tipo: tipoApi
+          })
+          .subscribe({
+            next: (rRemoto) => {
+              this.salones.update(lista =>
+                lista.map(s => (s.id === idTemp ? { ...s, id: rRemoto.id } : s))
+              );
+            },
+            error: () => {}
+          });
+      }
     } else {
       this.salones.update(lista =>
         lista.map(item => (item.id === this.formData.id ? { ...this.formData } : item))
       );
       this.mostrarNotificacion(`¡Salón ${this.formData.nombre} actualizado correctamente!`);
+
+      if (this.apiPrincipal && typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
+        this.apiPrincipal
+          .actualizarRecursoFisico(this.formData.id, {
+            sedeId,
+            nombre: this.formData.nombre,
+            tipo: tipoApi
+          })
+          .subscribe({ error: () => {} });
+      }
     }
 
     this.cerrarModal();
@@ -154,6 +190,14 @@ export class GestionSalones {
     this.mostrarNotificacion(
       `Estado del espacio "${salon.nombre}" actualizado a "${nuevoEstado}".`
     );
+
+    if (this.apiPrincipal && typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
+      if (nuevoEstado === 'Disponible') {
+        this.apiPrincipal.activarRecursoFisico(salon.id).subscribe({ error: () => {} });
+      } else {
+        this.apiPrincipal.desactivarRecursoFisico(salon.id).subscribe({ error: () => {} });
+      }
+    }
   }
 
   mostrarNotificacion(msg: string): void {

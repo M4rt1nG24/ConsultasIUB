@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { ApiPrincipal } from '../../../core/services/api-principal';
 import { Data } from '../../../core/services/data';
 
 @Component({
@@ -13,6 +14,7 @@ import { Data } from '../../../core/services/data';
 export class Registro {
   private router = inject(Router);
   private dataService = inject(Data);
+  private apiPrincipal = inject(ApiPrincipal, { optional: true });
 
   nombre = '';
   documento = '';
@@ -49,11 +51,17 @@ export class Registro {
       .usuarios()
       .some(u => u.email.toLowerCase() === correoLimpio);
 
+    const partesNombre = this.nombre.trim().split(' ');
+    const primerNombre = partesNombre[0] || 'Estudiante';
+    const apellido = partesNombre.slice(1).join(' ') || 'IUB';
+
     if (!existe) {
       this.dataService.usuarios.update(lista => [
         ...lista,
         {
           id: Date.now(),
+          tipoIdentificacion: 'CC',
+          identificacion: this.documento.trim() || '1045000000',
           nombre: this.nombre.trim(),
           email: correoLimpio,
           rol: 'ESTUDIANTE',
@@ -61,6 +69,20 @@ export class Registro {
           programa: this.programa
         }
       ]);
+    }
+
+    // Registrar en el backend PostgreSQL (FastAPI)
+    if (this.apiPrincipal) {
+      this.apiPrincipal
+        .registrarUsuarioPublico({
+          identificacion: this.documento.trim() || '1045000000',
+          nombre: primerNombre,
+          apellido: apellido,
+          correo: correoLimpio,
+          password: this.password,
+          rol: 'ESTUDIANTE'
+        })
+        .subscribe({ error: () => {} });
     }
 
     // Abre el modal de confirmación con las opciones

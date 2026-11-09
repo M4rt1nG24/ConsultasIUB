@@ -302,6 +302,8 @@ export class Auth {
 
         const usuarioRemoto: UsuarioSistema = {
           id: res.id_usuario,
+          tipoIdentificacion: 'CC',
+          identificacion: String(1045000000 + res.id_usuario),
           nombre: res.nombre,
           email: res.correo,
           rol: rolNormalizado,
@@ -318,6 +320,8 @@ export class Auth {
           localStorage.setItem('correoActivo', res.correo);
           localStorage.setItem('nombreUsuarioActivo', res.nombre);
           localStorage.setItem(STORAGE_KEY_TOKEN, res.token);
+          localStorage.setItem('token', res.token);
+          localStorage.setItem('id_usuario', String(res.id_usuario));
         }
 
         // Sincronizar datos desde el backend PostgreSQL una vez guardado el Bearer token
@@ -374,6 +378,8 @@ export class Auth {
       localStorage.removeItem('rolActivo');
       localStorage.removeItem('correoActivo');
       localStorage.removeItem('nombreUsuarioActivo');
+      localStorage.removeItem('token');
+      localStorage.removeItem('id_usuario');
       localStorage.removeItem(STORAGE_KEY_TOKEN);
     }
   }

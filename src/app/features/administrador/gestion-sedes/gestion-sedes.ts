@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ApiPrincipal } from '../../../core/services/api-principal';
 import { EspaciosAux, SedeItem } from '../../../core/services/espacios-aux';
 import { ConfirmModal, DataTableDirective, FilterBar, PageHeader, StatusBadge } from '../../../shared';
 
@@ -13,6 +14,7 @@ import { ConfirmModal, DataTableDirective, FilterBar, PageHeader, StatusBadge } 
 })
 export class GestionSedes {
   private espaciosService = inject(EspaciosAux);
+  private apiPrincipal = inject(ApiPrincipal, { optional: true });
 
   sedes = this.espaciosService.sedes;
 
@@ -92,21 +94,45 @@ export class GestionSedes {
     }
 
     if (this.modoModal() === 'crear') {
-      this.sedes.update(lista => [
-        ...lista,
-        {
-          ...this.formData,
-          id: Date.now(),
-          codigo: this.formData.codigo.trim().toUpperCase(),
-          nombre: this.formData.nombre.trim()
-        }
-      ]);
+      const idTemp = Date.now();
+      const nuevaSede: SedeItem = {
+        ...this.formData,
+        id: idTemp,
+        codigo: this.formData.codigo.trim().toUpperCase(),
+        nombre: this.formData.nombre.trim()
+      };
+      this.sedes.update(lista => [...lista, nuevaSede]);
       this.mostrarNotificacion('¡Sede institucional registrada exitosamente!');
+
+      if (this.apiPrincipal && typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
+        this.apiPrincipal
+          .crearSede({
+            nombre: nuevaSede.nombre,
+            tipoEstructura: 'BLOQUES'
+          })
+          .subscribe({
+            next: (sRemota) => {
+              this.sedes.update(lista =>
+                lista.map(s => (s.id === idTemp ? { ...s, id: sRemota.id } : s))
+              );
+            },
+            error: () => {}
+          });
+      }
     } else {
       this.sedes.update(lista =>
         lista.map(s => (s.id === this.formData.id ? { ...this.formData } : s))
       );
       this.mostrarNotificacion(`¡Sede ${this.formData.nombre} actualizada correctamente!`);
+
+      if (this.apiPrincipal && typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
+        this.apiPrincipal
+          .actualizarSede(this.formData.id, {
+            nombre: this.formData.nombre,
+            tipoEstructura: 'BLOQUES'
+          })
+          .subscribe({ error: () => {} });
+      }
     }
 
     this.cerrarModal();
@@ -134,6 +160,14 @@ export class GestionSedes {
     this.mostrarNotificacion(
       `Estado de la sede "${sede.nombre}" actualizado a "${nuevoEstado}".`
     );
+
+    if (this.apiPrincipal && typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
+      if (nuevoEstado === 'Activa') {
+        this.apiPrincipal.activarSede(sede.id).subscribe({ error: () => {} });
+      } else {
+        this.apiPrincipal.desactivarSede(sede.id).subscribe({ error: () => {} });
+      }
+    }
   }
 
   mostrarNotificacion(msg: string): void {

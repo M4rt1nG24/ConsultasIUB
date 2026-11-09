@@ -377,9 +377,31 @@ export class ApiPrincipal {
   private readonly http = inject(HttpClient);
 
   /**
-   * URL base oficial desplegada en Render (FastAPI + PostgreSQL)
+   * URL base oficial desplegada en Render (FastAPI + PostgreSQL).
+   * Permite sobreescritura mediante `localStorage.getItem('iub_api_url')`
+   * en caso de querer apuntar a backend local (ej. http://localhost:8000 o http://localhost:8080).
    */
-  readonly baseUrl = 'https://sistemaconsultas-api.onrender.com';
+  private readonly defaultBaseUrl = 'https://sistemaconsultas-api.onrender.com';
+
+  get baseUrl(): string {
+    if (typeof localStorage !== 'undefined') {
+      const personalizada = localStorage.getItem('iub_api_url');
+      if (personalizada && personalizada.trim()) {
+        return personalizada.trim().replace(/\/+$/, '');
+      }
+    }
+    return this.defaultBaseUrl;
+  }
+
+  establecerBaseUrl(url: string): void {
+    if (typeof localStorage !== 'undefined') {
+      if (url && url.trim()) {
+        localStorage.setItem('iub_api_url', url.trim().replace(/\/+$/, ''));
+      } else {
+        localStorage.removeItem('iub_api_url');
+      }
+    }
+  }
 
   private obtenerHeaders(): HttpHeaders {
     const token =

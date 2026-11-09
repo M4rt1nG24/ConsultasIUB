@@ -51,6 +51,8 @@ export interface CursoSistema {
 
 export interface UsuarioSistema {
   id: number;
+  tipoIdentificacion: 'CC' | 'TI';
+  identificacion: string;
   nombre: string;
   email: string;
   rol: 'ADMIN' | 'DOCENTE' | 'ESTUDIANTE';
@@ -226,6 +228,8 @@ const CURSOS_INICIALES: CursoSistema[] = [
 const USUARIOS_INICIALES: UsuarioSistema[] = [
   {
     id: 1,
+    tipoIdentificacion: 'CC',
+    identificacion: '1140852100',
     nombre: 'Coordinación Sistemas',
     email: 'coordinacion.sistemas@unibarranquilla.edu.co',
     rol: 'ADMIN',
@@ -234,6 +238,8 @@ const USUARIOS_INICIALES: UsuarioSistema[] = [
   },
   {
     id: 2,
+    tipoIdentificacion: 'CC',
+    identificacion: '72245890',
     nombre: 'Ing. Roberto Pineda',
     email: 'rpineda@unibarranquilla.edu.co',
     rol: 'DOCENTE',
@@ -242,6 +248,8 @@ const USUARIOS_INICIALES: UsuarioSistema[] = [
   },
   {
     id: 3,
+    tipoIdentificacion: 'CC',
+    identificacion: '32890145',
     nombre: 'Ing. Laura Gómez',
     email: 'lgomez@unibarranquilla.edu.co',
     rol: 'DOCENTE',
@@ -250,6 +258,8 @@ const USUARIOS_INICIALES: UsuarioSistema[] = [
   },
   {
     id: 4,
+    tipoIdentificacion: 'CC',
+    identificacion: '72310492',
     nombre: 'Ing. Carlos Mendoza',
     email: 'cmendoza@unibarranquilla.edu.co',
     rol: 'DOCENTE',
@@ -258,6 +268,8 @@ const USUARIOS_INICIALES: UsuarioSistema[] = [
   },
   {
     id: 5,
+    tipoIdentificacion: 'CC',
+    identificacion: '1045678912',
     nombre: 'Ing. Diana Rodríguez',
     email: 'drodriguez@unibarranquilla.edu.co',
     rol: 'DOCENTE',
@@ -266,6 +278,8 @@ const USUARIOS_INICIALES: UsuarioSistema[] = [
   },
   {
     id: 6,
+    tipoIdentificacion: 'CC',
+    identificacion: '1045892110',
     nombre: 'Carlos Mario Pérez',
     email: 'meclavijo@unibarranquilla.edu.co',
     rol: 'ESTUDIANTE',
@@ -309,6 +323,10 @@ export class Data {
     effect(() => {
       this.guardarEnStorage(STORAGE_KEY_USUARIOS, this.usuarios());
     });
+
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
+      setTimeout(() => this.sincronizarDesdeBackend(), 300);
+    }
   }
 
   seleccionarConsulta(id: number): void {
@@ -385,6 +403,53 @@ export class Data {
 
     this.consultas.update(lista => [nueva, ...lista]);
     this.consultaActivaId.set(nueva.id);
+
+    // Si hay conexión con la API y sesión activa, persistir en PostgreSQL
+    if (this.api && typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
+      const docenteMatch = this.usuarios().find(
+        u => u.rol === 'DOCENTE' && u.nombre.toLowerCase().includes(tutorAsignado.toLowerCase())
+      );
+      const moduloMatch = this.cursos().find(
+        c => c.asignatura.toLowerCase() === datos.asignatura.toLowerCase()
+      );
+
+      const hoy = new Date();
+      const fechaIso = hoy.toISOString().split('T')[0];
+      const horaIso = `${String(hoy.getHours()).padStart(2, '0')}:${String(hoy.getMinutes()).padStart(2, '0')}:00`;
+
+      let prioridadApi: PrioridadSolicitudApi = 'MEDIA';
+      if (datos.prioridad === 'Alta') prioridadApi = 'ALTA';
+      else if (datos.prioridad === 'Baja') prioridadApi = 'BAJA';
+
+      this.api
+        .registrarSolicitudConsulta({
+          prioridad: prioridadApi,
+          asunto: datos.tema.trim(),
+          descripcion: datos.descripcion || datos.tema,
+          fechaConsulta: fechaIso,
+          horaConsulta: horaIso,
+          docenteId: docenteMatch ? docenteMatch.id : 1,
+          moduloId: moduloMatch ? moduloMatch.id : 1
+        })
+        .subscribe({
+          next: (remota) => {
+            this.consultas.update(lista =>
+              lista.map(c =>
+                c.id === nueva.id
+                  ? {
+                      ...c,
+                      id: remota.id,
+                      radicado: remota.numeroConsulta || c.radicado,
+                      folioAuditoria: `AUD-${remota.numeroConsulta || remota.id}`
+                    }
+                  : c
+              )
+            );
+          },
+          error: () => {}
+        });
+    }
+
     return nueva;
   }
 
@@ -425,6 +490,24 @@ export class Data {
         };
       })
     );
+
+    if (this.api && typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
+      this.api
+        .cambiarEstadoSolicitud(id, {
+          estado: 'RESUELTA',
+          motivo: datos.observaciones || 'Tutoría atendida por el docente.'
+        })
+        .subscribe({ error: () => {} });
+
+      if (datos.observaciones.trim()) {
+        this.api
+          .registrarComentario({
+            solicitudConsultaId: id,
+            contenido: datos.observaciones.trim()
+          })
+          .subscribe({ error: () => {} });
+      }
+    }
   }
 
   reasignarTutor(id: number, nuevoDocente: string): void {
@@ -441,6 +524,15 @@ export class Data {
         };
       })
     );
+
+    if (this.api && typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
+      const docenteObj = this.usuarios().find(
+        u => u.rol === 'DOCENTE' && u.nombre.toLowerCase().includes(nuevoDocente.toLowerCase())
+      );
+      if (docenteObj) {
+        this.api.reasignarDocenteSolicitud(id, docenteObj.id).subscribe({ error: () => {} });
+      }
+    }
   }
 
   actualizarConsulta(id: number, cambios: Partial<ConsultaUnificada>): void {
@@ -523,6 +615,8 @@ export class Data {
         if (!usuariosRemotos || usuariosRemotos.length === 0) return;
         const mapeados: UsuarioSistema[] = usuariosRemotos.map((u) => ({
           id: u.id,
+          tipoIdentificacion: u.tipoDocumentoSigla === 'TI' ? 'TI' : 'CC',
+          identificacion: u.identificacion || String(1045000000 + u.id),
           nombre: `${u.nombre} ${u.apellido || ''}`.trim(),
           email: u.correo || `usuario${u.id}@unibarranquilla.edu.co`,
           rol: u.rol === 'ADMINISTRADOR' ? 'ADMIN' : u.rol,
