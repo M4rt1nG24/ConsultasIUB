@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: consultasiub
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist/Consultas-iub/browser
+    routes:
+      - type: rewrite
+        source: /api-proxy/*
+        destination: https://sistemaconsultas-api.onrender.com/:splat
+      - type: rewrite
+        source: /*
+        destination: /index.html

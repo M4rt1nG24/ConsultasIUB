@@ -8,7 +8,7 @@ import {
   SimpleChanges,
   inject
 } from '@angular/core';
-import DataTable from 'datatables.net-dt';
+declare const DataTable: any;
 
 
 @Directive({
@@ -37,7 +37,21 @@ export class DataTableDirective implements AfterViewInit, OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['dataTrigger'] && !changes['dataTrigger'].firstChange) {
+      // Destruir sincrónicamente DataTables ANTES de que Angular actualice el @for en el <tbody>,
+      // evitando que dtInstance.destroy() sobreescriba las filas nuevas con el snapshot vacío inicial.
+      this.destroyDataTable();
       this.scheduleInit();
+    }
+  }
+
+  private destroyDataTable(): void {
+    if (this.dtInstance) {
+      try {
+        this.dtInstance.destroy();
+      } catch {
+        // Ignorar errores al destruir instancia previa
+      }
+      this.dtInstance = null;
     }
   }
 
@@ -47,18 +61,21 @@ export class DataTableDirective implements AfterViewInit, OnChanges, OnDestroy {
     }
     this.initTimer = setTimeout(() => {
       this.initDataTable();
-    }, 30);
+    }, 50);
   }
 
   private initDataTable(): void {
     const tableEl = this.el.nativeElement;
     if (!tableEl || typeof window === 'undefined') return;
 
+    // Si el arreglo aún está vacío (ej. esperando respuesta HTTP tras recargar la página),
+    // no inicializar DataTables sobre la tabla vacía para no bloquear las filas que renderizará Angular.
+    if (Array.isArray(this.dataTrigger) && this.dataTrigger.length === 0) {
+      return;
+    }
+
     try {
-      if (this.dtInstance) {
-        this.dtInstance.destroy();
-        this.dtInstance = null;
-      }
+      this.destroyDataTable();
 
       this.dtInstance = new DataTable(tableEl, {
         pageLength: this.pageLength,
@@ -89,14 +106,7 @@ export class DataTableDirective implements AfterViewInit, OnChanges, OnDestroy {
     if (this.initTimer) {
       clearTimeout(this.initTimer);
     }
-    if (this.dtInstance) {
-      try {
-        this.dtInstance.destroy();
-      } catch {
-        // Ignorar al destruir vista
-      }
-      this.dtInstance = null;
-    }
+    this.destroyDataTable();
   }
 }
 

@@ -1,0 +1,156 @@
+<div class="view-wrapper">
+    @if (mensajeFeedback()) {
+    <div class="toast-notification">
+        <span>✅ {{ mensajeFeedback() }}</span>
+    </div>
+    }
+
+    <app-page-header
+        badge="Módulo Docente • Horarios"
+        titulo="🕒 Gestión de Disponibilidad Académica"
+        subtitulo="Administra tus días y franjas horarias de atención para recibir solicitudes de consulta de los estudiantes.">
+        <button class="btn-primary" type="button" (click)="abrirModalCrear()">+ Nueva Franja Horaria</button>
+    </app-page-header>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🕒</div>
+            <div>
+                <span class="stat-label">Franjas Registradas</span>
+                <h3 class="stat-value">{{ franjas().length }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div>
+                <span class="stat-label">Franjas Activas</span>
+                <h3 class="stat-value text-success">{{ totalActivas() }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">⏸️</div>
+            <div>
+                <span class="stat-label">Franjas Inactivas</span>
+                <h3 class="stat-value">{{ totalInactivas() }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <app-filter-bar
+        placeholder="Buscar por día de la semana, docente u horario..."
+        [texto]="filtroTexto()"
+        (textoChange)="filtroTexto.set($event)">
+        <select
+            class="select-filter"
+            [ngModel]="filtroEstado()"
+            (ngModelChange)="filtroEstado.set($event)">
+            <option value="">Todos los Estados</option>
+            <option value="Activa">Activa</option>
+            <option value="Inactiva">Inactiva</option>
+        </select>
+    </app-filter-bar>
+
+    <div class="main-card">
+        <div class="table-wrapper">
+            <table [appDataTable]="franjasFiltradas()" class="display">
+                <thead>
+                    <tr>
+                        <th>Docente</th>
+                        <th>Día de la Semana</th>
+                        <th>Hora de Inicio</th>
+                        <th>Hora de Finalización</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (f of franjasFiltradas(); track f.id) {
+                    <tr>
+                        <td><strong>{{ f.nombreDocente }}</strong></td>
+                        <td><strong>{{ obtenerNombreDia(f.diaSemana) }}</strong></td>
+                        <td>{{ (f.horaInicio || '').substring(0, 5) }}</td>
+                        <td>{{ (f.horaFin || '').substring(0, 5) }}</td>
+                        <td>
+                            <app-status-badge [estado]="f.estado ? 'Activo' : 'Inactivo'"></app-status-badge>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-action" type="button" (click)="abrirModalEditar(f)">Editar</button>
+                                @if (f.estado) {
+                                <button class="btn-delete" type="button" (click)="confirmarInactivar(f)">Inactivar</button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (modalAbierto()) {
+<div class="modal-backdrop">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>{{ modoModal() === 'crear' ? '➕ Registrar Franja de Disponibilidad' : '✏️ Actualizar Franja de Disponibilidad' }}</h3>
+            <button class="btn-close" type="button" (click)="cerrarModal()">✕</button>
+        </div>
+
+        <form (ngSubmit)="guardarFranja()" class="modal-body">
+            <div class="form-group">
+                <label>Día de la Semana *</label>
+                <select class="input-control" [(ngModel)]="diaSemanaForm" name="diaSemana">
+                    @for (d of diasSemana; track d.valor) {
+                    <option [ngValue]="d.valor">{{ d.etiqueta }}</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <label>Hora de Inicio *</label>
+                    <input
+                        type="time"
+                        class="input-control"
+                        [(ngModel)]="horaInicioForm"
+                        name="horaInicio"
+                        required />
+                </div>
+                <div class="form-group flex-1">
+                    <label>Hora de Finalización *</label>
+                    <input
+                        type="time"
+                        class="input-control"
+                        [(ngModel)]="horaFinForm"
+                        name="horaFin"
+                        required />
+                </div>
+            </div>
+
+            @if (errorFormulario()) {
+            <div style="padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; background: #fef2f2; border: 1px solid #ef4444; color: #991b1b; font-size: 13px;">
+                ⚠️ {{ errorFormulario() }}
+            </div>
+            }
+
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+                <button type="submit" class="btn-primary" [disabled]="guardando()">
+                    {{ guardando() ? 'Guardando...' : (modoModal() === 'crear' ? 'Registrar Franja' : 'Guardar Cambios') }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+}
+
+<app-confirm-modal
+    [abierto]="modalEliminarAbierto() && !!franjaAEliminar()"
+    titulo="⚠️ Confirmar Cambio de Estado"
+    [mensaje]="'¿Deseas inactivar la franja del día ' + obtenerNombreDia(franjaAEliminar()?.diaSemana || 1) + ' (' + ((franjaAEliminar()?.horaInicio || '').substring(0, 5)) + ' - ' + ((franjaAEliminar()?.horaFin || '').substring(0, 5)) + ')?'"
+    textoConfirmar="Sí, Inactivar"
+    (confirmar)="inactivarFranja()"
+    (cancelar)="cerrarModalEliminar()">
+</app-confirm-modal>
+

@@ -15,8 +15,20 @@
                 <span class="val">{{ c.asignatura }}</span>
             </div>
             <div class="summary-item">
+                <span class="label">Programa Académico</span>
+                <span class="val">{{ c.nombrePrograma || 'Sin programa' }}</span>
+            </div>
+            <div class="summary-item">
                 <span class="label">Docente Asignado</span>
                 <span class="val">{{ c.tutor }}</span>
+            </div>
+            <div class="summary-item">
+                <span class="label">Sede / Recurso Físico</span>
+                <span class="val">{{ c.ubicacion }} ({{ c.modalidad }})</span>
+            </div>
+            <div class="summary-item">
+                <span class="label">Fecha y Hora</span>
+                <span class="val">{{ c.fecha }}</span>
             </div>
             <div class="summary-item">
                 <span class="label">Prioridad</span>
@@ -55,9 +67,40 @@
         <div class="summary-box" style="margin-top: 16px;">
             <div class="summary-item" style="grid-column: 1 / -1;">
                 <span class="label">Retroalimentación y Compromisos Registrados por el Docente</span>
-                <span class="val">{{ c.observaciones }}</span>
+                <span class="val">{{ c.retroalimentacionDocente || c.observaciones }}</span>
             </div>
         </div>
+
+        @if (c.calificacion) {
+        <div class="summary-box" style="margin-top: 16px; background: #fffbeb; border: 1px solid #f59e0b;">
+            <div class="summary-item" style="grid-column: 1 / -1;">
+                <span class="label">⭐ Calificación de la Tutoría (Puntaje: {{ c.calificacion.puntaje }} / 5)</span>
+                <span class="val">{{ c.calificacion.comentario || 'Sin comentario adicional.' }}</span>
+            </div>
+        </div>
+        } @else if (c.estado === 'Completada' || c.estado === 'Resuelta') {
+        <div class="reply-section" style="margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+            <h3>⭐ Calificar Atención del Docente</h3>
+            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+                <label><strong>Puntaje (1 a 5):</strong></label>
+                <select class="form-control" style="max-width: 180px;" [(ngModel)]="puntajeCalificacion">
+                    <option [ngValue]="5">⭐⭐⭐⭐⭐ (5 - Excelente)</option>
+                    <option [ngValue]="4">⭐⭐⭐⭐ (4 - Muy buena)</option>
+                    <option [ngValue]="3">⭐⭐⭐ (3 - Aceptable)</option>
+                    <option [ngValue]="2">⭐⭐ (2 - Regular)</option>
+                    <option [ngValue]="1">⭐ (1 - Deficiente)</option>
+                </select>
+            </div>
+            <textarea
+                rows="2"
+                class="form-control"
+                [(ngModel)]="comentarioCalificacion"
+                placeholder="Comentario opcional sobre la atención recibida..."></textarea>
+            <div class="reply-actions" style="margin-top: 8px;">
+                <button type="button" class="btn-submit" (click)="enviarCalificacion()">Guardar Calificación</button>
+            </div>
+        </div>
+        }
 
         <!-- Caja para que el estudiante agregue un comentario/respuesta -->
         <div class="reply-section">
@@ -79,6 +122,10 @@
             </div>
         </div>
 
+    </div>
+    } @else {
+    <div class="main-card">
+        <p>No hay ninguna consulta seleccionada o cargada desde el servidor.</p>
     </div>
     }
 </div>

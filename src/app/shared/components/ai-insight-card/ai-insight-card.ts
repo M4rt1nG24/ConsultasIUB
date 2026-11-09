@@ -11,6 +11,6 @@ import { CommonModule } from '@angular/common';
 export class AiInsightCard {
   @Input() titulo = 'Recomendación Inteligente IA (MiTutoría IUB)';
   @Input() mensaje =
-    'Se detectó un incremento del 24% en consultas de Estructura de Datos (Árboles AVL). Se sugiere habilitar una sesión grupal de refuerzo en la Sala de Informática 10.';
+    'A la espera de datos del servidor para generar recomendaciones de analítica predictiva.';
   @Input() etiqueta = 'Análisis Predictivo';
 }

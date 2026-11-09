@@ -17,6 +17,7 @@ export class Registro {
   private apiPrincipal = inject(ApiPrincipal, { optional: true });
 
   nombre = '';
+  apellido = '';
   documento = '';
   programa = 'Ingeniería de Sistemas';
   rol = 'Estudiante';
@@ -27,16 +28,69 @@ export class Registro {
   modalRegistroAbierto = signal<boolean>(false);
   errorMensaje = signal<string>('');
 
+  private validarPoliticaPassword(
+    pwd: string,
+    nombre: string,
+    apellido: string,
+    correo: string,
+    identificacion: string
+  ): string | null {
+    if (pwd.length < 10) {
+      return 'La contraseña debe tener al menos 10 caracteres.';
+    }
+    if (/\s/.test(pwd)) {
+      return 'La contraseña no puede contener espacios.';
+    }
+    if (!/[A-Z]/.test(pwd)) {
+      return 'La contraseña debe incluir al menos una letra mayúscula.';
+    }
+    if (!/[a-z]/.test(pwd)) {
+      return 'La contraseña debe incluir al menos una letra minúscula.';
+    }
+    if (!/\d/.test(pwd)) {
+      return 'La contraseña debe incluir al menos un número.';
+    }
+    if (!/[^A-Za-z0-9\s]/.test(pwd)) {
+      return 'La contraseña debe incluir al menos un símbolo (ej. #, !, @, $, *).';
+    }
+    const lower = pwd.toLowerCase();
+    const usuarioCorreo = (correo.split('@')[0] || '').trim().toLowerCase();
+    const candidatos = [
+      usuarioCorreo,
+      nombre.trim().toLowerCase(),
+      apellido.trim().toLowerCase(),
+      identificacion.trim().toLowerCase()
+    ];
+    for (const frag of candidatos) {
+      for (const token of frag.split(/[\s._-]+/)) {
+        if (token.length >= 4 && lower.includes(token)) {
+          return 'Por seguridad, la contraseña no puede contener tu nombre, apellido, correo ni número de identificación.';
+        }
+      }
+    }
+    return null;
+  }
+
   registrar(): void {
     this.errorMensaje.set('');
 
-    if (!this.nombre.trim() || !this.correo.trim() || !this.password.trim()) {
-      this.errorMensaje.set('Por favor completa todos los campos requeridos (*).');
+    const nombreTrim = this.nombre.trim();
+    let primerNombre = nombreTrim;
+    let apellidoFinal = this.apellido.trim();
+
+    if (!apellidoFinal && nombreTrim.includes(' ')) {
+      const partes = nombreTrim.split(/\s+/);
+      primerNombre = partes[0];
+      apellidoFinal = partes.slice(1).join(' ');
+    }
+
+    if (!primerNombre || !apellidoFinal || !this.documento.trim() || !this.correo.trim() || !this.password.trim()) {
+      this.errorMensaje.set('Por favor completa todos los campos requeridos (*): Nombres, Apellidos, Identificación, Correo y Contraseña.');
       return;
     }
 
-    if (!this.correo.includes('@') || !this.correo.toLowerCase().includes('unibarranquilla.edu.co')) {
-      this.errorMensaje.set('Debes ingresar un correo institucional válido (@unibarranquilla.edu.co).');
+    if (!this.correo.includes('@')) {
+      this.errorMensaje.set('Debes ingresar un correo institucional válido.');
       return;
     }
 
@@ -45,47 +99,71 @@ export class Registro {
       return;
     }
 
-    // Registrar en el estado compartido de usuarios si no existe aún
-    const correoLimpio = this.correo.trim().toLowerCase();
-    const existe = this.dataService
-      .usuarios()
-      .some(u => u.email.toLowerCase() === correoLimpio);
-
-    const partesNombre = this.nombre.trim().split(' ');
-    const primerNombre = partesNombre[0] || 'Estudiante';
-    const apellido = partesNombre.slice(1).join(' ') || 'IUB';
-
-    if (!existe) {
-      this.dataService.usuarios.update(lista => [
-        ...lista,
-        {
-          id: Date.now(),
-          tipoIdentificacion: 'CC',
-          identificacion: this.documento.trim() || '1045000000',
-          nombre: this.nombre.trim(),
-          email: correoLimpio,
-          rol: 'ESTUDIANTE',
-          estado: 'Activo',
-          programa: this.programa
-        }
-      ]);
+    const errorPwd = this.validarPoliticaPassword(
+      this.password,
+      primerNombre,
+      apellidoFinal,
+      this.correo,
+      this.documento
+    );
+    if (errorPwd) {
+      this.errorMensaje.set(errorPwd);
+      return;
     }
 
-    // Registrar en el backend PostgreSQL (FastAPI)
-    if (this.apiPrincipal) {
+    const rolElegido = this.rol.toUpperCase() === 'DOCENTE' ? 'DOCENTE' : 'ESTUDIANTE';
+
+    if (this.apiPrincipal && this.apiPrincipal.baseUrl) {
       this.apiPrincipal
         .registrarUsuarioPublico({
-          identificacion: this.documento.trim() || '1045000000',
+          identificacion: this.documento.trim(),
           nombre: primerNombre,
-          apellido: apellido,
-          correo: correoLimpio,
+          apellido: apellidoFinal,
+          correo: this.correo.trim().toLowerCase(),
           password: this.password,
-          rol: 'ESTUDIANTE'
+          rol: rolElegido
         })
-        .subscribe({ error: () => {} });
+        .subscribe({
+          next: () => {
+            if (rolElegido === 'DOCENTE') {
+              // Sembrar automáticamente la disponibilidad horaria del nuevo docente
+              this.apiPrincipal!
+                .login({
+                  correo: this.correo.trim().toLowerCase(),
+                  password: this.password
+                })
+                .subscribe({
+                  next: (loginRes) => {
+                    if (typeof localStorage !== 'undefined' && loginRes?.token) {
+                      const prevToken = localStorage.getItem('iub_jwt_token');
+                      localStorage.setItem('iub_jwt_token', loginRes.token);
+                      this.dataService.asegurarDisponibilidadDocente(loginRes.id_usuario);
+                      setTimeout(() => {
+                        if (prevToken) {
+                          localStorage.setItem('iub_jwt_token', prevToken);
+                        } else {
+                          localStorage.removeItem('iub_jwt_token');
+                        }
+                      }, 2500);
+                    }
+                  },
+                  error: () => {}
+                });
+            }
+            this.modalRegistroAbierto.set(true);
+          },
+          error: (err) => {
+            this.errorMensaje.set(
+              this.apiPrincipal!.extraerMensajeError(
+                err,
+                'No se pudo registrar el usuario en la API.'
+              )
+            );
+          }
+        });
+      return;
     }
 
-    // Abre el modal de confirmación con las opciones
     this.modalRegistroAbierto.set(true);
   }
 
@@ -98,4 +176,3 @@ export class Registro {
     this.router.navigate(['/login']);
   }
 }
-

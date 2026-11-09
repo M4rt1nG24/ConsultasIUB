@@ -51,15 +51,28 @@
         }
 
         <form (ngSubmit)="registrar()">
-            <div class="field">
-                <label>Nombre Completo *</label>
-                <input type="text" [(ngModel)]="nombre" name="nombre" placeholder="Ej. Martín Clavijo" required>
+            <div class="field-row">
+                <div class="field flex-1">
+                    <label>Nombres *</label>
+                    <input type="text" [(ngModel)]="nombre" name="nombre" placeholder="Ej. Martín" required>
+                </div>
+                <div class="field flex-1">
+                    <label>Apellidos *</label>
+                    <input type="text" [(ngModel)]="apellido" name="apellido" placeholder="Ej. Clavijo" required>
+                </div>
             </div>
 
             <div class="field-row">
                 <div class="field flex-1">
-                    <label>No. Identificación</label>
-                    <input type="text" [(ngModel)]="documento" name="documento" placeholder="1045892110">
+                    <label>No. Identificación *</label>
+                    <input type="text" [(ngModel)]="documento" name="documento" placeholder="1045892110" required>
+                </div>
+                <div class="field flex-1">
+                    <label>Rol Institucional *</label>
+                    <select [(ngModel)]="rol" name="rol" class="select-control">
+                        <option value="Estudiante">Estudiante</option>
+                        <option value="Docente">Docente</option>
+                    </select>
                 </div>
             </div>
 
@@ -81,8 +94,8 @@
 
             <div class="field-row">
                 <div class="field flex-1">
-                    <label>Contraseña *</label>
-                    <input type="password" [(ngModel)]="password" name="password" placeholder="••••••••" required>
+                    <label>Contraseña * (Mín. 10 caract., Mayús, Minús, Núm y Símbolo)</label>
+                    <input type="password" [(ngModel)]="password" name="password" placeholder="Ej. ClaveIub#2026!" required>
                 </div>
                 <div class="field flex-1">
                     <label>Confirmar *</label>

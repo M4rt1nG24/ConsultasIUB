@@ -32,6 +32,8 @@
                         <th>Radicado</th>
                         <th>Estudiante</th>
                         <th>Asignatura / Tema</th>
+                        <th>Sede / Espacio</th>
+                        <th>Fecha y Hora</th>
                         <th>Docente Titular Actual</th>
                         <th>Reasignar a</th>
                         <th>Acción</th>
@@ -46,6 +48,11 @@
                             <strong>{{ item.asignatura }}</strong><br>
                             <small class="text-muted">{{ item.tema }}</small>
                         </td>
+                        <td>
+                            <span>{{ item.ubicacion }}</span><br>
+                            <small class="text-muted">{{ item.modalidad }}</small>
+                        </td>
+                        <td>{{ item.fecha }}</td>
                         <td>
                             <span class="teacher-tag">{{ item.tutor }}</span>
                         </td>

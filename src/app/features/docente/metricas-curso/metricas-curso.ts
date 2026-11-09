@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Data } from '../../../core/services/data';
 import { DataTableDirective } from '../../../shared/directives/datatable.directive';
 
 export interface MetricaAsignatura {
@@ -9,6 +10,7 @@ export interface MetricaAsignatura {
   resueltas: number;
   pendientes: number;
   tiempoPromedio: string;
+  porcentajeBarra: number;
 }
 
 @Component({
@@ -18,9 +20,51 @@ export interface MetricaAsignatura {
   templateUrl: './metricas-curso.html',
 })
 export class MetricasCurso {
-  metricas = signal<MetricaAsignatura[]>([
-    { codigo: 'SIS-603', asignatura: 'Estructura de Datos', recibidas: 42, resueltas: 38, pendientes: 4, tiempoPromedio: '3.5 Horas' },
-    { codigo: 'SIS-501', asignatura: 'Bases de Datos Relacionales', recibidas: 22, resueltas: 19, pendientes: 3, tiempoPromedio: '4.4 Horas' },
-    { codigo: 'SIS-402', asignatura: 'Programación Web', recibidas: 8, resueltas: 7, pendientes: 1, tiempoPromedio: '4.8 Horas' },
-  ]);
+  private dataService = inject(Data);
+
+  totalResueltas = computed(() =>
+    this.dataService
+      .consultas()
+      .filter(c => c.estado === 'Completada' || c.estado === 'Resuelta').length
+  );
+
+  totalPendientes = computed(() =>
+    this.dataService
+      .consultas()
+      .filter(
+        c =>
+          c.estado === 'Pendiente' ||
+          c.estado === 'Programada' ||
+          c.estado === 'En proceso'
+      ).length
+  );
+
+  metricas = computed<MetricaAsignatura[]>(() => {
+    const consultas = this.dataService.consultas();
+    const cursos = this.dataService.cursos();
+    const totalGeneral = Math.max(consultas.length, 1);
+
+    return cursos.map(c => {
+      const delCurso = consultas.filter(
+        q => q.asignatura.toLowerCase() === c.asignatura.toLowerCase()
+      );
+      const recibidas = delCurso.length;
+      const resueltas = delCurso.filter(
+        q => q.estado === 'Completada' || q.estado === 'Resuelta'
+      ).length;
+      const pendientes = delCurso.filter(
+        q => q.estado !== 'Completada' && q.estado !== 'Resuelta'
+      ).length;
+
+      return {
+        codigo: c.codigo,
+        asignatura: c.asignatura,
+        recibidas,
+        resueltas,
+        pendientes,
+        tiempoPromedio: recibidas > 0 ? 'Calculado por API' : '0 Horas',
+        porcentajeBarra: Math.round((recibidas / totalGeneral) * 100)
+      };
+    });
+  });
 }

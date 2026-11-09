@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of } from 'rxjs';
-import { ApiPrincipal, LoginResponseApi } from './api-principal';
+import { ApiPrincipal, LoginResponseApi, MeResponseApi, ModuloInfoApi } from './api-principal';
 import { Data, UsuarioSistema } from './data';
 import { EspaciosAux } from './espacios-aux';
 
@@ -24,139 +24,8 @@ export interface SesionJWT {
   expiraEn: number;
 }
 
-const STORAGE_KEY_ROLXMODULO = 'iub_rolxmodulo_v1';
 const STORAGE_KEY_TOKEN = 'iub_jwt_token';
-
-const TABLA_ROL_X_MODULO_INICIAL: RolXModuloItem[] = [
-  // ==========================================
-  // PERMISOS ROL 1: ADMINISTRADOR (rolxmodulo)
-  // ==========================================
-  {
-    id: 1,
-    rol: 'ADMIN',
-    titulo: 'Reportes y Analítica',
-    ruta: '/admin/reportes',
-    icono: '📊',
-    orden: 1,
-    estado: 'Activo'
-  },
-  {
-    id: 2,
-    rol: 'ADMIN',
-    titulo: 'Gestión de Usuarios',
-    ruta: '/admin/usuarios',
-    icono: '👥',
-    orden: 2,
-    estado: 'Activo'
-  },
-  {
-    id: 3,
-    rol: 'ADMIN',
-    titulo: 'Reasignar Consultas',
-    ruta: '/admin/consultas',
-    icono: '🔄',
-    orden: 3,
-    estado: 'Activo'
-  },
-  {
-    id: 4,
-    rol: 'ADMIN',
-    titulo: 'Cursos y Roles',
-    ruta: '/admin/cursos-roles',
-    icono: '🎓',
-    orden: 4,
-    estado: 'Activo'
-  },
-  {
-    id: 5,
-    rol: 'ADMIN',
-    titulo: 'Gestión de Sedes',
-    ruta: '/admin/sedes',
-    icono: '🏢',
-    orden: 5,
-    estado: 'Activo'
-  },
-  {
-    id: 6,
-    rol: 'ADMIN',
-    titulo: 'Salones de Sedes',
-    ruta: '/admin/salones',
-    icono: '🏫',
-    orden: 6,
-    estado: 'Activo'
-  },
-
-  // ==========================================
-  // PERMISOS ROL 2: DOCENTE (rolxmodulo)
-  // ==========================================
-  {
-    id: 7,
-    rol: 'DOCENTE',
-    titulo: 'Bandeja Asignadas',
-    ruta: '/docente/asignadas',
-    icono: '📥',
-    orden: 1,
-    estado: 'Activo'
-  },
-  {
-    id: 8,
-    rol: 'DOCENTE',
-    titulo: 'Atención de Consulta',
-    ruta: '/docente/atencion',
-    icono: '✏️',
-    orden: 2,
-    estado: 'Activo'
-  },
-  {
-    id: 9,
-    rol: 'DOCENTE',
-    titulo: 'Historial de Tutorías',
-    ruta: '/docente/historial',
-    icono: '📚',
-    orden: 3,
-    estado: 'Activo'
-  },
-
-  // ==========================================
-  // PERMISOS ROL 3: ESTUDIANTE (rolxmodulo)
-  // ==========================================
-  {
-    id: 10,
-    rol: 'ESTUDIANTE',
-    titulo: 'Mis Solicitudes',
-    ruta: '/estudiante/mis-solicitudes',
-    icono: '📋',
-    orden: 1,
-    estado: 'Activo'
-  },
-  {
-    id: 11,
-    rol: 'ESTUDIANTE',
-    titulo: 'Crear Consulta',
-    ruta: '/estudiante/crear',
-    icono: '➕',
-    orden: 2,
-    estado: 'Activo'
-  },
-  {
-    id: 12,
-    rol: 'ESTUDIANTE',
-    titulo: 'Detalle e Interacción',
-    ruta: '/estudiante/detalle',
-    icono: '💬',
-    orden: 3,
-    estado: 'Activo'
-  },
-  {
-    id: 13,
-    rol: 'ESTUDIANTE',
-    titulo: 'Directorio de Tutorías',
-    ruta: '/estudiante/directorio-tutorias',
-    icono: '📖',
-    orden: 4,
-    estado: 'Activo'
-  }
-];
+const STORAGE_KEY_MODULOS_DB = 'iub_modulos_rol_db';
 
 @Injectable({
   providedIn: 'root'
@@ -166,22 +35,188 @@ export class Auth {
   private apiPrincipal = inject(ApiPrincipal, { optional: true });
   private espaciosService = inject(EspaciosAux, { optional: true });
 
-  // Tabla simulada rolxmodulo sincronizada con localStorage
-  tablaRolXModulo = signal<RolXModuloItem[]>(this.cargarRolXModulo());
-
   rolActivo = signal<RolUsuario>(this.obtenerRolInicial());
   correoActivo = signal<string>(this.obtenerCorreoInicial());
+  nombreActivo = signal<string>(this.obtenerNombreInicial());
+  identificacionActiva = signal<string>(this.obtenerIdentificacionInicial());
+  usuarioIdActivo = signal<number>(this.obtenerUsuarioIdInicial());
   tokenJWT = signal<string | null>(this.obtenerTokenInicial());
 
-  // Módulos cargados dinámicamente desde rolxmodulo según el rol activo
+  /**
+   * Módulos activos del rol cargados desde la tabla modulo_x_rol (rolxmodulo) de PostgreSQL
+   * a través de POST /auth/login y GET /auth/me.
+   */
+  modulosDesdeBD = signal<ModuloInfoApi[]>(this.obtenerModulosBDIniciales());
+
+  tablaRolXModulo = computed<RolXModuloItem[]>(() =>
+    this.construirMenuDesdeBD(this.rolActivo(), this.modulosDesdeBD())
+  );
+
   modulosDelRolActivo = computed(() =>
     this.obtenerModulosPorRol(this.rolActivo())
   );
 
+  constructor() {
+    const tokenActual = this.tokenJWT();
+    const rutaActual = typeof window !== 'undefined' ? window.location.pathname : '';
+    const esRutaPublica =
+      rutaActual.startsWith('/login') ||
+      rutaActual.startsWith('/registro') ||
+      rutaActual.startsWith('/principal');
+
+    if (tokenActual && this.esTokenValido(tokenActual) && !esRutaPublica) {
+      this.sincronizarPerfilActual();
+      this.dataService.sincronizarDesdeBackend();
+      this.espaciosService?.sincronizarDesdeBackend();
+    }
+  }
+
+  /**
+   * Convierte únicamente los registros de la tabla modulo_x_rol (devueltos por el backend)
+   * en los ítems de navegación del rol autenticado.
+   */
+  private construirMenuDesdeBD(rol: RolUsuario, modulosRemotos: ModuloInfoApi[]): RolXModuloItem[] {
+    const lista = modulosRemotos || [];
+    const items: RolXModuloItem[] = [];
+    const rutasAgregadas = new Set<string>();
+
+    const agregarItem = (titulo: string, ruta: string, icono: string, orden: number) => {
+      if (rutasAgregadas.has(ruta)) return;
+      rutasAgregadas.add(ruta);
+      items.push({
+        id: items.length + 1,
+        rol,
+        titulo,
+        ruta,
+        icono,
+        orden,
+        estado: 'Activo'
+      });
+    };
+
+    const codigosActivos = new Set(lista.map((m) => (m.nombre || '').toUpperCase().trim()));
+    const rutasActivas = new Set(lista.map((m) => (m.ruta || '').toLowerCase().trim()));
+
+    if (rol === 'ADMIN') {
+      if (codigosActivos.has('DASHBOARD') || rutasActivas.has('/dashboard') || rutasActivas.has('/admin/reportes')) {
+        agregarItem('Reportes y Analítica', '/admin/reportes', '📊', 1);
+      }
+      if (codigosActivos.has('USUARIOS') || rutasActivas.has('/usuarios') || rutasActivas.has('/admin/usuarios')) {
+        agregarItem('Gestión de Usuarios', '/admin/usuarios', '👥', 2);
+      }
+      if (codigosActivos.has('GESTION_SOLICITUDES') || rutasActivas.has('/solicitudes') || rutasActivas.has('/admin/consultas')) {
+        agregarItem('Reasignar Consultas', '/admin/consultas', '🔄', 3);
+      }
+      if (
+        codigosActivos.has('ROLES_PERMISOS') ||
+        codigosActivos.has('ASIGNACION_DOCENTES') ||
+        rutasActivas.has('/roles-permisos') ||
+        rutasActivas.has('/asignacion-docentes') ||
+        rutasActivas.has('/admin/cursos-roles')
+      ) {
+        agregarItem('Cursos y Roles', '/admin/cursos-roles', '🎓', 4);
+      }
+      if (codigosActivos.has('PROGRAMAS_ASIGNATURAS') || rutasActivas.has('/programas-asignaturas') || rutasActivas.has('/admin/programas')) {
+        agregarItem('Programas Académicos', '/admin/programas', '🎓', 5);
+      }
+      if (codigosActivos.has('INFRAESTRUCTURA') || rutasActivas.has('/infraestructura') || rutasActivas.has('/admin/sedes')) {
+        agregarItem('Gestión de Sedes', '/admin/sedes', '🏢', 6);
+        agregarItem('Salones de Sedes', '/admin/salones', '🏫', 7);
+      }
+    } else if (rol === 'DOCENTE') {
+      if (
+        codigosActivos.has('ATENCION_SOLICITUDES') ||
+        codigosActivos.has('DASHBOARD') ||
+        rutasActivas.has('/atender-solicitudes') ||
+        rutasActivas.has('/docente/asignadas')
+      ) {
+        agregarItem('Bandeja Asignadas', '/docente/asignadas', '📥', 1);
+        agregarItem('Atención de Consulta', '/docente/atencion', '✏️', 2);
+      }
+      if (codigosActivos.has('CALIFICACIONES') || rutasActivas.has('/calificaciones') || rutasActivas.has('/docente/historial')) {
+        agregarItem('Historial de Tutorías', '/docente/historial', '📚', 3);
+      }
+      if (codigosActivos.has('DISPONIBILIDAD_DOCENTE') || rutasActivas.has('/disponibilidad-docente') || rutasActivas.has('/docente/disponibilidad')) {
+        agregarItem('Mi Disponibilidad', '/docente/disponibilidad', '🕒', 4);
+      }
+    } else if (rol === 'ESTUDIANTE') {
+      if (
+        codigosActivos.has('MIS_SOLICITUDES') ||
+        codigosActivos.has('DASHBOARD') ||
+        rutasActivas.has('/mis-solicitudes') ||
+        rutasActivas.has('/estudiante/mis-solicitudes')
+      ) {
+        agregarItem('Mis Solicitudes', '/estudiante/mis-solicitudes', '📋', 1);
+        agregarItem('Crear Consulta', '/estudiante/crear', '➕', 2);
+      }
+      if (
+        codigosActivos.has('CALIFICACIONES') ||
+        codigosActivos.has('NOTIFICACIONES') ||
+        rutasActivas.has('/calificaciones') ||
+        rutasActivas.has('/estudiante/detalle')
+      ) {
+        agregarItem('Detalle e Interacción', '/estudiante/detalle', '💬', 3);
+      }
+      if (codigosActivos.has('PERFIL') || rutasActivas.has('/perfil') || rutasActivas.has('/estudiante/directorio-tutorias')) {
+        agregarItem('Directorio de Tutorías', '/estudiante/directorio-tutorias', '📖', 4);
+      }
+    }
+
+    // Incluir cualquier módulo personalizado creado en modulos_sistema con ruta directa del rol
+    const prefijoRol = rol === 'ADMIN' ? '/admin/' : rol === 'DOCENTE' ? '/docente/' : '/estudiante/';
+    for (const m of lista) {
+      const rutaLimpia = (m.ruta || '').trim();
+      if (rutaLimpia.startsWith(prefijoRol) && !rutasAgregadas.has(rutaLimpia)) {
+        agregarItem(m.nombre, rutaLimpia, m.icono || '📌', items.length + 1);
+      }
+    }
+
+    return items.sort((a, b) => a.orden - b.orden);
+  }
+
+  /**
+   * Verifica que exista un JWT con estructura válida en sesión.
+   * No usa Date.now() local para no invalidar sesiones cuando la fecha del sistema
+   * operativo del equipo difiere del reloj UTC del servidor en Render.
+   */
+  esTokenValido(token?: string | null): boolean {
+    const tk = token ?? this.tokenJWT();
+    if (!tk) return false;
+    return tk.split('.').length === 3;
+  }
+
+  sincronizarPerfilActual(): void {
+    if (!this.apiPrincipal || !this.apiPrincipal.baseUrl || !this.esTokenValido()) return;
+    this.apiPrincipal.miPerfil().subscribe({
+      next: (perfil: MeResponseApi) => {
+        const rolNormalizado: RolUsuario =
+          perfil.rol === 'ADMINISTRADOR' ? 'ADMIN' : (perfil.rol as RolUsuario);
+        this.rolActivo.set(rolNormalizado);
+        this.correoActivo.set(perfil.correo || '');
+        this.nombreActivo.set(perfil.nombre || '');
+        this.identificacionActiva.set(perfil.identificacion || '');
+        this.usuarioIdActivo.set(perfil.id);
+        this.modulosDesdeBD.set(perfil.modulos || []);
+
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('rolActivo', rolNormalizado);
+          localStorage.setItem('correoActivo', perfil.correo || '');
+          localStorage.setItem('nombreUsuarioActivo', perfil.nombre || '');
+          localStorage.setItem('identificacionUsuarioActivo', perfil.identificacion || '');
+          localStorage.setItem('idUsuarioActivo', String(perfil.id));
+          localStorage.setItem(STORAGE_KEY_MODULOS_DB, JSON.stringify(perfil.modulos || []));
+        }
+      },
+      error: (err) => {
+        if (err?.status === 401) {
+          this.cerrarSesion();
+        }
+      }
+    });
+  }
+
   obtenerModulosPorRol(rol: RolUsuario): RolXModuloItem[] {
-    return this.tablaRolXModulo()
-      .filter(m => m.rol === rol && m.estado === 'Activo')
-      .sort((a, b) => a.orden - b.orden);
+    return this.construirMenuDesdeBD(rol, this.modulosDesdeBD());
   }
 
   obtenerRutaInicialPorRol(rol: RolUsuario): string {
@@ -194,105 +229,27 @@ export class Auth {
     return '/estudiante/mis-solicitudes';
   }
 
-  autenticar(
-    correo: string,
-    password: string,
-    rolSeleccionado: RolUsuario
-  ): { exito: boolean; mensaje: string; rutaRedireccion?: string; sesion?: SesionJWT } {
-    const correoLimpio = correo.trim().toLowerCase();
-
-    if (!correoLimpio || !password) {
-      return {
-        exito: false,
-        mensaje: 'Por favor ingresa tu correo institucional y contraseña.'
-      };
-    }
-
-    // Buscar en la tabla de usuarios de Data (incluye los creados o editados por el Admin)
-    const usuarios = this.dataService.usuarios();
-    const usuario = usuarios.find(u => u.email.toLowerCase() === correoLimpio);
-
-    if (!usuario) {
-      return {
-        exito: false,
-        mensaje: 'El correo ingresado no se encuentra registrado en el sistema.'
-      };
-    }
-
-    if (usuario.estado !== 'Activo') {
-      return {
-        exito: false,
-        mensaje: `La cuenta de ${usuario.nombre} se encuentra Inactiva. Contacta al Administrador.`
-      };
-    }
-
-    if (usuario.rol !== rolSeleccionado) {
-      return {
-        exito: false,
-        mensaje: `El correo ingresado pertenece al rol ${usuario.rol}, no al rol ${rolSeleccionado}.`
-      };
-    }
-
-    // Validación de contraseña (por defecto 12345678 para usuarios institucionales)
-    if (password !== '12345678') {
-      return {
-        exito: false,
-        mensaje: 'Contraseña incorrecta. Verifica e intenta nuevamente.'
-      };
-    }
-
-    // Consultar módulos asignados en rolxmodulo para este rol
-    const modulosPermitidos = this.obtenerModulosPorRol(usuario.rol);
-    const expiraEn = Date.now() + 8 * 60 * 60 * 1000; // 8 horas
-    const token = this.generarTokenJWT({
-      sub: usuario.email,
-      nombre: usuario.nombre,
-      rol: usuario.rol,
-      modulos: modulosPermitidos.map(m => m.ruta),
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(expiraEn / 1000)
-    });
-
-    this.rolActivo.set(usuario.rol);
-    this.correoActivo.set(usuario.email);
-    this.tokenJWT.set(token);
-
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('rolActivo', usuario.rol);
-      localStorage.setItem('correoActivo', usuario.email);
-      localStorage.setItem('nombreUsuarioActivo', usuario.nombre);
-      localStorage.setItem(STORAGE_KEY_TOKEN, token);
-    }
-
-    const rutaRedireccion = this.obtenerRutaInicialPorRol(usuario.rol);
-
-    return {
-      exito: true,
-      mensaje: 'Autenticación exitosa.',
-      rutaRedireccion,
-      sesion: {
-        token,
-        usuario,
-        rol: usuario.rol,
-        modulosPermitidos,
-        expiraEn
-      }
-    };
-  }
-
   /**
-   * Autentica contra el endpoint real POST /auth/login de la API principal en Render
-   * (https://sistemaconsultas-api.onrender.com/auth/login) y sincroniza todos los catálogos.
-   * Si el usuario corresponde a las credenciales locales o el servidor está iniciando,
-   * hace fallback transparente a `autenticar()` local.
+   * Autentica contra el endpoint POST /auth/login de la API configurada en environment.ts
+   * y sincroniza todos los catálogos desde el backend.
    */
   autenticarConApi(
     correo: string,
     password: string,
-    rolSeleccionado: RolUsuario
+    _rolSeleccionado?: RolUsuario
   ): Observable<{ exito: boolean; mensaje: string; rutaRedireccion?: string; sesion?: SesionJWT }> {
-    if (!this.apiPrincipal) {
-      return of(this.autenticar(correo, password, rolSeleccionado));
+    if (!correo.trim() || !password) {
+      return of({
+        exito: false,
+        mensaje: 'Por favor ingresa tu correo institucional y contraseña.'
+      });
+    }
+
+    if (!this.apiPrincipal || !this.apiPrincipal.baseUrl) {
+      return of({
+        exito: false,
+        mensaje: 'La URL de la API aún no está configurada en src/environments/environment.ts.'
+      });
     }
 
     return this.apiPrincipal.login({ correo: correo.trim(), password }).pipe(
@@ -308,23 +265,35 @@ export class Auth {
           email: res.correo,
           rol: rolNormalizado,
           estado: 'Activo',
-          programa: 'Ingeniería de Sistemas'
+          programa: ''
         };
 
         this.rolActivo.set(rolNormalizado);
         this.correoActivo.set(res.correo);
+        this.nombreActivo.set(res.nombre);
+        this.usuarioIdActivo.set(res.id_usuario);
         this.tokenJWT.set(res.token);
+        this.modulosDesdeBD.set(res.modulos || []);
 
         if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('iub_consultas_api_cache');
+          localStorage.removeItem('iub_consulta_activa_id');
           localStorage.setItem('rolActivo', rolNormalizado);
           localStorage.setItem('correoActivo', res.correo);
           localStorage.setItem('nombreUsuarioActivo', res.nombre);
+          localStorage.setItem('idUsuarioActivo', String(res.id_usuario));
           localStorage.setItem(STORAGE_KEY_TOKEN, res.token);
           localStorage.setItem('token', res.token);
           localStorage.setItem('id_usuario', String(res.id_usuario));
+          localStorage.setItem(STORAGE_KEY_MODULOS_DB, JSON.stringify(res.modulos || []));
         }
 
-        // Sincronizar datos desde el backend PostgreSQL una vez guardado el Bearer token
+        // Limpiar lista previa antes de sincronizar los registros reales del nuevo perfil desde PostgreSQL
+        this.dataService.consultas.set([]);
+        this.dataService.consultaActivaId.set(0);
+
+        // Completar datos de perfil (/auth/me) como identificación y sincronizar catálogos
+        this.sincronizarPerfilActual();
         this.dataService.sincronizarDesdeBackend();
         this.espaciosService?.sincronizarDesdeBackend();
 
@@ -333,7 +302,7 @@ export class Auth {
 
         return {
           exito: true,
-          mensaje: 'Autenticación exitosa con API Principal.',
+          mensaje: 'Autenticación exitosa.',
           rutaRedireccion,
           sesion: {
             token: res.token,
@@ -344,9 +313,15 @@ export class Auth {
           }
         };
       }),
-      catchError(() => {
-        // Fallback al validador institucional local
-        return of(this.autenticar(correo, password, rolSeleccionado));
+      catchError((err) => {
+        const detalle =
+          err?.error?.detail ||
+          err?.error?.message ||
+          'No se pudo iniciar sesión. Verifica tus credenciales o la conexión con el backend.';
+        return of({
+          exito: false,
+          mensaje: detalle
+        });
       })
     );
   }
@@ -358,6 +333,9 @@ export class Auth {
     }
 
     const modulos = this.obtenerModulosPorRol(rolActual);
+    if (modulos.length === 0) {
+      return true;
+    }
     const rutaLimpia = url.split('?')[0];
     return modulos.some(m => rutaLimpia.startsWith(m.ruta));
   }
@@ -374,46 +352,25 @@ export class Auth {
 
   cerrarSesion(): void {
     this.tokenJWT.set(null);
+    this.nombreActivo.set('');
+    this.correoActivo.set('');
+    this.identificacionActiva.set('');
+    this.usuarioIdActivo.set(0);
+    this.modulosDesdeBD.set([]);
+    this.dataService.consultas.set([]);
+    this.dataService.consultaActivaId.set(0);
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('rolActivo');
       localStorage.removeItem('correoActivo');
       localStorage.removeItem('nombreUsuarioActivo');
       localStorage.removeItem('token');
       localStorage.removeItem('id_usuario');
+      localStorage.removeItem('identificacionUsuarioActivo');
+      localStorage.removeItem('idUsuarioActivo');
+      localStorage.removeItem('iub_consultas_api_cache');
+      localStorage.removeItem('iub_consulta_activa_id');
       localStorage.removeItem(STORAGE_KEY_TOKEN);
-    }
-  }
-
-  private generarTokenJWT(payload: Record<string, unknown>): string {
-    const header = { alg: 'HS256', typ: 'JWT' };
-    const encode = (obj: Record<string, unknown>) => {
-      try {
-        return btoa(unescape(encodeURIComponent(JSON.stringify(obj))))
-          .replace(/\+/g, '-')
-          .replace(/\//g, '_')
-          .replace(/=+$/, '');
-      } catch {
-        return 'eyJhbGciOiJIUzI1NiJ9';
-      }
-    };
-    const firmaSimulada = 'iub_signature_2026_verified';
-    return `${encode(header)}.${encode(payload)}.${firmaSimulada}`;
-  }
-
-  private cargarRolXModulo(): RolXModuloItem[] {
-    try {
-      if (typeof localStorage === 'undefined') return TABLA_ROL_X_MODULO_INICIAL;
-      const guardado = localStorage.getItem(STORAGE_KEY_ROLXMODULO);
-      if (!guardado) {
-        localStorage.setItem(
-          STORAGE_KEY_ROLXMODULO,
-          JSON.stringify(TABLA_ROL_X_MODULO_INICIAL)
-        );
-        return TABLA_ROL_X_MODULO_INICIAL;
-      }
-      return JSON.parse(guardado) as RolXModuloItem[];
-    } catch {
-      return TABLA_ROL_X_MODULO_INICIAL;
+      localStorage.removeItem(STORAGE_KEY_MODULOS_DB);
     }
   }
 
@@ -439,12 +396,55 @@ export class Auth {
     }
   }
 
+  private obtenerNombreInicial(): string {
+    try {
+      if (typeof localStorage === 'undefined') return '';
+      return localStorage.getItem('nombreUsuarioActivo') || '';
+    } catch {
+      return '';
+    }
+  }
+
+  private obtenerIdentificacionInicial(): string {
+    try {
+      if (typeof localStorage === 'undefined') return '';
+      return localStorage.getItem('identificacionUsuarioActivo') || '';
+    } catch {
+      return '';
+    }
+  }
+
+  private obtenerUsuarioIdInicial(): number {
+    try {
+      if (typeof localStorage === 'undefined') return 0;
+      return Number(localStorage.getItem('idUsuarioActivo') || 0);
+    } catch {
+      return 0;
+    }
+  }
+
   private obtenerTokenInicial(): string | null {
     try {
       if (typeof localStorage === 'undefined') return null;
-      return localStorage.getItem(STORAGE_KEY_TOKEN);
+      const tk = localStorage.getItem(STORAGE_KEY_TOKEN);
+      if (!tk || tk.split('.').length !== 3) {
+        return null;
+      }
+      return tk;
     } catch {
       return null;
+    }
+  }
+
+  private obtenerModulosBDIniciales(): ModuloInfoApi[] {
+    try {
+      if (typeof localStorage === 'undefined') return [];
+      const raw = localStorage.getItem(STORAGE_KEY_MODULOS_DB);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
     }
   }
 }

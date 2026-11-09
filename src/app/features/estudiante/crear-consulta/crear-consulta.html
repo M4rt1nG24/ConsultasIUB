@@ -2,7 +2,8 @@
     <div class="header-section">
         <span class="badge-tag">Módulo Estudiante</span>
         <h2>Crear Nueva Consulta</h2>
-        <p>Ingresa la información requerida. La solicitud se reflejará automáticamente en la bandeja del docente asignado y coordinación.</p>
+        <p>Selecciona la asignatura, sede, espacio físico y horario. El sistema verifica en tiempo real que el salón
+            seleccionado esté disponible a esa hora.</p>
     </div>
 
     <div class="main-card">
@@ -12,9 +13,9 @@
             <div class="form-row">
                 <div class="input-block flex-1">
                     <label for="asig">Asignatura *</label>
-                    <select id="asig" class="form-control" [(ngModel)]="asignatura" name="asig">
+                    <select id="asig" class="form-control" [(ngModel)]="asignatura" (ngModelChange)="asignaturaSignal.set($event)" name="asig">
                         @for (c of cursosDisponibles(); track c.codigo) {
-                        <option [value]="c.asignatura">{{ c.asignatura }}</option>
+                        <option [value]="c.asignatura">{{ c.asignatura }} ({{ c.docente }})</option>
                         }
                     </select>
                 </div>
@@ -28,50 +29,93 @@
                         }
                     </select>
                 </div>
+
+                <div class="input-block flex-1">
+                    <label for="prio">Prioridad de la Solicitud *</label>
+                    <select id="prio" class="form-control" [(ngModel)]="prioridad" name="prio">
+                        <option value="Media">Media (Estándar)</option>
+                        <option value="Alta">Alta (Urgente / Parcial próximo)</option>
+                        <option value="Baja">Baja (Consulta general)</option>
+                    </select>
+                </div>
             </div>
 
-            <!-- Modalidad y Franja Horaria -->
+            <!-- Modalidad, Fecha y Hora de la Consulta -->
             <div class="form-row">
                 <div class="input-block flex-1">
                     <label for="modalidad">Modalidad Deseada *</label>
-                    <select id="modalidad" class="form-control" [(ngModel)]="modalidad" name="modalidad">
-                        <option value="Presencial (Sede Plaza de la Paz)">Presencial (Sede Plaza de la Paz)</option>
-                        <option value="Virtual (Google Meet / Teams)">Virtual (Google Meet / Teams)</option>
+                    <select id="modalidad" class="form-control" [ngModel]="modalidad()"
+                        (ngModelChange)="modalidad.set($event)" name="modalidad">
+                        <option value="Presencial">Presencial (En Sede IUB)</option>
+                        <option value="Virtual">Virtual (Google Meet / Teams)</option>
                     </select>
                 </div>
 
                 <div class="input-block flex-1">
-                    <label for="franja">Franja Horaria Sugerida *</label>
-                    <select id="franja" class="form-control" [(ngModel)]="franja" name="franja">
-                        <option value="Mañana (08:00 AM - 12:00 PM)">Mañana (08:00 AM - 12:00 PM)</option>
-                        <option value="Tarde (02:00 PM - 06:00 PM)">Tarde (02:00 PM - 06:00 PM)</option>
-                        <option value="Noche (06:00 PM - 09:00 PM)">Noche (06:00 PM - 09:00 PM)</option>
+                    <label for="fecha">Fecha de la Consulta *</label>
+                    <input id="fecha" type="date" class="form-control" [ngModel]="fechaConsulta()"
+                        (ngModelChange)="fechaConsulta.set($event)" name="fecha" required />
+                </div>
+
+                <div class="input-block flex-1">
+                    <label for="hora">Hora de la Consulta *</label>
+                    <select id="hora" class="form-control" [ngModel]="horaConsulta()"
+                        (ngModelChange)="horaConsulta.set($event)" name="hora">
+                        @for (h of horariosDisponibles; track h.valor) {
+                        <option [value]="h.valor">{{ h.etiqueta }}</option>
+                        }
                     </select>
                 </div>
             </div>
+
+            <!-- Selección de Sede y Espacio Disponible (Solo Presencial) -->
+            @if (modalidad() === 'Presencial') {
+            <div class="form-row">
+                <div class="input-block flex-1">
+                    <label for="sede">Sede Institucional *</label>
+                    <select id="sede" class="form-control" [ngModel]="sedeSeleccionada()"
+                        (ngModelChange)="cambiarSede($event)" name="sede">
+                        @for (sede of sedesDisponibles(); track sede.id) {
+                        <option [value]="sede.nombre">{{ sede.nombre }} ({{ sede.ciudad }})</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="input-block flex-1">
+                    <label for="espacio">Espacio / Salón Disponible en la Sede *</label>
+                    <select id="espacio" class="form-control" [ngModel]="espacioSeleccionadoId()"
+                        (ngModelChange)="espacioSeleccionadoId.set(+$event)" name="espacio">
+                        @for (esp of espaciosDeSede(); track esp.id) {
+                        <option [value]="esp.id">
+                            {{ esp.disponibleEnHorario ? '✅ Disponible' : '🚫 Ocupado en esta hora' }} — {{ esp.nombre
+                            }} ({{ esp.bloquePiso }})
+                        </option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- Indicador en tiempo real de disponibilidad del espacio en la fecha/hora seleccionada -->
+            <div style="padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; font-weight: 500;"
+                [style.background]="verificacionDisponibilidad().disponible ? '#ecfdf5' : '#fef2f2'"
+                [style.border]="verificacionDisponibilidad().disponible ? '1px solid #10b981' : '1px solid #ef4444'"
+                [style.color]="verificacionDisponibilidad().disponible ? '#065f46' : '#991b1b'">
+                <span>{{ verificacionDisponibilidad().disponible ? '✅ ' : '⚠️ ' }}{{
+                    verificacionDisponibilidad().mensaje }}</span>
+            </div>
+            }
 
             <!-- Tema o Duda Concreta -->
             <div class="input-block">
                 <label for="tema">Tema o Duda Concreta *</label>
-                <input
-                    id="tema"
-                    type="text"
-                    class="form-control"
-                    [(ngModel)]="tema"
-                    name="tema"
-                    placeholder="Ej. Inquietud sobre el taller de Árboles AVL..."
-                    required />
+                <input id="tema" type="text" class="form-control" [(ngModel)]="tema" name="tema"
+                    placeholder="Ej. Inquietud sobre el taller de Árboles AVL..." required />
             </div>
 
             <!-- Descripción Detallada -->
             <div class="input-block">
                 <label for="desc">Descripción Detallada</label>
-                <textarea
-                    id="desc"
-                    rows="4"
-                    class="form-control"
-                    [(ngModel)]="descripcion"
-                    name="desc"
+                <textarea id="desc" rows="4" class="form-control" [(ngModel)]="descripcion" name="desc"
                     placeholder="Describe detalladamente qué ejercicios o conceptos necesitas reforzar antes de la sesión..."></textarea>
             </div>
 
@@ -85,7 +129,10 @@
             <!-- Acciones -->
             <div class="button-row">
                 <button type="button" class="btn-cancel" (click)="cancelar()">Cancelar</button>
-                <button type="submit" class="btn-submit">Enviar Solicitud</button>
+                <button type="submit" class="btn-submit"
+                    [disabled]="modalidad() === 'Presencial' && !verificacionDisponibilidad().disponible">
+                    Enviar Solicitud
+                </button>
             </div>
 
         </form>
@@ -101,15 +148,18 @@
             <button class="btn-close" type="button" (click)="cerrarModalYVolver()">✕</button>
         </div>
         <div class="modal-body">
-            <p>Tu solicitud de tutoría ha sido registrada en el sistema institucional con el radicado <strong>{{ radicadoGenerado() }}</strong>.</p>
+            <p>Tu solicitud de tutoría ha sido registrada en el sistema institucional con el radicado <strong>{{
+                    radicadoGenerado() }}</strong>.</p>
             <div class="summary-box">
                 <div><strong>Asignatura:</strong> {{ asignatura }}</div>
                 <div><strong>Tutor preferido:</strong> {{ docente }}</div>
-                <div><strong>Modalidad:</strong> {{ modalidad }}</div>
-                <div><strong>Franja:</strong> {{ franja }}</div>
+                <div><strong>Modalidad:</strong> {{ modalidad() }}</div>
+                <div><strong>Lugar / Espacio:</strong> {{ ubicacionConfirmada() }}</div>
+                <div><strong>Fecha y Hora:</strong> {{ fechaConsulta() }} • {{ horaConsulta() }}</div>
                 <div><strong>Tema:</strong> {{ tema }}</div>
             </div>
-            <p class="modal-info-text">La consulta ya está disponible en la bandeja del docente y en el panel de coordinación.</p>
+            <p class="modal-info-text">El espacio ha quedado reservado para tu sesión en ese horario y ya está
+                disponible en la bandeja del docente.</p>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" (click)="crearOtra()">Crear Otra Solicitud</button>
                 <button type="submit" class="btn-submit" (click)="cerrarModalYVolver()">Ver Mis Solicitudes</button>

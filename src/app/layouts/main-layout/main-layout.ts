@@ -2,6 +2,9 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterOutlet, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Auth, RolUsuario, RolXModuloItem } from '../../core/services/auth';
+import { ApiPrincipal } from '../../core/services/api-principal';
+import { Data } from '../../core/services/data';
+import { EspaciosAux } from '../../core/services/espacios-aux';
 import { Footer } from '../../shared/components/footer/footer';
 import { Header } from '../../shared/components/header/header';
 import { Navbar } from '../../shared/components/navbar/navbar';
@@ -32,20 +35,20 @@ interface MensajeIA {
 export class MainLayout {
   private router = inject(Router);
   private authService = inject(Auth);
+  private dataService = inject(Data);
+  private espaciosService = inject(EspaciosAux);
+  private apiPrincipal = inject(ApiPrincipal, { optional: true });
 
   // Rol activo y menú cargado dinámicamente desde la tabla rolxmodulo (Auth)
   rolActual = this.authService.rolActivo;
+  nombreUsuario = this.authService.nombreActivo;
   menuDelRol = this.authService.modulosDelRolActivo;
   busquedaRapida = signal<string>('');
 
   // Estado para el panel de notificaciones
   mostrarNotificaciones = signal<boolean>(false);
 
-  notificaciones = signal<NotificacionItem[]>([
-    { id: 1, mensaje: 'Su consulta #TUT-2026-1045 cambió de estado a: Programada', fecha: 'Hace 10 min', leida: false },
-    { id: 2, mensaje: 'El docente Ing. Carlos Mendoza ha respondido su consulta', fecha: 'Hace 1 hora', leida: false },
-    { id: 3, mensaje: 'Nueva consulta asignada en Estructura de Datos', fecha: 'Ayer', leida: true }
-  ]);
+  notificaciones = signal<NotificacionItem[]>([]);
 
   notificacionesPendientes = computed(() =>
     this.notificaciones().filter(n => !n.leida).length
@@ -64,8 +67,28 @@ export class MainLayout {
 
   constructor() {
     this.actualizarRol();
+    this.authService.sincronizarPerfilActual();
+    this.dataService.sincronizarDesdeBackend();
+    this.espaciosService.sincronizarDesdeBackend();
+    this.cargarNotificaciones();
     this.router.events.subscribe(() => {
       this.actualizarRol();
+    });
+  }
+
+  private cargarNotificaciones(): void {
+    if (!this.apiPrincipal || !this.apiPrincipal.baseUrl || !this.apiPrincipal.tieneTokenActivo()) return;
+    this.apiPrincipal.listarNotificaciones().subscribe({
+      next: (lista) => {
+        const mapeadas: NotificacionItem[] = (lista || []).map((n) => ({
+          id: n.id,
+          mensaje: n.mensaje || n.titulo,
+          fecha: n.fechaCreacion,
+          leida: n.leida
+        }));
+        this.notificaciones.set(mapeadas);
+      },
+      error: () => {}
     });
   }
 
@@ -93,9 +116,15 @@ export class MainLayout {
 
   // Marcar todas como leídas
   marcarTodasLeidas(): void {
+    const noLeidas = this.notificaciones().filter(n => !n.leida);
     this.notificaciones.update(lista =>
       lista.map(item => ({ ...item, leida: true }))
     );
+    if (this.apiPrincipal && this.apiPrincipal.baseUrl) {
+      noLeidas.forEach(n => {
+        this.apiPrincipal?.marcarNotificacionLeida(n.id).subscribe({ error: () => {} });
+      });
+    }
   }
 
   // Cierre de sesión de usuarios limpiando JWT y estado de Auth

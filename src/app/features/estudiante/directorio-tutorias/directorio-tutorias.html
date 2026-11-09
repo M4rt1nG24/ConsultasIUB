@@ -111,26 +111,81 @@
                 <div class="form-row">
                     <div class="form-group flex-1">
                         <label>Fecha Propuesta *</label>
-                        <input type="date" class="form-control" [(ngModel)]="fechaCita" name="fecha" required>
+                        <input
+                            type="date"
+                            class="form-control"
+                            [ngModel]="fechaCita()"
+                            (ngModelChange)="fechaCita.set($event)"
+                            name="fecha"
+                            required>
                     </div>
                     <div class="form-group flex-1">
-                        <label>Franja Horaria *</label>
-                        <select class="form-control" [(ngModel)]="franjaCita" name="franja">
-                            <option value="Mañana (08:00 AM - 10:00 AM)">Mañana (08:00 AM - 10:00 AM)</option>
-                            <option value="Mañana (10:00 AM - 12:00 PM)">Mañana (10:00 AM - 12:00 PM)</option>
-                            <option value="Tarde (02:00 PM - 04:00 PM)">Tarde (02:00 PM - 04:00 PM)</option>
-                            <option value="Tarde (04:00 PM - 06:00 PM)">Tarde (04:00 PM - 06:00 PM)</option>
+                        <label>Hora de Atención *</label>
+                        <select
+                            class="form-control"
+                            [ngModel]="horaCita()"
+                            (ngModelChange)="horaCita.set($event)"
+                            name="hora">
+                            @for (h of horasDisponibles; track h.valor) {
+                            <option [value]="h.valor">{{ h.etiqueta }}</option>
+                            }
                         </select>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Modalidad de Atención *</label>
-                    <select class="form-control" [(ngModel)]="modalidadCita" name="modalidad">
-                        <option value="Presencial">Presencial (Sede Plaza de la Paz)</option>
-                        <option value="Virtual">Virtual (Google Meet institucional)</option>
+                    <select
+                        class="form-control"
+                        [ngModel]="modalidadCita()"
+                        (ngModelChange)="modalidadCita.set($event)"
+                        name="modalidad">
+                        <option value="Presencial">Presencial (En Sede / Salón disponible)</option>
+                        <option value="Virtual">Virtual (Google Meet / Microsoft Teams)</option>
                     </select>
                 </div>
+
+                @if (modalidadCita() === 'Presencial') {
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label>Sede Institucional *</label>
+                        <select
+                            class="form-control"
+                            [ngModel]="sedeCita()"
+                            (ngModelChange)="alCambiarSedeCita($event)"
+                            name="sedeCita">
+                            @for (sede of sedesDisponibles(); track sede.id) {
+                            <option [value]="sede.nombre">{{ sede.nombre }}</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>Espacio / Salón de la Sede *</label>
+                        <select
+                            class="form-control"
+                            [ngModel]="espacioCitaId()"
+                            (ngModelChange)="espacioCitaId.set(+$event)"
+                            name="espacioCitaId">
+                            @for (espacio of espaciosDeLaSedeCita(); track espacio.id) {
+                            <option [value]="espacio.id">
+                                {{ estaEspacioDisponibleEnHora(espacio) ? '✅' : '🚫' }}
+                                {{ espacio.nombre }} - {{ espacio.bloquePiso }} ({{ estaEspacioDisponibleEnHora(espacio) ? 'Disponible' : 'Ocupado' }})
+                            </option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                @if (verificacionDisponibilidadCita(); as verif) {
+                <div style="margin-bottom: 14px; padding: 10px 12px; border-radius: 8px; font-size: 13px; border: 1px solid;"
+                     [style.background]="verif.disponible ? '#ecfdf5' : '#fef2f2'"
+                     [style.border-color]="verif.disponible ? '#10b981' : '#ef4444'"
+                     [style.color]="verif.disponible ? '#065f46' : '#991b1b'">
+                    <strong>{{ verif.disponible ? '✅ Espacio disponible:' : '🚫 Espacio ocupado:' }}</strong>
+                    {{ verif.mensaje }}
+                </div>
+                }
+                }
 
                 <div class="form-group">
                     <label>Tema o Asunto a Consultar *</label>
@@ -145,7 +200,12 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" (click)="cerrarModalCita()">Cancelar</button>
-                    <button type="submit" class="btn-primary">Confirmar Solicitud de Cita</button>
+                    <button
+                        type="submit"
+                        class="btn-primary"
+                        [disabled]="modalidadCita() === 'Presencial' && verificacionDisponibilidadCita() && !verificacionDisponibilidadCita()!.disponible">
+                        Confirmar Solicitud de Cita
+                    </button>
                 </div>
             </form>
         </div>

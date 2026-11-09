@@ -14,10 +14,12 @@ import { DataTableDirective } from '../../../shared/directives/datatable.directi
 })
 export class GestionUsuarios {
   private dataService = inject(Data);
-  private apiPrincipal = inject(ApiPrincipal, { optional: true });
+  private api = inject(ApiPrincipal, { optional: true });
 
   // Lista reactiva de usuarios compartida con todo el sistema
   usuarios = this.dataService.usuarios;
+  programas = this.dataService.programas;
+  tiposDocumento = this.dataService.tiposDocumento;
 
   // Filtros reactivos
   filtroTexto = signal<string>('');
@@ -28,15 +30,12 @@ export class GestionUsuarios {
     const rol = this.filtroRol();
 
     return this.usuarios().filter(u => {
-      const ident = (u.identificacion || '').toLowerCase();
-      const tipoIdent = (u.tipoIdentificacion || 'CC').toLowerCase();
       const coincideTexto =
         !texto ||
         u.nombre.toLowerCase().includes(texto) ||
         u.email.toLowerCase().includes(texto) ||
         u.programa.toLowerCase().includes(texto) ||
-        ident.includes(texto) ||
-        tipoIdent.includes(texto);
+        (u.identificacion || '').toLowerCase().includes(texto);
 
       const coincideRol = !rol || u.rol === rol;
 
@@ -50,38 +49,53 @@ export class GestionUsuarios {
   mensajeFeedback = signal<string | null>(null);
 
   // Modelo de formulario temporal
-  formData: UsuarioSistema = {
+  formData: UsuarioSistema & { passwordInicial?: string } = {
     id: 0,
-    tipoIdentificacion: 'CC',
     identificacion: '',
+    tipoDocumentoId: null,
     nombre: '',
+    nombreSolo: '',
+    apellido: '',
     email: '',
     rol: 'ESTUDIANTE',
     estado: 'Activo',
-    programa: 'Ingeniería de Sistemas'
+    programaId: null,
+    programa: '',
+    passwordInicial: 'ClaveIub#2026!'
   };
 
   abrirModalCrear(): void {
     this.modoModal.set('crear');
+    const primerTipoDoc = this.tiposDocumento()[0]?.id ?? null;
+    const primerPrograma = this.programas()[0]?.id ?? null;
     this.formData = {
       id: Date.now(),
-      tipoIdentificacion: 'CC',
       identificacion: '',
+      tipoDocumentoId: primerTipoDoc,
       nombre: '',
+      nombreSolo: '',
+      apellido: '',
       email: '',
       rol: 'ESTUDIANTE',
       estado: 'Activo',
-      programa: 'Ingeniería de Sistemas'
+      programaId: primerPrograma,
+      programa: this.programas()[0]?.nombre || '',
+      passwordInicial: 'ClaveIub#2026!'
     };
     this.modalAbierto.set(true);
   }
 
   abrirModalEditar(usuario: UsuarioSistema): void {
     this.modoModal.set('editar');
+    const partes = (usuario.nombre || '').trim().split(/\s+/);
     this.formData = {
       ...usuario,
-      tipoIdentificacion: usuario.tipoIdentificacion || 'CC',
-      identificacion: usuario.identificacion || ''
+      identificacion: usuario.identificacion || '',
+      nombreSolo: usuario.nombreSolo || partes[0] || '',
+      apellido: usuario.apellido || partes.slice(1).join(' ') || 'Institucional',
+      tipoDocumentoId: usuario.tipoDocumentoId ?? (this.tiposDocumento()[0]?.id ?? null),
+      programaId: usuario.programaId ?? null,
+      passwordInicial: ''
     };
     this.modalAbierto.set(true);
   }
@@ -91,81 +105,102 @@ export class GestionUsuarios {
   }
 
   guardarUsuario(): void {
-    if (
-      !this.formData.nombre.trim() ||
-      !this.formData.email.trim() ||
-      !String(this.formData.identificacion || '').trim()
-    ) {
-      alert(
-        'Por favor complete los campos obligatorios (Tipo de Identificación, Número de Identificación, Nombre y Correo).'
-      );
+    let nombre = (this.formData.nombreSolo || '').trim();
+    let apellido = (this.formData.apellido || '').trim();
+
+    if (!nombre && this.formData.nombre.trim()) {
+      const partes = this.formData.nombre.trim().split(/\s+/);
+      nombre = partes[0] || '';
+      apellido = apellido || partes.slice(1).join(' ') || 'IUB';
+    }
+
+    if (!nombre || !apellido || !this.formData.email.trim()) {
+      alert('Por favor complete Nombres, Apellidos y Correo Institucional.');
       return;
     }
 
-    const payload: UsuarioSistema = {
-      ...this.formData,
-      tipoIdentificacion: this.formData.tipoIdentificacion || 'CC',
-      identificacion: String(this.formData.identificacion).trim(),
-      nombre: this.formData.nombre.trim(),
-      email: this.formData.email.trim()
-    };
+    const identificacion = (this.formData.identificacion || '').trim() || String(Date.now()).slice(-10);
+    const rolApi: RolApi =
+      this.formData.rol === 'ADMIN' ? 'ADMINISTRADOR' : this.formData.rol;
+    const programaId = this.formData.programaId ? Number(this.formData.programaId) : null;
+    const tipoDocumentoId = this.formData.tipoDocumentoId ? Number(this.formData.tipoDocumentoId) : null;
 
     if (this.modoModal() === 'crear') {
-      const idTemp = Date.now();
-      this.usuarios.update(lista => [
-        ...lista,
-        { ...payload, id: idTemp }
-      ]);
-      this.mostrarNotificacion('¡Usuario registrado exitosamente en el sistema!');
+      const password = (this.formData.passwordInicial || 'ClaveIub#2026!').trim();
+      if (password.length < 10) {
+        alert('La contraseña inicial debe tener al menos 10 caracteres, incluir mayúscula, minúscula, número y símbolo.');
+        return;
+      }
 
-      if (this.apiPrincipal && typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
-        const partes = payload.nombre.trim().split(' ');
-        const primerNombre = partes[0] || 'Usuario';
-        const apellido = partes.slice(1).join(' ') || 'IUB';
-        const rolApi: RolApi = payload.rol === 'ADMIN' ? 'ADMINISTRADOR' : payload.rol;
-
-        this.apiPrincipal
+      if (this.api && this.api.baseUrl) {
+        this.api
           .crearUsuario({
-            identificacion: payload.identificacion,
-            nombre: primerNombre,
-            apellido: apellido,
-            correo: payload.email,
-            password: 'Password123#IUB',
+            identificacion,
+            nombre,
+            apellido,
+            correo: this.formData.email.trim().toLowerCase(),
+            password,
             rol: rolApi,
-            tipoDocumentoId: payload.tipoIdentificacion === 'TI' ? 2 : 1
+            programaId,
+            tipoDocumentoId
           })
           .subscribe({
-            next: (uRemoto) => {
-              this.usuarios.update(lista =>
-                lista.map(u => (u.id === idTemp ? { ...u, id: uRemoto.id } : u))
-              );
+            next: (creado) => {
+              if (rolApi === 'DOCENTE' && creado?.id) {
+                this.dataService.asegurarDisponibilidadDocente(creado.id);
+              }
+              this.dataService.sincronizarDesdeBackend();
+              this.cerrarModal();
+              this.mostrarNotificacion('¡Usuario registrado exitosamente en la base de datos!');
             },
-            error: () => {}
+            error: (err) => {
+              alert(this.api!.extraerMensajeError(err, 'No se pudo registrar el usuario en la base de datos.'));
+            }
           });
+      } else {
+        this.usuarios.update(lista => [
+          ...lista,
+          {
+            ...this.formData,
+            id: Date.now(),
+            nombre: `${nombre} ${apellido}`.trim()
+          }
+        ]);
+        this.cerrarModal();
+        this.mostrarNotificacion('¡Usuario registrado exitosamente en el sistema!');
       }
     } else {
-      this.usuarios.update(lista =>
-        lista.map(u => (u.id === payload.id ? { ...payload } : u))
-      );
-      this.mostrarNotificacion('¡Información del usuario actualizada correctamente!');
-
-      if (this.apiPrincipal && typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
-        const partes = payload.nombre.trim().split(' ');
-        const primerNombre = partes[0] || 'Usuario';
-        const apellido = partes.slice(1).join(' ') || 'IUB';
-
-        this.apiPrincipal
-          .actualizarUsuario(payload.id, {
-            nombre: primerNombre,
-            apellido: apellido,
-            correo: payload.email,
-            tipoDocumentoId: payload.tipoIdentificacion === 'TI' ? 2 : 1
+      if (this.api && this.api.baseUrl) {
+        this.api
+          .actualizarUsuario(this.formData.id, {
+            nombre,
+            apellido,
+            correo: this.formData.email.trim().toLowerCase(),
+            programaId,
+            tipoDocumentoId
           })
-          .subscribe({ error: () => {} });
+          .subscribe({
+            next: () => {
+              this.dataService.sincronizarDesdeBackend();
+              this.cerrarModal();
+              this.mostrarNotificacion('¡Información del usuario actualizada correctamente!');
+            },
+            error: (err) => {
+              alert(this.api!.extraerMensajeError(err, 'No se pudo actualizar el usuario en la base de datos.'));
+            }
+          });
+      } else {
+        this.usuarios.update(lista =>
+          lista.map(u =>
+            u.id === this.formData.id
+              ? { ...this.formData, nombre: `${nombre} ${apellido}`.trim() }
+              : u
+          )
+        );
+        this.cerrarModal();
+        this.mostrarNotificacion('¡Información del usuario actualizada correctamente!');
       }
     }
-
-    this.cerrarModal();
   }
 
   cambiarEstadoUsuario(usuario: UsuarioSistema): void {
@@ -173,17 +208,24 @@ export class GestionUsuarios {
     this.usuarios.update(lista =>
       lista.map(u => (u.id === usuario.id ? { ...u, estado: nuevoEstado } : u))
     );
+
+    if (this.api && this.api.baseUrl) {
+      if (nuevoEstado === 'Activo') {
+        this.api.activarUsuario(usuario.id).subscribe({
+          next: () => this.dataService.sincronizarDesdeBackend(),
+          error: () => {}
+        });
+      } else {
+        this.api.desactivarUsuario(usuario.id).subscribe({
+          next: () => this.dataService.sincronizarDesdeBackend(),
+          error: () => {}
+        });
+      }
+    }
+
     this.mostrarNotificacion(
       `¡Estado del usuario ${usuario.nombre} cambiado a ${nuevoEstado}!`
     );
-
-    if (this.apiPrincipal && typeof localStorage !== 'undefined' && localStorage.getItem('iub_jwt_token')) {
-      if (nuevoEstado === 'Activo') {
-        this.apiPrincipal.activarUsuario(usuario.id).subscribe({ error: () => {} });
-      } else {
-        this.apiPrincipal.desactivarUsuario(usuario.id).subscribe({ error: () => {} });
-      }
-    }
   }
 
   mostrarNotificacion(msg: string): void {

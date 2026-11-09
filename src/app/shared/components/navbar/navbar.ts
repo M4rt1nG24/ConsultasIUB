@@ -18,6 +18,7 @@ export interface NotifNavbarItem {
 })
 export class Navbar {
   @Input() rol = 'ESTUDIANTE';
+  @Input() nombreUsuario = '';
   @Input() busquedaGlobal = '';
   @Input() notificaciones: NotifNavbarItem[] = [];
   @Input() pendientes = 0;

@@ -38,9 +38,9 @@
     </div>
 
     <div class="user-profile">
-      <div class="avatar">{{ rol.charAt(0) }}</div>
+      <div class="avatar">{{ (nombreUsuario || rol).charAt(0).toUpperCase() }}</div>
       <div class="user-meta">
-        <span class="user-name">Usuario IUB</span>
+        <span class="user-name">{{ nombreUsuario || 'Usuario IUB' }}</span>
         <span class="user-role-badge">{{ rol }}</span>
       </div>
     </div>

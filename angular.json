@@ -25,7 +25,6 @@
               }
             ],
             "styles": [
-              "node_modules/datatables.net-dt/css/dataTables.dataTables.min.css",
               "src/styles.css"
             ]
           },
@@ -55,6 +54,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
           "configurations": {
             "production": {
               "buildTarget": "Consultas-iub:build:production"

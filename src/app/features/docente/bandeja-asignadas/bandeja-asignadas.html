@@ -36,8 +36,9 @@
                         <th>Estudiante</th>
                         <th>Asignatura</th>
                         <th>Tema / Consulta</th>
+                        <th>Sede / Espacio</th>
                         <th>Tutor Asignado</th>
-                        <th>Fecha Radicación</th>
+                        <th>Fecha y Hora</th>
                         <th>Prioridad</th>
                         <th>Estado</th>
                         <th>Acción</th>
@@ -49,10 +50,19 @@
                         <td><strong>{{ item.radicado }}</strong></td>
                         <td>
                             <strong>{{ item.estudiante }}</strong><br>
-                            <small class="text-muted">{{ item.correoEstudiante }}</small>
+                            <small class="text-muted">{{ item.nombrePrograma || item.correoEstudiante }}</small>
                         </td>
                         <td>{{ item.asignatura }}</td>
-                        <td>{{ item.tema }}</td>
+                        <td>
+                            <strong>{{ item.tema }}</strong>
+                            @if (item.descripcion && item.descripcion !== item.tema) {
+                            <br><small class="text-muted">{{ item.descripcion }}</small>
+                            }
+                        </td>
+                        <td>
+                            <span>{{ item.ubicacion }}</span><br>
+                            <small class="text-muted">{{ item.modalidad }}</small>
+                        </td>
                         <td>{{ item.tutor }}</td>
                         <td>{{ item.fecha }}</td>
                         <td><app-priority-badge [prioridad]="item.prioridad"></app-priority-badge></td>
