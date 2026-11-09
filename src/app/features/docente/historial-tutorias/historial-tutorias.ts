@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,7 +11,7 @@ import { DataTableDirective } from '../../../shared/directives/datatable.directi
   styleUrl: './historial-tutorias.css',
   templateUrl: './historial-tutorias.html',
 })
-export class HistorialTutorias {
+export class HistorialTutorias implements OnInit {
   private router = inject(Router);
   private dataService = inject(Data);
 
@@ -21,12 +21,21 @@ export class HistorialTutorias {
   todasLasConsultas = this.dataService.consultas;
   cursosDisponibles = this.dataService.cursos;
 
+  ngOnInit(): void {
+    this.dataService.sincronizarDesdeBackend();
+  }
+
   historialFiltrado = computed(() => {
     const q = this.busqueda().toLowerCase().trim();
     const asig = this.filtroAsignatura();
 
     return this.todasLasConsultas()
-      .filter(item => item.estado === 'Completada' || item.estado === 'Resuelta')
+      .filter(
+        item =>
+          item.estado === 'Completada' ||
+          item.estado === 'Resuelta' ||
+          (item.asistencia === 1 && Boolean(item.retroalimentacionDocente || item.observaciones))
+      )
       .filter(item => {
         const coincideTexto =
           !q ||

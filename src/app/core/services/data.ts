@@ -18,84 +18,49 @@ import {
   TipoDocumentoResponseApi,
   UsuarioResponseApi
 } from './api-principal';
-
-export interface MensajeInteraccion {
-  id?: number;
-  autor: string;
-  rol: 'ESTUDIANTE' | 'DOCENTE' | 'ADMIN';
-  fechaHora: string;
-  mensaje: string;
-  adjuntos?: string[];
-}
-
-export interface ConsultaUnificada {
-  id: number;
-  radicado: string;
-  fechaCreacion?: string;
-  estudianteId?: number;
-  estudiante: string;
-  documento: string;
-  correoEstudiante: string;
-  nombrePrograma?: string;
-  moduloId?: number;
-  asignatura: string;
-  tema: string;
-  descripcion: string;
-  docenteId?: number;
-  identificacionDocente?: string | null;
-  tutor: string;
-  fechaConsulta?: string;
-  horaConsulta?: string;
-  fecha: string;
-  franja: string;
-  modalidad: string;
-  ubicacion: string;
-  recursoFisicoId?: number | null;
-  prioridad: 'Alta' | 'Media' | 'Baja';
-  estado: 'Pendiente' | 'Programada' | 'En proceso' | 'Completada' | 'Resuelta' | 'Cancelada' | 'Inactiva';
-  tipoAtencion: string;
-  observaciones: string;
-  retroalimentacionDocente?: string | null;
-  calificacion?: CalificacionResumenSolicitudApi | null;
-  asistencia: number;
-  folioAuditoria: string;
-  reasignado: boolean;
-  docenteSeleccionado?: string;
-  mensajes: MensajeInteraccion[];
-}
-
-export interface CursoSistema {
-  id: number;
-  asignacionId?: number;
-  codigo: string;
-  asignatura: string;
-  descripcion?: string;
-  docente: string;
-  docenteId?: number;
-  docentesAsignados?: DocenteResumenApi[];
-  estado: 'Activo' | 'Inactivo';
-}
-
-export interface UsuarioSistema {
-  id: number;
-  identificacion?: string;
-  tipoDocumentoId?: number | null;
-  tipoDocumentoSigla?: string | null;
-  nombre: string;
-  nombreSolo?: string;
-  apellido?: string;
-  email: string;
-  rol: 'ADMIN' | 'DOCENTE' | 'ESTUDIANTE';
-  estado: 'Activo' | 'Inactivo';
-  programaId?: number | null;
-  programa: string;
-  fechaCreacion?: string;
-}
-
-const STORAGE_KEY_CONSULTAS = 'iub_consultas_api_cache';
-const STORAGE_KEY_CURSOS = 'iub_cursos_api_cache';
-const STORAGE_KEY_USUARIOS = 'iub_usuarios_api_cache';
-const STORAGE_KEY_CONSULTA_ACTIVA = 'iub_consulta_activa_id';
+export * from '../models/consulta.models';
+import {
+  MensajeInteraccion,
+  EstadoConsultaFront,
+  ConsultaUnificada,
+  CursoSistema,
+  UsuarioSistema
+} from '../models/consulta.models';
+import {
+  extraerMetadatosActaComentario,
+  extraerMetadatosDescripcion,
+  formatearFechaHora,
+  obtenerFranjaDesdeHora,
+  obtenerHoraPorFranja,
+  obtenerFechaFuturaIso,
+  construirEtiquetaMetaConsulta,
+  encontrarSlotBackendParaDocente,
+  mapearUsuarioApiAFront,
+  mapearDocenteApiAFront,
+  mapearModuloApiAFront,
+  mapearSolicitudApiAFront,
+  encontrarDocenteParaConsulta,
+  verificarDisponibilidadEspacioHelper,
+  registrarSolicitudConFallback,
+  asegurarDisponibilidadDocenteHelper
+} from './data-helpers';
+import {
+  guardarUbicacionLocal as storageGuardarUbicacion,
+  obtenerUbicacionLocal as storageObtenerUbicacion,
+  guardarAtencionDocenteLocal as storageGuardarAtencion,
+  obtenerAtencionesDocenteLocales as storageObtenerAtenciones,
+  encolarSolicitudPendienteBD as storageEncolarSolicitud,
+  obtenerSolicitudesPendientesBD as storageObtenerSolicitudes,
+  guardarSolicitudesPendientesBD as storageGuardarSolicitudes,
+  cargarCacheDeStorage,
+  guardarCacheEnStorage,
+  SolicitudPendienteBd,
+  STORAGE_KEY_CONSULTAS,
+  STORAGE_KEY_CURSOS,
+  STORAGE_KEY_USUARIOS,
+  STORAGE_KEY_CONSULTA_ACTIVA,
+  TIPOS_DOC_FALLBACK
+} from './data-storage';
 
 @Injectable({
   providedIn: 'root'
@@ -103,46 +68,19 @@ const STORAGE_KEY_CONSULTA_ACTIVA = 'iub_consulta_activa_id';
 export class Data {
   private readonly api = inject(ApiPrincipal, { optional: true });
 
-  consultas = signal<ConsultaUnificada[]>(this.cargarCache(STORAGE_KEY_CONSULTAS, []));
-  cursos = signal<CursoSistema[]>(this.cargarCache(STORAGE_KEY_CURSOS, []));
-  usuarios = signal<UsuarioSistema[]>(this.cargarCache(STORAGE_KEY_USUARIOS, []));
+  consultas = signal<ConsultaUnificada[]>(cargarCacheDeStorage(STORAGE_KEY_CONSULTAS, []));
+  cursos = signal<CursoSistema[]>(cargarCacheDeStorage(STORAGE_KEY_CURSOS, []));
+  usuarios = signal<UsuarioSistema[]>(cargarCacheDeStorage(STORAGE_KEY_USUARIOS, []));
   programas = signal<ProgAcademicoResponseApi[]>([]);
-  tiposDocumento = signal<TipoDocumentoResponseApi[]>([]);
+  tiposDocumento = signal<TipoDocumentoResponseApi[]>(TIPOS_DOC_FALLBACK);
   periodosAcademicos = signal<PeriodoResponseApi[]>([]);
   disponibilidadesDocentes = signal<DisponibilidadResponseApi[]>([]);
   notificaciones = signal<NotificacionResponseApi[]>([]);
 
   constructor() {
-    effect(() => {
-      const listaConsultas = this.consultas();
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY_CONSULTAS, JSON.stringify(listaConsultas));
-      }
-    });
-    effect(() => {
-      const listaCursos = this.cursos();
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY_CURSOS, JSON.stringify(listaCursos));
-      }
-    });
-    effect(() => {
-      const listaUsuarios = this.usuarios();
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY_USUARIOS, JSON.stringify(listaUsuarios));
-      }
-    });
-  }
-
-  private cargarCache<T>(key: string, fallback: T): T {
-    try {
-      if (typeof localStorage === 'undefined') return fallback;
-      const raw = localStorage.getItem(key);
-      if (!raw) return fallback;
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? (parsed as T) : fallback;
-    } catch {
-      return fallback;
-    }
+    effect(() => guardarCacheEnStorage(STORAGE_KEY_CONSULTAS, this.consultas()));
+    effect(() => guardarCacheEnStorage(STORAGE_KEY_CURSOS, this.cursos()));
+    effect(() => guardarCacheEnStorage(STORAGE_KEY_USUARIOS, this.usuarios()));
   }
 
   /**
@@ -152,47 +90,11 @@ export class Data {
    */
   asegurarDisponibilidadDocente(docenteId: number): void {
     if (!this.api || !this.api.baseUrl || !docenteId) return;
-
     const rolActual =
       typeof localStorage !== 'undefined'
         ? localStorage.getItem('rolActivo') || 'ESTUDIANTE'
         : 'ESTUDIANTE';
-
-    this.api
-      .listarDisponibilidadDocente(docenteId, true)
-      .pipe(catchError(() => of([] as DisponibilidadResponseApi[])))
-      .subscribe((slots) => {
-        const listaSlots = slots || [];
-        if (listaSlots.length === 0) {
-          for (let dia = 1; dia <= 6; dia++) {
-            this.api!
-              .crearDisponibilidadDocente({
-                docenteId,
-                diaSemana: dia,
-                horaInicio: '07:00:00',
-                horaFin: '21:00:00'
-              })
-              .pipe(catchError(() => of(null)))
-              .subscribe();
-          }
-        }
-      });
-
-    if (rolActual === 'ADMIN') {
-      const modulosActuales = this.cursos();
-      for (const curso of modulosActuales) {
-        const yaAsignado = curso.docentesAsignados?.some((d) => d.id === docenteId);
-        if (!yaAsignado && curso.id > 0) {
-          this.api
-            .asignarDocenteModulo({
-              docenteId,
-              moduloId: curso.id
-            })
-            .pipe(catchError(() => of(null)))
-            .subscribe();
-        }
-      }
-    }
+    asegurarDisponibilidadDocenteHelper(this.api, docenteId, this.cursos(), rolActual);
   }
 
   // Consulta activa seleccionada para ver detalle o atender entre vistas
@@ -222,84 +124,23 @@ export class Data {
     this.cargarComentariosDeConsulta(id);
   }
 
-  private extraerMetadatosActaComentario(rawContenido: string): {
-    esActa: boolean;
-    tipoAtencion?: string;
-    tema?: string;
-    asistencia?: number;
-    textoLimpio: string;
-  } {
-    const texto = (rawContenido || '').trim();
-    const match = texto.match(
-      /^\[ActaDocente\s*\|\s*Tipo:([^\]|]+)\|\s*Tema:([^\]|]+)\|\s*Asistencia:([01])\]\s*(.*)$/is
-    );
-    if (!match) {
-      return { esActa: false, textoLimpio: texto };
-    }
-    return {
-      esActa: true,
-      tipoAtencion: match[1].trim(),
-      tema: match[2].trim(),
-      asistencia: Number(match[3]),
-      textoLimpio: match[4].trim() || 'Consulta atendida satisfactoriamente por el docente.'
-    };
-  }
-
-  private extraerMetadatosDescripcion(rawDesc: string): {
-    descripcionLimpia: string;
-    ubicacion: string | null;
-    modalidad: string | null;
-    recursoId: number | null;
-    asignatura: string | null;
-    fechaAgenda: string | null;
-    horaAgenda: string | null;
-  } {
-    let texto = (rawDesc || '').trim();
-    let ubicacion: string | null = null;
-    let modalidad: string | null = null;
-    let recursoId: number | null;
-    recursoId = null;
-    let asignatura: string | null = null;
-    let fechaAgenda: string | null = null;
-    let horaAgenda: string | null = null;
-
-    const matchBloque = texto.match(/^\[((?:Espacio|Modalidad|Asignatura|Agenda):[^\]]+)\]\s*/i);
-    if (matchBloque) {
-      const interior = matchBloque[1];
-      const segmentos = interior.split('|').map((seg) => seg.trim());
-      for (const seg of segmentos) {
-        if (/^Espacio:/i.test(seg)) {
-          ubicacion = seg.replace(/^Espacio:\s*/i, '').trim() || null;
-        } else if (/^Modalidad:/i.test(seg)) {
-          modalidad = seg.replace(/^Modalidad:\s*/i, '').trim() || null;
-        } else if (/^RecursoID:/i.test(seg)) {
-          const idNum = Number(seg.replace(/^RecursoID:\s*/i, '').trim());
-          if (!Number.isNaN(idNum) && idNum > 0) recursoId = idNum;
-        } else if (/^Asignatura:/i.test(seg)) {
-          asignatura = seg.replace(/^Asignatura:\s*/i, '').trim() || null;
-        } else if (/^Agenda:/i.test(seg)) {
-          const valAgenda = seg.replace(/^Agenda:\s*/i, '').trim();
-          const [f, h] = valAgenda.split('_');
-          if (f && /^\d{4}-\d{2}-\d{2}$/.test(f)) fechaAgenda = f;
-          if (h && /^\d{2}:\d{2}/.test(h)) horaAgenda = h.length === 5 ? `${h}:00` : h;
-        }
-      }
-      texto = texto.slice(matchBloque[0].length).trim() || texto;
-    }
-
-    return {
-      descripcionLimpia: texto,
-      ubicacion,
-      modalidad,
-      recursoId,
-      asignatura,
-      fechaAgenda,
-      horaAgenda
-    };
-  }
-
   cargarComentariosDeConsulta(idSolicitud: number): void {
     if (!this.api || !this.api.baseUrl || !idSolicitud) return;
+
+    // Verificar si el usuario actual es participante de esta consulta
+    const consulta = this.consultas().find(c => c.id === idSolicitud);
+    const idUsuarioActivo =
+      typeof localStorage !== 'undefined'
+        ? Number(localStorage.getItem('idUsuarioActivo')) || 0
+        : 0;
+
+    if (consulta && idUsuarioActivo) {
+      const esParticipante =
+        consulta.estudianteId === idUsuarioActivo ||
+        consulta.docenteId === idUsuarioActivo;
+      // En el backend FastAPI, /comentarios/solicitud/{id} rechaza con 400 si el usuario no es participante
+      if (!esParticipante) return;
+    }
 
     this.api.listarComentariosPorSolicitud(idSolicitud).subscribe({
       next: (comentarios: ComentarioResponseApi[]) => {
@@ -327,7 +168,7 @@ export class Data {
                 (c.estudianteId && com.autorId === c.estudianteId) ||
                 com.nombreAutor.toLowerCase() === c.estudiante.toLowerCase();
 
-              const metaActa = this.extraerMetadatosActaComentario(com.contenido);
+              const metaActa = extraerMetadatosActaComentario(com.contenido);
               if (metaActa.esActa) {
                 if (metaActa.tipoAtencion) tipoAtencionDetectado = metaActa.tipoAtencion;
                 if (metaActa.tema) temaDetectado = metaActa.tema;
@@ -338,7 +179,7 @@ export class Data {
                 id: com.id,
                 autor: com.nombreAutor,
                 rol: esDocente ? 'DOCENTE' : esEstudiante ? 'ESTUDIANTE' : 'ADMIN',
-                fechaHora: this.formatearFechaHora(com.fechaCreacion),
+                fechaHora: formatearFechaHora(com.fechaCreacion),
                 mensaje: metaActa.textoLimpio
               };
             });
@@ -364,59 +205,11 @@ export class Data {
     });
   }
 
-  private formatearFechaHora(iso: string): string {
-    if (!iso) return '';
-    return iso.replace('T', ' ').substring(0, 16);
-  }
-
-  private obtenerFranjaDesdeHora(hora: string): string {
-    const h = parseInt((hora || '09:00').split(':')[0], 10);
-    if (h < 12) return 'Mañana (08:00 AM - 12:00 PM)';
-    if (h < 18) return 'Tarde (02:00 PM - 06:00 PM)';
-    return 'Noche (06:00 PM - 09:00 PM)';
-  }
-
-  private obtenerHoraPorFranja(franja: string, horaExplicita?: string): string {
-    if (horaExplicita && /^\d{2}:\d{2}/.test(horaExplicita.trim())) {
-      const h = horaExplicita.trim();
-      return h.length === 5 ? `${h}:00` : h.substring(0, 8);
-    }
-    const f = (franja || '').toLowerCase();
-    if (f.includes('08:00 am - 10:00')) return '08:00:00';
-    if (f.includes('10:00 am - 12:00')) return '10:00:00';
-    if (f.includes('02:00 pm - 04:00')) return '14:00:00';
-    if (f.includes('04:00 pm - 06:00')) return '16:00:00';
-    if (f.includes('mañana') || f.includes('08:00') || f.includes('10:00')) {
-      return '09:00:00';
-    }
-    if (f.includes('noche') || f.includes('06:00 pm')) {
-      return '18:00:00';
-    }
-    return '14:00:00';
-  }
-
-  private obtenerFechaFuturaIso(fechaInput?: string): string {
-    if (fechaInput && /^\d{4}-\d{2}-\d{2}/.test(fechaInput.trim())) {
-      return fechaInput.trim().substring(0, 10);
-    }
-    const manana = new Date();
-    manana.setDate(manana.getDate() + 1);
-    return `${manana.getFullYear()}-${String(manana.getMonth() + 1).padStart(2, '0')}-${String(manana.getDate()).padStart(2, '0')}`;
-  }
-
   private guardarUbicacionLocal(
     clave: string,
     info: { ubicacion: string; recursoFisicoId?: number | null; modalidad: string }
   ): void {
-    try {
-      if (typeof localStorage === 'undefined') return;
-      const raw = localStorage.getItem('iub_ubicaciones_consulta_v1');
-      const mapa = raw ? JSON.parse(raw) : {};
-      mapa[clave] = info;
-      localStorage.setItem('iub_ubicaciones_consulta_v1', JSON.stringify(mapa));
-    } catch {
-      // Ignorar errores de storage
-    }
+    storageGuardarUbicacion(clave, info);
   }
 
   private obtenerUbicacionLocal(
@@ -424,19 +217,7 @@ export class Data {
     fechaConsulta: string,
     horaConsulta: string
   ): { ubicacion: string; recursoFisicoId?: number | null; modalidad: string } | null {
-    try {
-      if (typeof localStorage === 'undefined') return null;
-      const raw = localStorage.getItem('iub_ubicaciones_consulta_v1');
-      if (!raw) return null;
-      const mapa = JSON.parse(raw);
-      return (
-        mapa[`ID_${id}`] ||
-        mapa[`FH_${fechaConsulta}_${(horaConsulta || '').substring(0, 5)}`] ||
-        null
-      );
-    } catch {
-      return null;
-    }
+    return storageObtenerUbicacion(id, fechaConsulta, horaConsulta);
   }
 
   /**
@@ -451,156 +232,28 @@ export class Data {
     recursoFisicoId?: number,
     excluirConsultaId?: number
   ): { disponible: boolean; mensaje: string; conflicto?: ConsultaUnificada } {
-    if (!salonNombre || !salonNombre.trim()) {
-      return {
-        disponible: false,
-        mensaje: 'Selecciona un espacio o salón de la sede para verificar su disponibilidad.'
-      };
-    }
-
-    const fechaLimpia = this.obtenerFechaFuturaIso(fechaConsulta);
-    const horaIso = this.obtenerHoraPorFranja(horaOFranja, horaOFranja);
-    const horaCorta = horaIso.substring(0, 5);
-    const salonLimpio = salonNombre.toLowerCase().trim();
-    const sedeLimpia = (sedeNombre || '').toLowerCase().trim();
-
-    const conflicto = this.consultas().find(c => {
-      if (excluirConsultaId && c.id === excluirConsultaId) return false;
-      if (c.estado === 'Cancelada' || c.estado === 'Inactiva') return false;
-
-      const ubicacionActual = (c.ubicacion || '').toLowerCase();
-      const mismoRecursoId =
-        Boolean(recursoFisicoId && c.recursoFisicoId && c.recursoFisicoId === recursoFisicoId);
-      const mismoNombreSalon =
-        ubicacionActual.includes(salonLimpio) &&
-        (!sedeLimpia || ubicacionActual.includes(sedeLimpia) || !ubicacionActual.includes(' - '));
-
-      if (!mismoRecursoId && !mismoNombreSalon) return false;
-
-      const fechaC = (c.fechaConsulta || c.fecha.split('•')[0] || '').trim().substring(0, 10);
-      if (fechaC !== fechaLimpia) return false;
-
-      const horaC = (c.horaConsulta || c.fecha.split('•')[1] || '').trim().substring(0, 5);
-      return horaC === horaCorta;
-    });
-
-    if (conflicto) {
-      return {
-        disponible: false,
-        mensaje: `Ocupado: "${salonNombre}" (${sedeNombre}) ya tiene agendada la consulta ${conflicto.radicado} (${conflicto.asignatura}) el ${fechaLimpia} a las ${horaCorta}.`,
-        conflicto
-      };
-    }
-
-    return {
-      disponible: true,
-      mensaje: `Disponible: "${salonNombre}" en ${sedeNombre} está libre el ${fechaLimpia} a las ${horaCorta}.`
-    };
-  }
-
-  private construirEtiquetaMetaConsulta(info: {
-    ubicacion?: string;
-    modalidad?: string;
-    recursoFisicoId?: number | null;
-    asignatura?: string;
-    fechaAgenda?: string;
-    horaAgenda?: string;
-  }): string {
-    const partes: string[] = [];
-    if (info.ubicacion && info.ubicacion !== 'Por asignar') {
-      partes.push(`Espacio: ${info.ubicacion}`);
-    }
-    if (info.modalidad) {
-      partes.push(`Modalidad: ${info.modalidad}`);
-    }
-    if (info.recursoFisicoId) {
-      partes.push(`RecursoID:${info.recursoFisicoId}`);
-    }
-    if (info.asignatura) {
-      partes.push(`Asignatura: ${info.asignatura}`);
-    }
-    if (info.fechaAgenda && info.horaAgenda) {
-      partes.push(`Agenda: ${info.fechaAgenda}_${info.horaAgenda.substring(0, 5)}`);
-    }
-    return partes.length > 0 ? `[${partes.join(' | ')}] ` : '';
-  }
-
-  private encontrarSlotBackendParaDocente(
-    docenteId: number,
-    fechaBaseIso: string,
-    horaBaseIso: string,
-    slots: DisponibilidadResponseApi[]
-  ): { fecha: string; hora: string } {
-    const activos = (slots || []).filter((s) => s.estado !== false);
-    if (activos.length === 0) {
-      return { fecha: fechaBaseIso, hora: horaBaseIso };
-    }
-
-    const [anio, mes, dia] = fechaBaseIso.split('-').map(Number);
-    const fechaInicio = new Date(anio || 2026, (mes || 1) - 1, dia || 1);
-    const horaCortaBase = horaBaseIso.substring(0, 5);
-
-    for (let offset = 0; offset <= 21; offset++) {
-      const dt = new Date(fechaInicio.getTime());
-      dt.setDate(dt.getDate() + offset);
-      const jsDay = dt.getDay();
-      const isoDay = jsDay === 0 ? 7 : jsDay;
-      const fechaCand = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-
-      const slotsDia = activos.filter((s) => s.diaSemana === isoDay);
-      for (const slot of slotsDia) {
-        const ini = (slot.horaInicio || '08:00').substring(0, 5);
-        const fin = (slot.horaFin || '18:00').substring(0, 5);
-
-        const horasCandidatas: string[] = [];
-        if (horaCortaBase >= ini && horaCortaBase <= fin) {
-          horasCandidatas.push(`${horaCortaBase}:00`);
-        }
-
-        const [hIni, mIni] = ini.split(':').map(Number);
-        const [hFin, mFin] = fin.split(':').map(Number);
-        const minTotalesIni = hIni * 60 + (mIni || 0);
-        const minTotalesFin = hFin * 60 + (mFin || 0);
-
-        for (let m = minTotalesIni; m <= minTotalesFin; m += 30) {
-          const hh = String(Math.floor(m / 60)).padStart(2, '0');
-          const mm = String(m % 60).padStart(2, '0');
-          const cand = `${hh}:${mm}:00`;
-          if (!horasCandidatas.includes(cand)) {
-            horasCandidatas.push(cand);
-          }
-        }
-
-        for (const hCand of horasCandidatas) {
-          const hCorta = hCand.substring(0, 5);
-          const ocupado = this.consultas().some(
-            (c) =>
-              c.docenteId === docenteId &&
-              c.estado !== 'Cancelada' &&
-              c.estado !== 'Inactiva' &&
-              c.fechaConsulta === fechaCand &&
-              (c.horaConsulta || '').substring(0, 5) === hCorta
-          );
-          if (!ocupado) {
-            return { fecha: fechaCand, hora: hCand };
-          }
-        }
-      }
-    }
-
-    const primero = activos[0];
-    const iniPrimero = (primero.horaInicio || '09:00').substring(0, 5);
-    return { fecha: fechaBaseIso, hora: `${iniPrimero}:00` };
+    return verificarDisponibilidadEspacioHelper(
+      this.consultas(),
+      sedeNombre,
+      salonNombre,
+      fechaConsulta,
+      horaOFranja,
+      recursoFisicoId,
+      excluirConsultaId
+    );
   }
 
   crearConsulta(datos: {
     estudiante?: string;
     documento?: string;
     correoEstudiante?: string;
+    estudianteId?: number;
     asignatura: string;
     tema: string;
     descripcion?: string;
     tutor?: string;
+    docenteId?: number;
+    moduloId?: number;
     modalidad: string;
     franja: string;
     fecha?: string;
@@ -611,108 +264,79 @@ export class Data {
   }): ConsultaUnificada {
     const num = Math.floor(1000 + Math.random() * 9000);
     const radicado = `TUT-${new Date().getFullYear()}-${num}`;
-    const fechaIso = this.obtenerFechaFuturaIso(datos.fecha);
-    const horaIso = this.obtenerHoraPorFranja(datos.franja, datos.hora);
+    const fechaIso = obtenerFechaFuturaIso(datos.fecha);
+    const horaIso = obtenerHoraPorFranja(datos.franja, datos.hora);
     const fechaFormateada = `${fechaIso} • ${horaIso.substring(0, 5)}`;
 
-    const listaCursos = this.cursos();
-    const cursoMatch =
-      listaCursos.find(
-        c => c.asignatura.toLowerCase() === (datos.asignatura || '').toLowerCase()
-      ) || listaCursos[0];
+    const { docenteObj, cursoMatch, tutorAsignado } = encontrarDocenteParaConsulta(
+      datos,
+      this.cursos(),
+      this.usuarios()
+    );
 
-    let tutorAsignado = (datos.tutor || '').trim();
-    if (!tutorAsignado || tutorAsignado.includes('Automática') || tutorAsignado === 'En asignación') {
-      tutorAsignado = cursoMatch ? cursoMatch.docente : '';
-    }
-
-    const docentesDelCurso = cursoMatch?.docentesAsignados || [];
-    const docentesActivos = this.usuarios().filter(u => u.rol === 'DOCENTE');
-
-    // Priorizar SIEMPRE el docente exacto elegido por el usuario (por nombre en usuarios o en el curso)
-    const docenteElegidoEnUsuarios = tutorAsignado
-      ? docentesActivos.find(
-          u => u.nombre.trim().toLowerCase() === tutorAsignado.toLowerCase()
-        )
-      : undefined;
-
-    const docenteElegidoEnCurso = tutorAsignado
-      ? docentesDelCurso.find(
-          d => `${d.nombre} ${d.apellido || ''}`.trim().toLowerCase() === tutorAsignado.toLowerCase()
-        )
-      : undefined;
-
-    const docenteFallbackCurso = docentesDelCurso[0]
-      ? {
-          id: docentesDelCurso[0].id,
-          nombre: `${docentesDelCurso[0].nombre} ${docentesDelCurso[0].apellido || ''}`.trim()
-        }
-      : undefined;
-
-    const docenteObj =
-      (docenteElegidoEnUsuarios
-        ? { id: docenteElegidoEnUsuarios.id, nombre: docenteElegidoEnUsuarios.nombre }
-        : undefined) ||
-      (docenteElegidoEnCurso
-        ? {
-            id: docenteElegidoEnCurso.id,
-            nombre: `${docenteElegidoEnCurso.nombre} ${docenteElegidoEnCurso.apellido || ''}`.trim()
-          }
-        : undefined) ||
-      (cursoMatch?.docenteId
-        ? docentesActivos.find(u => u.id === cursoMatch.docenteId)
-        : undefined) ||
-      docenteFallbackCurso ||
-      docentesActivos[0];
-
-    const nombreEstudianteSesion =
+    const rolActual =
+      typeof localStorage !== 'undefined'
+        ? localStorage.getItem('rolActivo') || 'ESTUDIANTE'
+        : 'ESTUDIANTE';
+    const nombreUsuarioSesion =
       typeof localStorage !== 'undefined'
         ? localStorage.getItem('nombreUsuarioActivo') || ''
         : '';
-    const correoEstudianteSesion =
+    const correoUsuarioSesion =
       typeof localStorage !== 'undefined'
         ? localStorage.getItem('correoActivo') || ''
         : '';
-    const docEstudianteSesion =
+    const docUsuarioSesion =
       typeof localStorage !== 'undefined'
         ? localStorage.getItem('identificacionUsuarioActivo') || ''
         : '';
+    const idUsuarioSesion =
+      typeof localStorage !== 'undefined'
+        ? Number(localStorage.getItem('idUsuarioActivo')) || undefined
+        : undefined;
 
     const modalidadFinal = datos.modalidad.includes('Virtual') ? 'Virtual' : 'Presencial';
     const ubicacionFinal =
       datos.ubicacion ||
       (modalidadFinal === 'Virtual' ? 'Sala Virtual Institucional' : 'Por asignar');
 
+    const estudianteIdFinal =
+      datos.estudianteId || (rolActual === 'ESTUDIANTE' ? idUsuarioSesion : undefined);
+    const docenteIdFinal =
+      datos.docenteId || (rolActual === 'DOCENTE' ? idUsuarioSesion : docenteObj?.id || cursoMatch?.docenteId);
+    const tutorFinal =
+      (rolActual === 'DOCENTE' && nombreUsuarioSesion ? nombreUsuarioSesion : docenteObj?.nombre) ||
+      tutorAsignado ||
+      'Docente Asignado';
+
     const nueva: ConsultaUnificada = {
       id: Date.now(),
       radicado,
-      estudiante: datos.estudiante || nombreEstudianteSesion,
-      documento: datos.documento || docEstudianteSesion,
-      correoEstudiante: datos.correoEstudiante || correoEstudianteSesion,
-      moduloId: cursoMatch?.id,
+      estudianteId: estudianteIdFinal,
+      estudiante: datos.estudiante || (rolActual === 'ESTUDIANTE' ? nombreUsuarioSesion : 'Estudiante'),
+      documento: datos.documento || (rolActual === 'ESTUDIANTE' ? docUsuarioSesion : ''),
+      correoEstudiante: datos.correoEstudiante || (rolActual === 'ESTUDIANTE' ? correoUsuarioSesion : ''),
+      moduloId: datos.moduloId || cursoMatch?.id,
       asignatura: datos.asignatura || cursoMatch?.asignatura || 'Asignatura General',
       tema: datos.tema,
       descripcion: datos.descripcion || datos.tema,
-      docenteId: docenteObj?.id || cursoMatch?.docenteId,
-      tutor: docenteObj?.nombre || tutorAsignado,
+      docenteId: docenteIdFinal,
+      tutor: tutorFinal,
       fechaConsulta: fechaIso,
       horaConsulta: horaIso,
       fecha: fechaFormateada,
-      franja: datos.franja || this.obtenerFranjaDesdeHora(horaIso),
+      franja: datos.franja || obtenerFranjaDesdeHora(horaIso),
       modalidad: modalidadFinal,
       ubicacion: ubicacionFinal,
       recursoFisicoId: datos.recursoFisicoId || null,
       prioridad: datos.prioridad || 'Media',
       estado: 'Pendiente',
-      tipoAtencion: 'Tutoría Individual',
       observaciones: 'Pendiente de revisión y respuesta del docente.',
       asistencia: 0,
-      folioAuditoria: `AUD-${new Date().getFullYear()}-${num}`,
-      reasignado: false,
-      docenteSeleccionado: '',
+      docenteSeleccionado: tutorFinal,
       mensajes: [
         {
-          autor: datos.estudiante || nombreEstudianteSesion,
+          autor: datos.estudiante || (rolActual === 'ESTUDIANTE' ? nombreUsuarioSesion : 'Estudiante'),
           rol: 'ESTUDIANTE',
           fechaHora: fechaFormateada,
           mensaje: datos.descripcion || datos.tema
@@ -733,25 +357,23 @@ export class Data {
       const prioridadApi: PrioridadSolicitudApi =
         nueva.prioridad === 'Alta' ? 'ALTA' : nueva.prioridad === 'Baja' ? 'BAJA' : 'MEDIA';
 
-      const moduloIdPreferido = cursoMatch?.id || 1;
-      const docenteId = docenteObj?.id || cursoMatch?.docenteId || 1;
-      const rolActual =
-        typeof localStorage !== 'undefined'
-          ? localStorage.getItem('rolActivo') || 'ESTUDIANTE'
-          : 'ESTUDIANTE';
+      const moduloIdPreferido = datos.moduloId || cursoMatch?.id || 1;
+      const docenteId = docenteIdFinal || 1;
 
       const asuntoSeguro =
         nueva.tema.trim().length >= 5
           ? nueva.tema.trim().substring(0, 100)
           : `Tema: ${nueva.tema.trim()}`.substring(0, 100);
 
-      const etiquetaMeta = this.construirEtiquetaMetaConsulta({
+      const etiquetaMeta = construirEtiquetaMetaConsulta({
         ubicacion: ubicacionFinal,
         modalidad: modalidadFinal,
         recursoFisicoId: datos.recursoFisicoId || null,
         asignatura: nueva.asignatura,
         fechaAgenda: fechaIso,
-        horaAgenda: horaIso
+        horaAgenda: horaIso,
+        estudianteDoc: datos.documento,
+        estudianteNombre: datos.estudiante
       });
       const descripcionParaApi = `${etiquetaMeta}${nueva.descripcion}`.trim();
 
@@ -763,7 +385,11 @@ export class Data {
                 ? {
                     ...c,
                     id: creadaRemota.id,
-                    radicado: creadaRemota.numeroConsulta || c.radicado
+                    radicado: creadaRemota.numeroConsulta || c.radicado,
+                    estudianteId: creadaRemota.estudianteId || c.estudianteId,
+                    docenteId: creadaRemota.docenteId || c.docenteId,
+                    estudiante: creadaRemota.nombreCompletoEstudiante || c.estudiante,
+                    tutor: creadaRemota.nombreCompletoDocente || c.tutor
                   }
                 : c
             )
@@ -787,8 +413,17 @@ export class Data {
         this.sincronizarDesdeBackend();
       };
 
-      this.api
-        .registrarSolicitudConsulta({
+      // Asegurar que el docente tenga disponibilidad horaria activa y esté vinculado al módulo en la BD
+      this.asegurarDisponibilidadDocente(docenteId);
+      const cursoDocenteAsignado = this.cursos().find(c => c.id === moduloIdPreferido);
+      const estaAsignado = cursoDocenteAsignado?.docentesAsignados?.some(d => d.id === docenteId);
+      if (!estaAsignado && (rolActual === 'ADMIN' || rolActual === 'DOCENTE')) {
+        this.api.asignarDocenteModulo({ docenteId, moduloId: moduloIdPreferido }).pipe(catchError(() => of(null))).subscribe();
+      }
+
+      registrarSolicitudConFallback(
+        this.api,
+        {
           prioridad: prioridadApi,
           asunto: asuntoSeguro,
           descripcion: descripcionParaApi,
@@ -796,114 +431,25 @@ export class Data {
           horaConsulta: horaIso,
           docenteId,
           moduloId: moduloIdPreferido
-        })
-        .subscribe({
-          next: (creadaRemota) => vincularEspacioYRefrescar(creadaRemota),
-          error: (errInicial) => {
-            if (errInicial?.status === 503) {
-              this.consultas.update(lista => lista.filter(c => c.id !== nueva.id));
-              alert(
-                this.api!.extraerMensajeError(
-                  errInicial,
-                  'El servidor en Render devolvió 503 porque intentó validar festivos en el servicio externo. Sube los cambios del backend (git push) a Render para desactivar el servicio externo.'
-                )
-              );
-              return;
-            }
-            // Mantener SIEMPRE el docenteId elegido por el estudiante para que aparezca en el perfil de ese docente.
-            // Si el backend rechazó por horario de disponibilidad_docente o porque el docente está vinculado a otro módulo:
-            this.api!
-              .listarDisponibilidadDocente(docenteId, false)
-              .pipe(catchError(() => of([] as DisponibilidadResponseApi[])))
-              .subscribe((slotsDocente) => {
-                const slotValido = this.encontrarSlotBackendParaDocente(
-                  docenteId,
-                  fechaIso,
-                  horaIso,
-                  slotsDocente
-                );
-
-                const cursoConEseDocente = this.cursos().find((c) =>
-                  c.docentesAsignados?.some((d) => d.id === docenteId)
-                );
-                const moduloValido = cursoConEseDocente?.id || moduloIdPreferido;
-
-                this.api!
-                  .registrarSolicitudConsulta({
-                    prioridad: prioridadApi,
-                    asunto: asuntoSeguro,
-                    descripcion: descripcionParaApi,
-                    fechaConsulta: slotValido.fecha,
-                    horaConsulta: slotValido.hora,
-                    docenteId,
-                    moduloId: moduloValido
-                  })
-                  .subscribe({
-                    next: (creadaRemota) => vincularEspacioYRefrescar(creadaRemota),
-                    error: (errRetryDocente) => {
-                      // Último recurso si el docente aún no tenía ningún módulo en BD
-                      this.api?.listarDocentesPorModulo(moduloIdPreferido).subscribe({
-                        next: (docentesModulo) => {
-                          const docAlterno = docentesModulo?.[0]?.id;
-                          if (docAlterno) {
-                            this.api!
-                              .listarDisponibilidadDocente(docAlterno, false)
-                              .pipe(catchError(() => of([] as DisponibilidadResponseApi[])))
-                              .subscribe((slotsAlt) => {
-                                const slotAlt = this.encontrarSlotBackendParaDocente(
-                                  docAlterno,
-                                  fechaIso,
-                                  horaIso,
-                                  slotsAlt
-                                );
-                                this.api
-                                  ?.registrarSolicitudConsulta({
-                                    prioridad: prioridadApi,
-                                    asunto: asuntoSeguro,
-                                    descripcion: descripcionParaApi,
-                                    fechaConsulta: slotAlt.fecha,
-                                    horaConsulta: slotAlt.hora,
-                                    docenteId: docAlterno,
-                                    moduloId: moduloIdPreferido
-                                  })
-                                  .subscribe({
-                                    next: (creadaRemota) => vincularEspacioYRefrescar(creadaRemota),
-                                    error: () => {
-                                      this.consultas.update(lista => lista.filter(c => c.id !== nueva.id));
-                                      alert(
-                                        this.api!.extraerMensajeError(
-                                          errRetryDocente,
-                                          'No se pudo registrar la consulta en la base de datos.'
-                                        )
-                                      );
-                                    }
-                                  });
-                              });
-                          } else {
-                            this.consultas.update(lista => lista.filter(c => c.id !== nueva.id));
-                            alert(
-                              this.api!.extraerMensajeError(
-                                errInicial,
-                                'No se pudo registrar la consulta en la base de datos.'
-                              )
-                            );
-                          }
-                        },
-                        error: () => {
-                          this.consultas.update(lista => lista.filter(c => c.id !== nueva.id));
-                          alert(
-                            this.api!.extraerMensajeError(
-                              errInicial,
-                              'No se pudo registrar la consulta en la base de datos.'
-                            )
-                          );
-                        }
-                      });
-                    }
-                  });
-              });
+        },
+        this.consultas(),
+        this.cursos(),
+        {
+          onSuccess: (creadaRemota) => vincularEspacioYRefrescar(creadaRemota),
+          onErrorFinal: (fallbackInfo) => {
+            this.encolarSolicitudPendienteBD({
+              localId: nueva.id,
+              prioridad: prioridadApi,
+              asunto: asuntoSeguro,
+              descripcion: descripcionParaApi,
+              fechaConsulta: fallbackInfo.slot?.fecha || fechaIso,
+              horaConsulta: fallbackInfo.slot?.hora || horaIso,
+              docenteId: fallbackInfo.docenteId,
+              moduloId: fallbackInfo.moduloId
+            });
           }
-        });
+        }
+      );
     }
 
     return nueva;
@@ -923,6 +469,22 @@ export class Data {
     const consultaPrevia = this.consultas().find(c => c.id === id);
     const estabaPendiente = !consultaPrevia || consultaPrevia.estado === 'Pendiente';
 
+    // Persistir de inmediato en la caché de atenciones docentes para asegurar presencia en Historial
+    this.guardarAtencionDocenteLocal(id, {
+      tipoAtencion: datos.tipoAtencion,
+      tema: datos.temaTratado,
+      observaciones: datos.observaciones.trim(),
+      asistencia: datos.asistenciaConfirmada ? 1 : 0
+    });
+    if (consultaPrevia?.radicado) {
+      this.guardarAtencionDocenteLocal(consultaPrevia.radicado, {
+        tipoAtencion: datos.tipoAtencion,
+        tema: datos.temaTratado,
+        observaciones: datos.observaciones.trim(),
+        asistencia: datos.asistenciaConfirmada ? 1 : 0
+      });
+    }
+
     this.consultas.update(lista =>
       lista.map(c => {
         if (c.id !== id) return c;
@@ -937,6 +499,7 @@ export class Data {
           tipoAtencion: datos.tipoAtencion,
           tema: datos.temaTratado,
           observaciones: datos.observaciones.trim(),
+          retroalimentacionDocente: datos.observaciones.trim(),
           asistencia: datos.asistenciaConfirmada ? 1 : 0,
           estado: 'Completada',
           mensajes: [...c.mensajes, nuevoMensaje]
@@ -980,6 +543,75 @@ export class Data {
           error: () => this.sincronizarDesdeBackend()
         });
     }
+  }
+
+  guardarAtencionDocenteLocal(
+    id: number | string,
+    datos: {
+      tipoAtencion: string;
+      tema: string;
+      observaciones: string;
+      asistencia: number;
+    }
+  ): void {
+    storageGuardarAtencion(id, datos);
+  }
+
+  obtenerAtencionesDocenteLocales(): Record<string, any> {
+    return storageObtenerAtenciones();
+  }
+
+  encolarSolicitudPendienteBD(solicitud: SolicitudPendienteBd): void {
+    storageEncolarSolicitud(solicitud);
+  }
+
+  reintentarSolicitudesPendientesBD(): void {
+    if (
+      !this.api ||
+      !this.api.baseUrl ||
+      !this.api.tieneTokenActivo() ||
+      typeof localStorage === 'undefined'
+    ) {
+      return;
+    }
+    const cola = storageObtenerSolicitudes();
+    if (!cola || cola.length === 0) return;
+
+    const pendientesRestantes: SolicitudPendienteBd[] = [];
+    for (const req of cola) {
+      this.api
+        .registrarSolicitudConsulta({
+          prioridad: req.prioridad,
+          asunto: req.asunto,
+          descripcion: req.descripcion,
+          fechaConsulta: req.fechaConsulta,
+          horaConsulta: req.horaConsulta,
+          docenteId: req.docenteId,
+          moduloId: req.moduloId
+        })
+        .subscribe({
+          next: (creadaRemota) => {
+            if (creadaRemota?.id) {
+              this.consultas.update((lista) =>
+                lista.map((c) =>
+                  c.id === req.localId
+                    ? {
+                        ...c,
+                        id: creadaRemota.id,
+                        radicado: creadaRemota.numeroConsulta || c.radicado
+                      }
+                    : c
+                )
+              );
+            }
+          },
+          error: () => {
+            pendientesRestantes.push(req);
+            storageGuardarSolicitudes(pendientesRestantes);
+          }
+        });
+    }
+    storageGuardarSolicitudes(pendientesRestantes);
   }
 
   reasignarTutor(id: number, nuevoDocente: string): void {
@@ -1030,18 +662,18 @@ export class Data {
             ? 'BAJA'
             : 'MEDIA';
 
-      const fechaConsulta = cambios.fechaConsulta || actual.fechaConsulta || this.obtenerFechaFuturaIso();
+      const fechaConsulta = cambios.fechaConsulta || actual.fechaConsulta || obtenerFechaFuturaIso();
       const horaConsulta = cambios.horaConsulta
-        ? this.obtenerHoraPorFranja('', cambios.horaConsulta)
+        ? obtenerHoraPorFranja('', cambios.horaConsulta)
         : cambios.franja
-          ? this.obtenerHoraPorFranja(cambios.franja)
+          ? obtenerHoraPorFranja(cambios.franja)
           : actual.horaConsulta || '09:00:00';
 
       const ubicacionFinal = cambios.ubicacion || actual.ubicacion;
       const modalidadFinal = cambios.modalidad || actual.modalidad;
       const recursoIdFinal =
         cambios.recursoFisicoId !== undefined ? cambios.recursoFisicoId : actual.recursoFisicoId;
-      const etiquetaMeta = this.construirEtiquetaMetaConsulta({
+      const etiquetaMeta = construirEtiquetaMetaConsulta({
         ubicacion: ubicacionFinal,
         modalidad: modalidadFinal,
         recursoFisicoId: recursoIdFinal,
@@ -1049,7 +681,7 @@ export class Data {
         fechaAgenda: fechaConsulta,
         horaAgenda: horaConsulta
       });
-      const parsedPrev = this.extraerMetadatosDescripcion(cambios.descripcion || actual.descripcion || '');
+      const parsedPrev = extraerMetadatosDescripcion(cambios.descripcion || actual.descripcion || '');
       const descBase = parsedPrev.descripcionLimpia;
 
       const temaTexto = (cambios.tema || actual.tema || '').trim();
@@ -1245,7 +877,11 @@ export class Data {
     });
 
     this.api.listarTiposDocumento(rolActual === 'ADMIN').subscribe({
-      next: (tipos) => this.tiposDocumento.set(tipos || []),
+      next: (tipos) => {
+        if (tipos && tipos.length > 0) {
+          this.tiposDocumento.set(tipos);
+        }
+      },
       error: () => {}
     });
 
@@ -1288,50 +924,19 @@ export class Data {
       this.asegurarDisponibilidadDocente(idUsuarioActivo);
     }
 
+    this.reintentarSolicitudesPendientesBD();
+
     // 1. Obtener Usuarios (si es ADMIN) o Docentes públicos (si es ESTUDIANTE/DOCENTE)
     const usuariosObs =
       rolActual === 'ADMIN'
         ? this.api.listarUsuarios(true).pipe(
             map((usuariosRemotos: UsuarioResponseApi[]) =>
-              (usuariosRemotos || []).map(
-                (u): UsuarioSistema => ({
-                  id: u.id,
-                  identificacion: u.identificacion || '',
-                  tipoDocumentoId: u.tipoDocumentoId,
-                  tipoDocumentoSigla: u.tipoDocumentoSigla || 'CC',
-                  nombre: `${u.nombre} ${u.apellido || ''}`.trim(),
-                  nombreSolo: u.nombre,
-                  apellido: u.apellido || '',
-                  email: u.correo || '',
-                  rol: u.rol === 'ADMINISTRADOR' ? 'ADMIN' : u.rol,
-                  estado: u.estado ? 'Activo' : 'Inactivo',
-                  programaId: u.programaId,
-                  programa:
-                    u.programaNombre ||
-                    (u.rol === 'ADMINISTRADOR'
-                      ? 'Coordinación / Administración'
-                      : u.rol === 'DOCENTE'
-                        ? 'Docencia Universitaria'
-                        : 'Sin programa asignado'),
-                  fechaCreacion: u.fechaCreacion
-                })
-              )
+              (usuariosRemotos || []).map(mapearUsuarioApiAFront)
             ),
             catchError(() =>
               this.api!.listarDocentes().pipe(
                 map((docentes: DocenteResumenApi[]) =>
-                  (docentes || []).map(
-                    (d): UsuarioSistema => ({
-                      id: d.id,
-                      nombre: `${d.nombre} ${d.apellido || ''}`.trim(),
-                      nombreSolo: d.nombre,
-                      apellido: d.apellido || '',
-                      email: '',
-                      rol: 'DOCENTE',
-                      estado: 'Activo',
-                      programa: 'Docencia Universitaria'
-                    })
-                  )
+                  (docentes || []).map(mapearDocenteApiAFront)
                 ),
                 catchError(() => of([] as UsuarioSistema[]))
               )
@@ -1339,18 +944,7 @@ export class Data {
           )
         : this.api.listarDocentes().pipe(
             map((docentes: DocenteResumenApi[]) =>
-              (docentes || []).map(
-                (d): UsuarioSistema => ({
-                  id: d.id,
-                  nombre: `${d.nombre} ${d.apellido || ''}`.trim(),
-                  nombreSolo: d.nombre,
-                  apellido: d.apellido || '',
-                  email: '',
-                  rol: 'DOCENTE',
-                  estado: 'Activo',
-                  programa: 'Docencia Universitaria'
-                })
-              )
+              (docentes || []).map(mapearDocenteApiAFront)
             ),
             catchError(() => of([] as UsuarioSistema[]))
           );
@@ -1396,77 +990,18 @@ export class Data {
         forkJoin(peticionesPorModulo).subscribe((resultados) => {
           const docentesGenerales = usuariosMapeados.filter((u) => u.rol === 'DOCENTE');
           const cursosMapeados: CursoSistema[] = resultados.map(({ modulo, docentes }, idx) => {
-            const asigAdmin = asignacionesAdmin.find(
-              (a) => a.moduloId === modulo.id && a.estado
-            );
-            const primerDocenteModulo = docentes[0];
-            const docenteFallback =
-              docentesGenerales[idx % Math.max(docentesGenerales.length, 1)];
-
-            // Extraer código y docente titular guardados en modulo.descripcion ([Codigo:XXX | Docente:YYY])
-            let codigoExtraido = `MOD-${String(modulo.id).padStart(2, '0')}`;
-            let docenteExtraido = '';
-            const matchMetaModulo = (modulo.descripcion || '').match(
-              /^\[Codigo:\s*([^\]|]+)(?:\s*\|\s*Docente:\s*([^\]]+))?\]/i
-            );
-            if (matchMetaModulo) {
-              if (matchMetaModulo[1]?.trim()) {
-                codigoExtraido = matchMetaModulo[1].trim();
-              }
-              if (matchMetaModulo[2]?.trim()) {
-                docenteExtraido = matchMetaModulo[2].trim();
-              }
-            }
-
-            const docPorMeta = docenteExtraido
-              ? docentesGenerales.find(
-                  (u) => u.nombre.trim().toLowerCase() === docenteExtraido.toLowerCase()
-                )
-              : undefined;
-
-            // Si el usuario actual es ADMIN, garantizar que todos los docentes activos estén habilitados en docentes_modulos
-            // para evitar errores de asignación cuando un estudiante elija un docente específico
             if (rolActual === 'ADMIN' && modulo.estado) {
               for (const doc of docentesActivos) {
                 const yaVinculado = docentes.some((d) => d.id === doc.id);
                 if (!yaVinculado) {
                   this.api!
-                    .asignarDocenteModulo({
-                      docenteId: doc.id,
-                      moduloId: modulo.id
-                    })
+                    .asignarDocenteModulo({ docenteId: doc.id, moduloId: modulo.id })
                     .pipe(catchError(() => of(null)))
                     .subscribe();
                 }
               }
             }
-
-            const nombreDocente =
-              docPorMeta?.nombre ||
-              docenteExtraido ||
-              (primerDocenteModulo
-                ? `${primerDocenteModulo.nombre} ${primerDocenteModulo.apellido || ''}`.trim()
-                : asigAdmin
-                  ? asigAdmin.nombreDocente
-                  : docenteFallback?.nombre || 'Sin docente asignado');
-
-            const idDocente =
-              docPorMeta?.id ||
-              primerDocenteModulo?.id ||
-              asigAdmin?.docenteId ||
-              docenteFallback?.id;
-
-            return {
-              id: modulo.id,
-              asignacionId: asigAdmin?.id,
-              codigo: codigoExtraido,
-              asignatura: modulo.nombre,
-              descripcion: modulo.descripcion || '',
-              docente: nombreDocente,
-              docenteId: idDocente,
-              docentesAsignados: docentes,
-              estado: modulo.estado ? 'Activo' : 'Inactivo'
-            };
+            return mapearModuloApiAFront(modulo, docentes, asignacionesAdmin, docentesGenerales, idx);
           });
           this.cursos.set(cursosMapeados);
         });
@@ -1476,131 +1011,57 @@ export class Data {
       this.api!.listarSolicitudesConsulta().subscribe({
         next: (solicitudesRemotas: SolicitudConsultaResponseApi[]) => {
           const lista = solicitudesRemotas || [];
+          const atencionesDocente = this.obtenerAtencionesDocenteLocales();
           const mapeadas: ConsultaUnificada[] = lista.map((s) => {
-            let estadoLocal: ConsultaUnificada['estado'] = 'Pendiente';
-            if (s.estado === 'EN_PROCESO') estadoLocal = 'En proceso';
-            else if (s.estado === 'RESUELTA') estadoLocal = 'Completada';
-            else if (s.estado === 'CANCELADA' || s.estado === 'RECHAZADA') estadoLocal = 'Cancelada';
-
-            let prioridadLocal: ConsultaUnificada['prioridad'] = 'Media';
-            if (s.prioridad === 'ALTA') prioridadLocal = 'Alta';
-            else if (s.prioridad === 'BAJA') prioridadLocal = 'Baja';
-
-            const usuarioEstudiante = usuariosMapeados.find((u) => u.id === s.estudianteId);
-            const correoOPrograma =
-              usuarioEstudiante?.email ||
-              s.nombrePrograma ||
-              (s.identificacionEstudiante ? `Doc: ${s.identificacionEstudiante}` : '');
-
-            const metaDesc = this.extraerMetadatosDescripcion(s.descripcion || '');
-            const descripcionLimpia = metaDesc.descripcionLimpia;
-
+            const metaDesc = extraerMetadatosDescripcion(s.descripcion || '');
             const fechaReal = metaDesc.fechaAgenda || s.fechaConsulta;
             const horaReal = metaDesc.horaAgenda || s.horaConsulta;
-            const horaCorta = (horaReal || '').substring(0, 5);
             const ubicGuardada = this.obtenerUbicacionLocal(s.id, fechaReal, horaReal);
-            const nombreRecursoApi =
-              s.nombreRecursoFisico && s.nombreRecursoFisico !== 'Sin asignar'
-                ? s.nombreRecursoFisico
-                : null;
-            const nombreRecurso =
-              metaDesc.ubicacion ||
-              nombreRecursoApi ||
-              ubicGuardada?.ubicacion ||
-              'Por asignar';
-            const recursoId =
-              s.recursoFisicoId ||
-              metaDesc.recursoId ||
-              ubicGuardada?.recursoFisicoId ||
-              null;
-            const modalidadResuelta =
-              metaDesc.modalidad ||
-              ubicGuardada?.modalidad ||
-              (nombreRecurso.toLowerCase().includes('virtual') ? 'Virtual' : 'Presencial');
-            const asignaturaResuelta = metaDesc.asignatura || s.nombreModulo;
-            const asuntoLimpio = (s.asunto || '').replace(/^Tema:\s*/i, '');
 
-            // Si el usuario actual es DOCENTE asignado o ADMIN y la solicitud tiene un recursoId pendiente de vincular en la columna recurso_fisico_id
             if (
               !s.recursoFisicoId &&
-              recursoId &&
+              (metaDesc.recursoId || ubicGuardada?.recursoFisicoId) &&
               (s.estado === 'PENDIENTE' || s.estado === 'EN_PROCESO') &&
               (rolActual === 'ADMIN' || (rolActual === 'DOCENTE' && s.docenteId === idUsuarioActivo))
             ) {
-              this.api!
-                .asignarRecursoFisicoSolicitud(s.id, recursoId)
-                .pipe(catchError(() => of(null)))
-                .subscribe();
+              const recId = metaDesc.recursoId || ubicGuardada?.recursoFisicoId;
+              if (recId) {
+                this.api!.asignarRecursoFisicoSolicitud(s.id, recId).pipe(catchError(() => of(null))).subscribe();
+              }
             }
 
-            const metaRetro = s.retroalimentacionDocente
-              ? this.extraerMetadatosActaComentario(s.retroalimentacionDocente)
-              : null;
-            const observacionesIniciales =
-              (metaRetro?.textoLimpio && metaRetro.textoLimpio.trim()) ||
-              (estadoLocal === 'Completada'
-                ? 'Consulta atendida y resuelta por el docente.'
-                : estadoLocal === 'Cancelada'
-                  ? 'Solicitud cancelada.'
-                  : 'Pendiente de revisión y respuesta del docente.');
-
-            return {
-              id: s.id,
-              radicado: s.numeroConsulta || `CON-${s.id}`,
-              fechaCreacion: this.formatearFechaHora(s.fechaCreacion),
-              estudianteId: s.estudianteId,
-              estudiante: s.nombreCompletoEstudiante,
-              documento: s.identificacionEstudiante || 'N/A',
-              correoEstudiante: correoOPrograma,
-              nombrePrograma: s.nombrePrograma || usuarioEstudiante?.programa || 'Sin programa',
-              moduloId: s.moduloId,
-              asignatura: asignaturaResuelta,
-              tema: metaRetro?.tema || asuntoLimpio,
-              descripcion: descripcionLimpia,
-              docenteId: s.docenteId,
-              identificacionDocente: s.identificacionDocente || null,
-              tutor: s.nombreCompletoDocente,
-              fechaConsulta: fechaReal,
-              horaConsulta: horaReal,
-              fecha: `${fechaReal} • ${horaCorta}`,
-              franja: this.obtenerFranjaDesdeHora(horaReal),
-              modalidad: modalidadResuelta,
-              ubicacion: nombreRecurso,
-              recursoFisicoId: recursoId,
-              prioridad: prioridadLocal,
-              estado: estadoLocal,
-              tipoAtencion: metaRetro?.tipoAtencion || 'Tutoría Individual',
-              observaciones: observacionesIniciales,
-              retroalimentacionDocente: metaRetro?.textoLimpio || s.retroalimentacionDocente || null,
-              calificacion: s.calificacion || null,
-              asistencia:
-                metaRetro?.asistencia !== undefined
-                  ? metaRetro.asistencia
-                  : estadoLocal === 'Completada'
-                    ? 1
-                    : 0,
-              folioAuditoria: `AUD-${s.numeroConsulta || s.id}`,
-              reasignado: false,
-              docenteSeleccionado: s.nombreCompletoDocente,
-              mensajes: [
-                {
-                  autor: s.nombreCompletoEstudiante,
-                  rol: 'ESTUDIANTE',
-                  fechaHora: this.formatearFechaHora(s.fechaCreacion),
-                  mensaje: descripcionLimpia
-                }
-              ]
-            };
+            const c = mapearSolicitudApiAFront(s, usuariosMapeados, ubicGuardada);
+            const atencionGuardada =
+              atencionesDocente[String(c.id)] ||
+              (c.radicado ? atencionesDocente[c.radicado] : undefined);
+            if (atencionGuardada) {
+              return {
+                ...c,
+                estado: 'Completada',
+                tipoAtencion: atencionGuardada.tipoAtencion || c.tipoAtencion,
+                tema: atencionGuardada.tema || c.tema,
+                observaciones: atencionGuardada.observaciones || c.observaciones,
+                retroalimentacionDocente:
+                  atencionGuardada.observaciones || c.retroalimentacionDocente,
+                asistencia:
+                  atencionGuardada.asistencia !== undefined ? atencionGuardada.asistencia : 1
+              };
+            }
+            return c;
           });
-          this.consultas.set(mapeadas);
+
+          // Preservar consultas locales no sincronizadas (por ejemplo ante fallo 503 del microservicio)
+          const localesNoRemotas = this.consultas().filter(
+            (c) => !mapeadas.some((m) => m.id === c.id || m.radicado === c.radicado)
+          );
+
+          const finalConsultas = [...mapeadas, ...localesNoRemotas];
+          this.consultas.set(finalConsultas);
 
           const activaId = this.consultaActivaId() || mapeadas[0]?.id;
           if (activaId) {
             this.consultaActivaId.set(activaId);
-          }
-          // Cargar comentarios y actas docentes para todas las solicitudes listadas
-          for (const item of mapeadas) {
-            this.cargarComentariosDeConsulta(item.id);
+            this.cargarComentariosDeConsulta(activaId);
           }
         },
         error: () => {}

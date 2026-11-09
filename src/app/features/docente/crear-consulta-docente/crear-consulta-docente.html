@@ -1,0 +1,407 @@
+<div class="view-wrapper">
+    <!-- Encabezado de la Vista -->
+    <div class="header-section">
+        <span class="badge-tag">Módulo Docente</span>
+        <h2>➕ Registrar Consulta con Estudiante</h2>
+        <p>Radica una consulta académica ingresando únicamente el documento de identidad del estudiante; el sistema cargará automáticamente sus datos institucionales y validará la disponibilidad del espacio físico.</p>
+    </div>
+
+    <form (ngSubmit)="registrarConsulta()" class="form-content" #formConsulta="ngForm">
+        <!-- BLOQUE 1: IDENTIFICACIÓN DEL ESTUDIANTE -->
+        <div class="form-section-card">
+            <div class="section-header">
+                <span class="section-number">1</span>
+                <div>
+                    <h3 class="section-title">Identificación del Estudiante</h3>
+                    <p class="section-desc">Ingresa el número de documento para traer automáticamente los datos del estudiante de la base de datos.</p>
+                </div>
+            </div>
+            <div class="section-body">
+                <div class="doc-search-container">
+                    <div class="doc-input-wrapper">
+                        <label class="field-label" for="docEstudiante">
+                            Número de Documento (CC / TI) <span class="required-star">*</span>
+                        </label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">🆔</span>
+                            <input
+                                id="docEstudiante"
+                                type="text"
+                                class="form-control input-doc"
+                                placeholder="Digita el número de documento (ej: 1001234567)"
+                                list="listaEstudiantesDatalist"
+                                [ngModel]="documentoEstudiante()"
+                                (ngModelChange)="documentoEstudiante.set($event)"
+                                name="docEstudiante"
+                                autocomplete="off"
+                                required
+                            />
+                            <datalist id="listaEstudiantesDatalist">
+                                @for (est of estudiantesDisponibles(); track est.id) {
+                                <option [value]="est.identificacion">{{ est.nombre }} - {{ est.programa }}</option>
+                                }
+                            </datalist>
+                        </div>
+                    </div>
+
+                    <div class="doc-select-wrapper">
+                        <label class="field-label" for="selectEstudiante">
+                            O selecciona de los estudiantes registrados:
+                        </label>
+                        <select
+                            id="selectEstudiante"
+                            class="form-control select-doc"
+                            (change)="onSeleccionarEstudianteDropdown($event)">
+                            <option value="">-- Buscar por nombre o documento --</option>
+                            @for (est of estudiantesDisponibles(); track est.id) {
+                            <option [value]="est.identificacion">
+                                {{ est.identificacion }} - {{ est.nombre }} ({{ est.programa }})
+                            </option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ESTADO: ESTUDIANTE ENCONTRADO EN BD -->
+                @if (estudianteAutocompletado(); as est) {
+                <div class="student-card-found">
+                    <div class="student-avatar-box">
+                        <span class="student-avatar-icon">👤</span>
+                        <span class="badge-status-dot"></span>
+                    </div>
+                    <div class="student-info-content">
+                        <div class="student-card-header">
+                            <span class="badge-verified">
+                                <span class="verified-icon">✓</span> Estudiante Encontrado en Base de Datos
+                            </span>
+                            <span class="student-db-id">ID BD: #{{ est.id }}</span>
+                        </div>
+                        <h4 class="student-full-name">{{ est.nombre }}</h4>
+                        <div class="student-chips-grid">
+                            <div class="student-chip">
+                                <span class="chip-label">Documento:</span>
+                                <span class="chip-value"><strong>{{ est.tipoDocumentoSigla || 'CC' }} {{ est.identificacion }}</strong></span>
+                            </div>
+                            <div class="student-chip">
+                                <span class="chip-label">Correo:</span>
+                                <span class="chip-value">{{ est.email || 'correo.institucional@iub.edu.co' }}</span>
+                            </div>
+                            <div class="student-chip">
+                                <span class="chip-label">Programa:</span>
+                                <span class="chip-value chip-highlight">{{ est.programa || 'Estudiante IUB' }}</span>
+                            </div>
+                            <div class="student-chip">
+                                <span class="chip-label">Estado:</span>
+                                <span class="chip-value text-success"><strong>{{ est.estado || 'Activo' }}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                } @else if (documentoEstudiante().trim().length >= 4) {
+                <!-- ESTADO: DOCUMENTO DIGITADO PERO NO ENCONTRADO -->
+                <div class="student-not-found-card">
+                    <span class="alert-symbol">⚠️</span>
+                    <div class="alert-copy">
+                        <strong>Estudiante no registrado con documento "{{ documentoEstudiante() }}"</strong>
+                        <p>No se encontró un estudiante activo con ese número en la base de datos. Por favor verifica los dígitos o selecciónalo de la lista desplegable de estudiantes de la institución.</p>
+                    </div>
+                </div>
+                } @else {
+                <!-- ESTADO: INICIAL / AYUDA -->
+                <div class="student-hint-card">
+                    <span class="hint-symbol">💡</span>
+                    <span>Ingresa el número de cédula o tarjeta de identidad del estudiante (o selecciónalo del menú) y el sistema traerá automáticamente su nombre, correo y programa académico.</span>
+                </div>
+                }
+            </div>
+        </div>
+
+        <!-- BLOQUE 2: DETALLES ACADÉMICOS -->
+        <div class="form-section-card">
+            <div class="section-header">
+                <span class="section-number">2</span>
+                <div>
+                    <h3 class="section-title">Detalles Académicos de la Consulta</h3>
+                    <p class="section-desc">Selecciona la asignatura y define el tema o consulta que se tratará con el estudiante.</p>
+                </div>
+            </div>
+            <div class="section-body">
+                <div class="form-row-grid">
+                    <!-- Asignatura / Módulo -->
+                    <div class="input-block">
+                        <label class="field-label" for="modulo">
+                            Asignatura / Módulo Académico <span class="required-star">*</span>
+                        </label>
+                        <select
+                            id="modulo"
+                            class="form-control"
+                            [ngModel]="moduloId()"
+                            (ngModelChange)="cambiarCurso($event)"
+                            name="moduloId"
+                            required>
+                            @for (curso of cursosDisponibles(); track curso.id) {
+                            <option [value]="curso.id">
+                                {{ curso.asignatura }} (Código: {{ curso.codigo }})
+                            </option>
+                            }
+                        </select>
+                        <span class="field-hint">Mapea con el campo <code>modulo_id</code> en la BD.</span>
+                    </div>
+
+                    <!-- Prioridad -->
+                    <div class="input-block">
+                        <label class="field-label" for="prio">
+                            Prioridad de la Solicitud <span class="required-star">*</span>
+                        </label>
+                        <select
+                            id="prio"
+                            class="form-control"
+                            [(ngModel)]="prioridad"
+                            name="prioridad"
+                            required>
+                            <option value="Media">Media (Estándar)</option>
+                            <option value="Alta">Alta (Urgente / Novedad académica)</option>
+                            <option value="Baja">Baja (Seguimiento ordinario)</option>
+                        </select>
+                        <span class="field-hint">Mapea con el campo <code>prioridad</code> en la BD.</span>
+                    </div>
+                </div>
+
+                <!-- Asunto / Tema -->
+                <div class="input-block mt-3">
+                    <label class="field-label" for="temaAsunto">
+                        Asunto / Tema de la Consulta <span class="required-star">*</span>
+                    </label>
+                    <input
+                        id="temaAsunto"
+                        type="text"
+                        class="form-control"
+                        placeholder="Ej: Refuerzo en Estructuras de Datos y Algoritmos Recursivos"
+                        [(ngModel)]="tema"
+                        name="tema"
+                        minlength="5"
+                        required
+                    />
+                    <span class="field-hint">Campo obligatorio en BD (mínimo 5 caracteres según validación FastAPI).</span>
+                </div>
+
+                <!-- Descripción detallada -->
+                <div class="input-block mt-3">
+                    <label class="field-label" for="descripcion">
+                        Descripción o Puntos a Tratar
+                    </label>
+                    <textarea
+                        id="descripcion"
+                        rows="3"
+                        class="form-control"
+                        placeholder="Detalla los temas, dudas específicas o compromisos de la tutoría..."
+                        [(ngModel)]="descripcion"
+                        name="descripcion">
+                    </textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- BLOQUE 3: MODALIDAD Y AGENDAMIENTO DE ESPACIO -->
+        <div class="form-section-card">
+            <div class="section-header">
+                <span class="section-number">3</span>
+                <div>
+                    <h3 class="section-title">Modalidad y Agendamiento</h3>
+                    <p class="section-desc">Programa la fecha, franja horaria y sede/espacio físico verificando disponibilidad en tiempo real.</p>
+                </div>
+            </div>
+            <div class="section-body">
+                <div class="form-row-grid">
+                    <!-- Modalidad -->
+                    <div class="input-block">
+                        <label class="field-label" for="modalidad">Modalidad de la Consulta <span class="required-star">*</span></label>
+                        <select
+                            id="modalidad"
+                            class="form-control"
+                            [ngModel]="modalidad()"
+                            (ngModelChange)="modalidad.set($event)"
+                            name="modalidad"
+                            required>
+                            <option value="Presencial">Presencial (Sedes Institucionales)</option>
+                            <option value="Virtual">Virtual (Teams / Meet)</option>
+                        </select>
+                    </div>
+
+                    <!-- Fecha -->
+                    <div class="input-block">
+                        <label class="field-label" for="fecha">Fecha de la Consulta <span class="required-star">*</span></label>
+                        <input
+                            id="fecha"
+                            type="date"
+                            class="form-control"
+                            [ngModel]="fechaConsulta()"
+                            (ngModelChange)="fechaConsulta.set($event)"
+                            name="fechaConsulta"
+                            required
+                        />
+                        <span class="field-hint">Mapea con el campo <code>fecha_consulta</code> en la BD.</span>
+                    </div>
+
+                    <!-- Franja Horaria -->
+                    <div class="input-block">
+                        <label class="field-label" for="hora">Franja Horaria <span class="required-star">*</span></label>
+                        <select
+                            id="hora"
+                            class="form-control"
+                            [ngModel]="horaConsulta()"
+                            (ngModelChange)="horaConsulta.set($event)"
+                            name="horaConsulta"
+                            required>
+                            @for (h of horariosDisponibles; track h.valor) {
+                            <option [value]="h.valor">{{ h.etiqueta }}</option>
+                            }
+                        </select>
+                        <span class="field-hint">Mapea con el campo <code>hora_consulta</code> en la BD.</span>
+                    </div>
+
+                    <!-- Si es presencial: Sedes y Salones -->
+                    @if (modalidad() === 'Presencial') {
+                    <div class="input-block">
+                        <label class="field-label" for="sede">Sede Institucional <span class="required-star">*</span></label>
+                        <select
+                            id="sede"
+                            class="form-control"
+                            [ngModel]="sedeSeleccionada()"
+                            (ngModelChange)="cambiarSede($event)"
+                            name="sedeSeleccionada"
+                            required>
+                            @for (s of sedesDisponibles(); track s.id) {
+                            <option [value]="s.nombre">{{ s.nombre }} ({{ s.tipoEstructura || 'Sede' }})</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="input-block span-full">
+                        <label class="field-label" for="espacio">
+                            Salón / Laboratorio (Recurso Físico) <span class="required-star">*</span>
+                        </label>
+                        <select
+                            id="espacio"
+                            class="form-control"
+                            [ngModel]="espacioSeleccionadoId()"
+                            (ngModelChange)="espacioSeleccionadoId.set(+$event)"
+                            name="espacioSeleccionadoId"
+                            required>
+                            @for (esp of espaciosDeSede(); track esp.id) {
+                            <option [value]="esp.id" [disabled]="!esp.disponibleEnHorario">
+                                {{ esp.nombre }} ({{ esp.tipo }}) - {{ esp.ubicacion || esp.bloquePiso || 'Espacio Físico' }}
+                                {{ esp.disponibleEnHorario ? '✓ DISPONIBLE' : '✗ OCUPADO' }}
+                            </option>
+                            }
+                        </select>
+                        <span class="field-hint">Mapea con el campo <code>recurso_fisico_id</code> en la BD.</span>
+                    </div>
+                    }
+                </div>
+
+                <!-- Panel de validación de disponibilidad -->
+                @if (verificacionDisponibilidad().disponible) {
+                <div class="availability-alert available">
+                    <span class="alert-icon">✓</span>
+                    <div>
+                        <strong>Espacio y Horario Disponible</strong>
+                        <p class="mb-0">{{ verificacionDisponibilidad().mensaje }}</p>
+                    </div>
+                </div>
+                } @else {
+                <div class="availability-alert occupied">
+                    <span class="alert-icon">✗</span>
+                    <div>
+                        <strong>Espacio No Disponible en este Horario</strong>
+                        <p class="mb-0">{{ verificacionDisponibilidad().mensaje }}</p>
+                    </div>
+                </div>
+                }
+            </div>
+        </div>
+
+        <!-- BLOQUE 4: DOCENTE RESPONSABLE (PRELLENADO) -->
+        <div class="form-section-card">
+            <div class="section-header">
+                <span class="section-number">4</span>
+                <div>
+                    <h3 class="section-title">Docente Tutor Responsable</h3>
+                    <p class="section-desc">La consulta quedará asignada bajo tu supervisión académica.</p>
+                </div>
+            </div>
+            <div class="section-body">
+                <div class="teacher-badge-box">
+                    <div class="teacher-avatar">👨‍🏫</div>
+                    <div class="teacher-info">
+                        <strong>{{ nombreDocenteSesion() }}</strong>
+                        <span class="teacher-sub">Docente Tutor Asignado (Tus asignadas y tu historial se sincronizarán de forma inmediata)</span>
+                    </div>
+                    <span class="badge-role">DOCENTE ACTIVO</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTONES DE ACCIÓN -->
+        <div class="button-action-row">
+            <button
+                type="button"
+                class="btn btn-cancel"
+                (click)="cerrarModalYVolver()">
+                Cancelar
+            </button>
+            <button
+                type="submit"
+                class="btn btn-submit"
+                [disabled]="!estudianteAutocompletado() || !tema.trim() || (modalidad() === 'Presencial' && !verificacionDisponibilidad().disponible)">
+                💾 Registrar Consulta
+            </button>
+        </div>
+    </form>
+
+    <!-- MODAL DE CONFIRMACIÓN DE CREACIÓN -->
+    @if (modalConfirmacionAbierto()) {
+    <div class="modal-backdrop-custom">
+        <div class="modal-dialog-custom">
+            <div class="modal-header-custom">
+                <span class="modal-success-icon">🎉</span>
+                <h4 class="modal-title-custom">¡Consulta Registrada Exitosamente!</h4>
+                <p class="modal-subtitle-custom">La solicitud fue radicada y guardada en el sistema de tutorías institucionales.</p>
+            </div>
+            <div class="modal-body-custom">
+                <div class="radicado-display">
+                    <span class="radicado-label">Número de Radicado</span>
+                    <strong class="radicado-code">{{ radicadoGenerado() }}</strong>
+                </div>
+
+                <div class="summary-list">
+                    <div class="summary-item">
+                        <span class="summary-key">Estudiante:</span>
+                        <span class="summary-val"><strong>{{ nombreEstudiante() }}</strong> (Doc: {{ documentoEstudiante() }})</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-key">Asignatura:</span>
+                        <span class="summary-val">{{ asignatura() }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-key">Fecha y Franja:</span>
+                        <span class="summary-val">{{ fechaConsulta() }} - {{ horaConsulta() }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-key">Ubicación / Medio:</span>
+                        <span class="summary-val">{{ ubicacionConfirmada() }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer-custom">
+                <button type="button" class="btn btn-outline" (click)="cerrarModalYVolver()">
+                    Ir a Bandeja de Asignadas
+                </button>
+                <button type="button" class="btn btn-primary-custom" (click)="irAAtencionDirecta()">
+                    Ir a Atenderla Ahora
+                </button>
+            </div>
+        </div>
+    </div>
+    }
+</div>

@@ -13,9 +13,10 @@ describe('ApiPrincipal', () => {
     service = TestBed.inject(ApiPrincipal);
   });
 
-  it('should be created with Render baseUrl', () => {
+  it('should be created with remote URL and safe browser baseUrl', () => {
     expect(service).toBeTruthy();
-    expect(service.baseUrl).toBe('https://sistemaconsultas-api.onrender.com');
+    expect(service.urlRemotaDirecta).toBe('https://sistemaconsultas-api.onrender.com');
+    expect(service.baseUrl).toBe('/api-proxy');
   });
 });
 

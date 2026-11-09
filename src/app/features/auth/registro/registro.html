@@ -73,16 +73,30 @@
 
             <div class="field-row">
                 <div class="field flex-1">
+                    <label>Tipo de Documento *</label>
+                    <select [ngModel]="tipoDocumentoId()" (ngModelChange)="tipoDocumentoId.set(+$event)" name="tipoDoc" class="select-control">
+                        @if (tiposDocumento().length === 0) {
+                        <option [ngValue]="1">CC - Cédula de Ciudadanía</option>
+                        <option [ngValue]="2">TI - Tarjeta de Identidad</option>
+                        } @else {
+                        @for (td of tiposDocumento(); track td.id) {
+                        <option [ngValue]="td.id">{{ td.sigla }} - {{ td.nombre }}</option>
+                        }
+                        }
+                    </select>
+                </div>
+                <div class="field flex-1">
                     <label>No. Identificación *</label>
                     <input type="text" [(ngModel)]="documento" name="documento" placeholder="1045892110" required>
                 </div>
-                <div class="field flex-1">
-                    <label>Rol Institucional *</label>
-                    <select [(ngModel)]="rol" name="rol" class="select-control">
-                        <option value="Estudiante">Estudiante</option>
-                        <option value="Docente">Docente</option>
-                    </select>
-                </div>
+            </div>
+
+            <div class="field">
+                <label>Rol Institucional *</label>
+                <select [(ngModel)]="rol" name="rol" class="select-control">
+                    <option value="Estudiante">Estudiante</option>
+                    <option value="Docente">Docente</option>
+                </select>
             </div>
 
             <div class="field">

@@ -110,6 +110,12 @@ export const routes: Routes = [
                 .then(m => m.BandejaAsignadas)
           },
           {
+            path: 'crear-consulta',
+            loadComponent: () =>
+              import('./features/docente/crear-consulta-docente/crear-consulta-docente')
+                .then(m => m.CrearConsultaDocente)
+          },
+          {
             path: 'atencion', // Tip: puedes usar 'atencion/:id' si pasas el ID de la consulta
             loadComponent: () =>
               import('./features/docente/atencion-consulta/atencion-consulta')

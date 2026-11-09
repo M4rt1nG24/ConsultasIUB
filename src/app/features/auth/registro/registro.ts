@@ -19,6 +19,8 @@ export class Registro {
   nombre = '';
   apellido = '';
   documento = '';
+  tipoDocumentoId = signal<number>(1);
+  tiposDocumento = this.dataService.tiposDocumento;
   programa = 'Ingeniería de Sistemas';
   rol = 'Estudiante';
   correo = '';
@@ -113,6 +115,8 @@ export class Registro {
 
     const rolElegido = this.rol.toUpperCase() === 'DOCENTE' ? 'DOCENTE' : 'ESTUDIANTE';
 
+    const idTipoDoc = Number(this.tipoDocumentoId()) || 1;
+
     if (this.apiPrincipal && this.apiPrincipal.baseUrl) {
       this.apiPrincipal
         .registrarUsuarioPublico({
@@ -121,7 +125,8 @@ export class Registro {
           apellido: apellidoFinal,
           correo: this.correo.trim().toLowerCase(),
           password: this.password,
-          rol: rolElegido
+          rol: rolElegido,
+          tipoDocumentoId: idTipoDoc
         })
         .subscribe({
           next: () => {
@@ -132,6 +137,8 @@ export class Registro {
                   correo: this.correo.trim().toLowerCase(),
                   password: this.password
                 })
+
+                
                 .subscribe({
                   next: (loginRes) => {
                     if (typeof localStorage !== 'undefined' && loginRes?.token) {
@@ -164,7 +171,7 @@ export class Registro {
       return;
     }
 
-    this.errorMensaje.set('La URL de la API aún no está configurada en src/environments/environment.ts.');
+    this.modalRegistroAbierto.set(true);
   }
 
   cerrarModal(): void {

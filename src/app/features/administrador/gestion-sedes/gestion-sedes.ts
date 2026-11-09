@@ -1,11 +1,17 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { catchError, of, switchMap } from 'rxjs';
+import { Observable, catchError, of, switchMap } from 'rxjs';
 import { ApiPrincipal, TipoEstructuraApi } from '../../../core/services/api-principal';
 import { EspaciosAux, SedeItem } from '../../../core/services/espacios-aux';
 import { ConfirmModal, DataTableDirective, FilterBar, PageHeader, StatusBadge } from '../../../shared';
 
+/**
+ * Gestión de Sedes Institucionales conectada 1:1 con la tabla 'sedes' y 'zonas' de PostgreSQL.
+ * Columnas BD:
+ *  - sedes: id, nombre, tipo_estructura (BLOQUES, SALONES, PISOS), estado
+ *  - zonas: id, sede_id, nombre, estado
+ */
 @Component({
   selector: 'app-gestion-sedes',
   standalone: true,
@@ -33,11 +39,8 @@ export class GestionSedes {
     return this.sedes().filter(s => {
       const coincideTexto =
         !q ||
-        s.codigo.toLowerCase().includes(q) ||
         s.nombre.toLowerCase().includes(q) ||
-        s.ciudad.toLowerCase().includes(q) ||
-        s.direccion.toLowerCase().includes(q) ||
-        s.coordinador.toLowerCase().includes(q);
+        s.tipoEstructura.toLowerCase().includes(q);
 
       const coincideEstado = !est || s.estado === est;
       return coincideTexto && coincideEstado;
@@ -45,7 +48,7 @@ export class GestionSedes {
   });
 
   totalActivas = computed(() => this.sedes().filter(s => s.estado === 'Activa').length);
-  totalAulas = computed(() => this.sedes().reduce((acc, s) => acc + Number(s.capacidadAulas || 0), 0));
+  totalEspacios = computed(() => this.sedes().reduce((acc, s) => acc + Number(s.totalRecursos || 0), 0));
 
   modalAbierto = signal<boolean>(false);
   modoModal = signal<'crear' | 'editar'>('crear');
@@ -53,32 +56,21 @@ export class GestionSedes {
   sedeAEliminar = signal<SedeItem | null>(null);
   mensajeFeedback = signal<string | null>(null);
 
-  formData: SedeItem = {
+  formData = {
     id: 0,
-    codigo: '',
     nombre: '',
-    tipoEstructura: 'BLOQUES',
-    ciudad: 'Barranquilla',
-    direccion: '',
-    telefono: '',
-    coordinador: '',
-    capacidadAulas: 0,
-    estado: 'Activa'
+    tipoEstructura: 'BLOQUES' as TipoEstructuraApi,
+    zonaInicial: '',
+    estado: 'Activa' as 'Activa' | 'Inactiva'
   };
 
   abrirModalCrear(): void {
     this.modoModal.set('crear');
-    const consecutivo = String(this.sedes().length + 1).padStart(2, '0');
     this.formData = {
       id: Date.now(),
-      codigo: `SED-IUB-${consecutivo}`,
       nombre: '',
       tipoEstructura: 'BLOQUES',
-      ciudad: 'Barranquilla',
-      direccion: 'Bloque Principal',
-      telefono: '',
-      coordinador: '',
-      capacidadAulas: 0,
+      zonaInicial: '',
       estado: 'Activa'
     };
     this.modalAbierto.set(true);
@@ -87,8 +79,11 @@ export class GestionSedes {
   abrirModalEditar(sede: SedeItem): void {
     this.modoModal.set('editar');
     this.formData = {
-      ...sede,
-      tipoEstructura: sede.tipoEstructura || 'BLOQUES'
+      id: sede.id,
+      nombre: sede.nombre,
+      tipoEstructura: sede.tipoEstructura || 'BLOQUES',
+      zonaInicial: '',
+      estado: sede.estado
     };
     this.modalAbierto.set(true);
   }
@@ -105,7 +100,7 @@ export class GestionSedes {
     }
 
     const tipoEstructura: TipoEstructuraApi = this.formData.tipoEstructura || 'BLOQUES';
-    const zonaInicial = this.formData.direccion.trim() || 'Bloque Principal';
+    const zonaInicial = (this.formData.zonaInicial || '').trim();
 
     if (this.modoModal() === 'crear') {
       if (this.api && this.api.baseUrl) {
@@ -116,15 +111,7 @@ export class GestionSedes {
           })
           .pipe(
             switchMap((sedeCreada) => {
-              this.espaciosService.guardarMetaSede(sedeCreada.id, {
-                codigo: this.formData.codigo.trim().toUpperCase(),
-                ciudad: this.formData.ciudad,
-                direccion: this.formData.direccion.trim(),
-                telefono: this.formData.telefono.trim(),
-                coordinador: this.formData.coordinador.trim(),
-                capacidadAulas: Number(this.formData.capacidadAulas || 0)
-              });
-              if (sedeCreada.tipoEstructura !== 'SALONES' && zonaInicial.length >= 2) {
+              if (sedeCreada?.id && zonaInicial.length >= 2) {
                 return this.api!
                   .crearZona({
                     sedeId: sedeCreada.id,
@@ -142,22 +129,23 @@ export class GestionSedes {
               this.mostrarNotificacion('¡Sede institucional registrada exitosamente en la base de datos!');
             },
             error: (err) => {
-              alert(this.api!.extraerMensajeError(err, 'No se pudo registrar la sede en el servidor.'));
+              alert(this.api!.extraerMensajeError(err, 'No se pudo registrar la sede en la base de datos.'));
             }
           });
       } else {
-        this.sedes.update(lista => [
+        this.espaciosService.sedes.update(lista => [
           ...lista,
           {
-            ...this.formData,
             id: Date.now(),
-            codigo: this.formData.codigo.trim().toUpperCase(),
             nombre: nombreLimpio,
-            tipoEstructura
+            tipoEstructura,
+            estado: 'Activa',
+            totalZonas: zonaInicial ? 1 : 0,
+            totalRecursos: 0
           }
         ]);
         this.cerrarModal();
-        this.mostrarNotificacion('¡Sede institucional registrada exitosamente!');
+        this.mostrarNotificacion('¡Sede registrada exitosamente!');
       }
     } else {
       if (this.api && this.api.baseUrl) {
@@ -167,29 +155,25 @@ export class GestionSedes {
             tipoEstructura
           })
           .subscribe({
-            next: (sedeAct) => {
-              this.espaciosService.guardarMetaSede(sedeAct?.id || this.formData.id, {
-                codigo: this.formData.codigo.trim().toUpperCase(),
-                ciudad: this.formData.ciudad,
-                direccion: this.formData.direccion.trim(),
-                telefono: this.formData.telefono.trim(),
-                coordinador: this.formData.coordinador.trim(),
-                capacidadAulas: Number(this.formData.capacidadAulas || 0)
-              });
+            next: () => {
               this.espaciosService.sincronizarDesdeBackend();
               this.cerrarModal();
-              this.mostrarNotificacion(`¡Sede ${nombreLimpio} actualizada correctamente!`);
+              this.mostrarNotificacion('¡Información de la sede actualizada correctamente!');
             },
             error: (err) => {
-              alert(this.api!.extraerMensajeError(err, 'No se pudo actualizar la sede en el servidor.'));
+              alert(this.api!.extraerMensajeError(err, 'No se pudo actualizar la sede en la base de datos.'));
             }
           });
       } else {
-        this.sedes.update(lista =>
-          lista.map(s => (s.id === this.formData.id ? { ...this.formData } : s))
+        this.espaciosService.sedes.update(lista =>
+          lista.map(s =>
+            s.id === this.formData.id
+              ? { ...s, nombre: nombreLimpio, tipoEstructura }
+              : s
+          )
         );
         this.cerrarModal();
-        this.mostrarNotificacion(`¡Sede ${nombreLimpio} actualizada correctamente!`);
+        this.mostrarNotificacion('¡Sede actualizada correctamente!');
       }
     }
   }
@@ -208,36 +192,43 @@ export class GestionSedes {
     const sede = this.sedeAEliminar();
     if (!sede) return;
 
-    const nuevoEstado = sede.estado === 'Inactiva' ? 'Activa' : 'Inactiva';
-    this.sedes.update(lista =>
-      lista.map(s => (s.id === sede.id ? { ...s, estado: nuevoEstado } : s))
-    );
-
     if (this.api && this.api.baseUrl) {
-      if (nuevoEstado === 'Activa') {
-        this.api.activarSede(sede.id).subscribe({
-          next: () => this.espaciosService.sincronizarDesdeBackend(),
-          error: () => {}
-        });
-      } else {
-        this.api.desactivarSede(sede.id).subscribe({
-          next: () => this.espaciosService.sincronizarDesdeBackend(),
-          error: () => {}
-        });
-      }
-    }
+      const nuevoEstadoActivo = sede.estado === 'Inactiva';
+      const operacion$: Observable<unknown> = nuevoEstadoActivo
+        ? this.api.activarSede(sede.id)
+        : this.api.desactivarSede(sede.id);
 
-    this.cerrarModalEliminar();
-    this.mostrarNotificacion(
-      `Estado de la sede "${sede.nombre}" actualizado a "${nuevoEstado}".`
-    );
+      operacion$.subscribe({
+        next: () => {
+          this.espaciosService.sincronizarDesdeBackend();
+          this.cerrarModalEliminar();
+          this.mostrarNotificacion(
+            `Sede "${sede.nombre}" ${nuevoEstadoActivo ? 'activada' : 'inactivada'} correctamente.`
+          );
+        },
+        error: (err: any) => {
+          alert(this.api!.extraerMensajeError(err, 'No se pudo actualizar el estado de la sede.'));
+        }
+      });
+    } else {
+      this.espaciosService.sedes.update(lista =>
+        lista.map(s =>
+          s.id === sede.id
+            ? { ...s, estado: s.estado === 'Activa' ? 'Inactiva' : 'Activa' }
+            : s
+        )
+      );
+      this.cerrarModalEliminar();
+      this.mostrarNotificacion(
+        `Estado de la sede "${sede.nombre}" actualizado correctamente.`
+      );
+    }
   }
 
-  mostrarNotificacion(msg: string): void {
-    this.mensajeFeedback.set(msg);
+  private mostrarNotificacion(mensaje: string): void {
+    this.mensajeFeedback.set(mensaje);
     setTimeout(() => {
       this.mensajeFeedback.set(null);
-    }, 4000);
+    }, 3500);
   }
 }
-

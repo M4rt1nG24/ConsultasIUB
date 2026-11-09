@@ -24,28 +24,66 @@ export class CrearConsulta {
   cursosDisponibles = this.dataService.cursos;
   asignatura = '';
   asignaturaSignal = signal<string>('');
+  docenteId = signal<number>(0);
 
-  docentesDisponibles = computed(() => {
+  docentesDisponiblesPorCurso = computed(() => {
     const asig = (this.asignaturaSignal() || this.asignatura || '').toLowerCase().trim();
     const curso = this.cursosDisponibles().find(c => c.asignatura.toLowerCase().trim() === asig);
-    const nombres = new Set<string>();
+    const mapa = new Map<number, { id: number; nombre: string; correo: string }>();
 
-    if (curso?.docente && curso.docente !== 'Sin docente asignado') {
-      nombres.add(curso.docente.trim());
-    }
+    // 1. Docentes asignados al curso específico (docentes_modulos)
     if (curso?.docentesAsignados && curso.docentesAsignados.length > 0) {
       for (const d of curso.docentesAsignados) {
-        const completo = `${d.nombre} ${d.apellido || ''}`.trim();
-        if (completo) nombres.add(completo);
+        if (d.id) {
+          const uDoc = this.dataService.usuarios().find(u => u.id === d.id);
+          mapa.set(d.id, {
+            id: d.id,
+            nombre: `${d.nombre} ${d.apellido || ''}`.trim(),
+            correo: uDoc?.email || d.correo || ''
+          });
+        }
       }
     }
-    for (const d of this.dataService.docentesDisponibles()) {
-      if (d && d.trim()) nombres.add(d.trim());
+
+    // 2. Si el curso tiene un docenteId principal asociado
+    if (curso?.docenteId && !mapa.has(curso.docenteId)) {
+      const uDoc = this.dataService.usuarios().find(u => u.id === curso.docenteId);
+      if (uDoc) {
+        mapa.set(uDoc.id, {
+          id: uDoc.id,
+          nombre: `${uDoc.nombre} ${uDoc.apellido || ''}`.trim(),
+          correo: uDoc.email || ''
+        });
+      }
     }
-    return Array.from(nombres);
+
+    // 3. Todos los demás docentes activos del sistema
+    const docentesUsuarios = this.dataService.usuarios().filter(u => u.rol === 'DOCENTE');
+    for (const u of docentesUsuarios) {
+      if (u.id && !mapa.has(u.id)) {
+        mapa.set(u.id, {
+          id: u.id,
+          nombre: `${u.nombre} ${u.apellido || ''}`.trim(),
+          correo: u.email || ''
+        });
+      }
+    }
+
+    return Array.from(mapa.values());
   });
+
+  docentesDisponibles = computed(() => {
+    return this.docentesDisponiblesPorCurso().map(d => d.nombre);
+  });
+
+  docenteNombreConfirmado = computed(() => {
+    const id = Number(this.docenteId());
+    const doc = this.docentesDisponiblesPorCurso().find(d => d.id === id);
+    return doc?.nombre || this.docente || 'Docente Tutor Asignado';
+  });
+
   sedesDisponibles = computed(() => this.espaciosService.obtenerSedesActivas());
-  docente = 'Asignación Automática (Recomendado)';
+  docente = '';
   prioridad: 'Alta' | 'Media' | 'Baja' = 'Media';
   modalidad = signal<string>('Presencial');
   sedeSeleccionada = signal<string>('');
@@ -133,6 +171,9 @@ export class CrearConsulta {
   ubicacionConfirmada = signal<string>('');
 
   constructor() {
+    if (this.cursosDisponibles().length === 0 || this.dataService.usuarios().length === 0) {
+      this.dataService.sincronizarDesdeBackend();
+    }
     if (this.espaciosService.sedes().length === 0) {
       this.espaciosService.sincronizarDesdeBackend();
     }
@@ -160,6 +201,15 @@ export class CrearConsulta {
         this.espacioSeleccionadoId.set(primeroDisponible.id);
       }
     });
+
+    effect(() => {
+      const disponibles = this.docentesDisponiblesPorCurso();
+      const actualId = Number(this.docenteId());
+      if (disponibles.length > 0 && (!actualId || !disponibles.some(d => d.id === actualId))) {
+        this.docenteId.set(disponibles[0].id);
+        this.docente = disponibles[0].nombre;
+      }
+    });
   }
 
   private obtenerMananaIso(): string {
@@ -180,6 +230,12 @@ export class CrearConsulta {
       return;
     }
 
+    const idDoc = Number(this.docenteId());
+    if (!idDoc || idDoc <= 0) {
+      alert('Por favor selecciona el docente tutor al que deseas enviar la solicitud de consulta.');
+      return;
+    }
+
     const estadoEspacio = this.verificacionDisponibilidad();
     if (this.modalidad() === 'Presencial' && !estadoEspacio.disponible) {
       alert(estadoEspacio.mensaje);
@@ -193,10 +249,18 @@ export class CrearConsulta {
         : `${this.sedeSeleccionada()} - ${esp?.nombre || ''}`;
 
     const horarioObj = this.horariosDisponibles.find(h => h.valor === this.horaConsulta());
+    const docObj = this.docentesDisponiblesPorCurso().find(d => d.id === idDoc);
+    const tutorFinal = docObj?.nombre || this.docente || 'Docente Tutor';
+
+    const cursoMatch = this.cursosDisponibles().find(
+      c => c.asignatura.toLowerCase().trim() === this.asignatura.toLowerCase().trim()
+    );
 
     const creada = this.dataService.crearConsulta({
       asignatura: this.asignatura,
-      tutor: this.docente,
+      tutor: tutorFinal,
+      docenteId: idDoc,
+      moduloId: cursoMatch?.id,
       modalidad: this.modalidad(),
       franja: horarioObj?.etiqueta || this.horaConsulta(),
       fecha: this.fechaConsulta(),

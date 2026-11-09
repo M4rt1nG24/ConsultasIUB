@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,7 +16,7 @@ import { StatusBadge } from '../../../shared/components/status-badge/status-badg
   styleUrl: './bandeja-asignadas.css',
   templateUrl: './bandeja-asignadas.html',
 })
-export class BandejaAsignadas {
+export class BandejaAsignadas implements OnInit {
   private router = inject(Router);
   private dataService = inject(Data);
 
@@ -25,6 +25,10 @@ export class BandejaAsignadas {
   filtroPrioridad = signal<string>('');
 
   solicitudes = this.dataService.consultas;
+
+  ngOnInit(): void {
+    this.dataService.sincronizarDesdeBackend();
+  }
 
   solicitudesFiltradas = computed(() => {
     const q = this.busqueda().toLowerCase().trim();
@@ -46,6 +50,10 @@ export class BandejaAsignadas {
       return coincideTexto && coincideEstado && coincidePrio;
     });
   });
+
+  irACrearConsulta(): void {
+    this.router.navigate(['/docente/crear-consulta']);
+  }
 
   atender(solicitud: ConsultaUnificada): void {
     this.dataService.seleccionarConsulta(solicitud.id);

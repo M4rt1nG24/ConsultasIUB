@@ -131,13 +131,14 @@ export class Auth {
         rutasActivas.has('/docente/asignadas')
       ) {
         agregarItem('Bandeja Asignadas', '/docente/asignadas', '📥', 1);
-        agregarItem('Atención de Consulta', '/docente/atencion', '✏️', 2);
+        agregarItem('Crear Consulta', '/docente/crear-consulta', '➕', 2);
+        agregarItem('Atención de Consulta', '/docente/atencion', '✏️', 3);
       }
       if (codigosActivos.has('CALIFICACIONES') || rutasActivas.has('/calificaciones') || rutasActivas.has('/docente/historial')) {
-        agregarItem('Historial de Tutorías', '/docente/historial', '📚', 3);
+        agregarItem('Historial de Tutorías', '/docente/historial', '📚', 4);
       }
       if (codigosActivos.has('DISPONIBILIDAD_DOCENTE') || rutasActivas.has('/disponibilidad-docente') || rutasActivas.has('/docente/disponibilidad')) {
-        agregarItem('Mi Disponibilidad', '/docente/disponibilidad', '🕒', 4);
+        agregarItem('Mi Disponibilidad', '/docente/disponibilidad', '🕒', 5);
       }
     } else if (rol === 'ESTUDIANTE') {
       if (
@@ -259,6 +260,8 @@ export class Auth {
 
         const usuarioRemoto: UsuarioSistema = {
           id: res.id_usuario,
+          tipoIdentificacion: 'CC',
+          identificacion: String(1045000000 + res.id_usuario),
           nombre: res.nombre,
           email: res.correo,
           rol: rolNormalizado,
@@ -281,6 +284,8 @@ export class Auth {
           localStorage.setItem('nombreUsuarioActivo', res.nombre);
           localStorage.setItem('idUsuarioActivo', String(res.id_usuario));
           localStorage.setItem(STORAGE_KEY_TOKEN, res.token);
+          localStorage.setItem('token', res.token);
+          localStorage.setItem('id_usuario', String(res.id_usuario));
           localStorage.setItem(STORAGE_KEY_MODULOS_DB, JSON.stringify(res.modulos || []));
         }
 
@@ -359,6 +364,8 @@ export class Auth {
       localStorage.removeItem('rolActivo');
       localStorage.removeItem('correoActivo');
       localStorage.removeItem('nombreUsuarioActivo');
+      localStorage.removeItem('token');
+      localStorage.removeItem('id_usuario');
       localStorage.removeItem('identificacionUsuarioActivo');
       localStorage.removeItem('idUsuarioActivo');
       localStorage.removeItem('iub_consultas_api_cache');

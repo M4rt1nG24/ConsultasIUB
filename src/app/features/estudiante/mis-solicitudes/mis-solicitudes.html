@@ -62,6 +62,13 @@
                             </div>
                         </td>
                     </tr>
+                    } @empty {
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 36px 16px; color: #64748b;">
+                            <div style="font-size: 1.15rem; font-weight: 600; margin-bottom: 6px;">📭 No tienes consultas registradas actualmente</div>
+                            <p style="margin: 0; font-size: 0.95rem;">Puedes solicitar una nueva tutoría con un docente pulsando en <strong>+ Nueva Consulta</strong>.</p>
+                        </td>
+                    </tr>
                     }
                 </tbody>
             </table>
@@ -137,11 +144,11 @@
                     </select>
                 </div>
                 <div class="form-group flex-1">
-                    <label>Docente / Tutor</label>
-                    <select class="form-control" [(ngModel)]="nuevoDocente">
-                        <option value="Asignación Automática (Recomendado)">Asignación Automática (Recomendado)</option>
-                        @for (d of docentesDisponibles(); track d) {
-                        <option [value]="d">{{ d }}</option>
+                    <label>Docente Tutor Destinatario *</label>
+                    <select class="form-control" [ngModel]="nuevoDocenteId()" (ngModelChange)="nuevoDocenteId.set(+$event)" required>
+                        <option [ngValue]="0" disabled>-- Seleccione el docente --</option>
+                        @for (d of docentesDisponiblesModal(); track d.id) {
+                        <option [ngValue]="d.id">{{ d.nombre }} {{ d.correo ? '(' + d.correo + ')' : '' }}</option>
                         }
                     </select>
                 </div>

@@ -115,8 +115,9 @@
         <div class="modal-body">
             <p><strong>Folio de Auditoría:</strong> {{ c.folioAuditoria }}</p>
             <p>La sesión académica de <strong>{{ temaTratado }}</strong> con el estudiante <strong>{{ c.estudiante }}</strong> ha sido radicada digitalmente con control de asistencia <strong>{{ asistenciaConfirmada ? 'Confirmada (1)' : 'Sin Asistencia (0)' }}</strong> y ya es visible para el estudiante.</p>
-            <div class="modal-footer">
-                <button type="button" class="btn-submit" (click)="confirmarSalida()">Volver a Bandeja</button>
+            <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn-cancel" (click)="confirmarSalida()">Volver a Bandeja</button>
+                <button type="button" class="btn-submit" (click)="irAHistorial()">Ver en Historial de Tutorías</button>
             </div>
         </div>
     </div>

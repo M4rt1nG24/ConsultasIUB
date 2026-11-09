@@ -17,17 +17,10 @@
 
     <!-- Barra de filtros interactiva -->
     <div class="filters-container">
-        <input
-            type="text"
-            placeholder="Buscar por nombre, correo institucional o programa..."
-            class="search-input"
-            [ngModel]="filtroTexto()"
-            (ngModelChange)="filtroTexto.set($event)" />
+        <input type="text" placeholder="Buscar por nombre, correo institucional o programa..." class="search-input"
+            [ngModel]="filtroTexto()" (ngModelChange)="filtroTexto.set($event)" />
 
-        <select
-            class="select-filter"
-            [ngModel]="filtroRol()"
-            (ngModelChange)="filtroRol.set($event)">
+        <select class="select-filter" [ngModel]="filtroRol()" (ngModelChange)="filtroRol.set($event)">
             <option value="">Todos los Roles</option>
             <option value="ADMIN">Administrador</option>
             <option value="DOCENTE">Docente</option>
@@ -41,6 +34,8 @@
             <table [appDataTable]="usuariosFiltrados()" class="display">
                 <thead>
                     <tr>
+                        <th>Tipo Doc.</th>
+                        <th>Identificación</th>
                         <th>Nombre Completo</th>
                         <th>Correo Institucional</th>
                         <th>Programa / Área</th>
@@ -52,12 +47,9 @@
                 <tbody>
                     @for (u of usuariosFiltrados(); track u.id) {
                     <tr>
-                        <td>
-                            <strong>{{ u.nombre }}</strong>
-                            @if (u.identificacion) {
-                            <br><small class="text-muted">{{ u.tipoDocumentoSigla || 'ID' }}: {{ u.identificacion }}</small>
-                            }
-                        </td>
+                        <td><strong>{{ u.tipoDocumentoSigla || u.tipoIdentificacion || 'CC' }}</strong></td>
+                        <td>{{ u.identificacion || 'N/A' }}</td>
+                        <td><strong>{{ u.nombre }}</strong></td>
                         <td>{{ u.email }}</td>
                         <td>{{ u.programa }}</td>
                         <td>
@@ -66,7 +58,8 @@
                             </span>
                         </td>
                         <td>
-                            <span class="badge-status" [ngClass]="u.estado === 'Activo' ? 'status-activo' : 'status-inactivo'">
+                            <span class="badge-status"
+                                [ngClass]="u.estado === 'Activo' ? 'status-activo' : 'status-inactivo'">
                                 {{ u.estado }}
                             </span>
                         </td>
@@ -143,13 +136,8 @@
 
             <div class="form-group">
                 <label>Correo Institucional *</label>
-                <input
-                    type="email"
-                    class="input-control"
-                    [(ngModel)]="formData.email"
-                    name="email"
-                    placeholder="usuario@unibarranquilla.edu.co"
-                    required />
+                <input type="email" class="input-control" [(ngModel)]="formData.email" name="email"
+                    placeholder="usuario@unibarranquilla.edu.co" required />
             </div>
 
             @if (modoModal() === 'crear') {

@@ -7,40 +7,40 @@
     }
 
     <app-page-header
-        badge="Módulo Administrador • Espacios por Sede"
-        titulo="🏫 Gestión de Salones de las Sedes"
-        subtitulo="Control de Salas de Informática, Laboratorios, Salones de Clase y Aulas de Tutoría asignados a cada sede IUB.">
-        <button class="btn-primary" type="button" (click)="abrirModalCrear()">+ Nuevo Salón / Sala</button>
+        badge="Módulo Administrador • Infraestructura"
+        titulo="🏫 Gestión de Espacios y Salones Físicos"
+        subtitulo="Administración de salones, laboratorios, salas y auditorios sincronizados 1:1 con la tabla 'recursos_fisicos' de la base de datos.">
+        <button class="btn-primary" type="button" (click)="abrirModalCrear()">+ Nuevo Espacio</button>
     </app-page-header>
 
-    <!-- KPIs por Tipo de Espacio -->
+    <!-- KPIs de Espacios (Sincronizados con la BD) -->
     <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon">💻</div>
-            <div>
-                <span class="stat-label">Salas de Informática</span>
-                <h3 class="stat-value">{{ totalSalasInformatica() }}</h3>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">🔬</div>
-            <div>
-                <span class="stat-label">Laboratorios Especializados</span>
-                <h3 class="stat-value">{{ totalLaboratorios() }}</h3>
-            </div>
-        </div>
         <div class="stat-card">
             <div class="stat-icon">🏫</div>
             <div>
-                <span class="stat-label">Salones de Clase y Tutoría</span>
-                <h3 class="stat-value">{{ totalSalonesClase() }}</h3>
+                <span class="stat-label">Total Espacios Registrados</span>
+                <h3 class="stat-value">{{ salones().length }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div>
+                <span class="stat-label">Espacios Disponibles</span>
+                <h3 class="stat-value text-success">{{ totalDisponibles() }}</h3>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🏢</div>
+            <div>
+                <span class="stat-label">Sedes con Espacios</span>
+                <h3 class="stat-value">{{ sedesConEspacios() }} Sedes</h3>
             </div>
         </div>
     </div>
 
-    <!-- Barra de Filtros Compartida -->
+    <!-- Barra de filtros -->
     <app-filter-bar
-        placeholder="Buscar por código, nombre de sala, bloque/piso o equipamiento..."
+        placeholder="Buscar por nombre de espacio, sede, tipo o zona..."
         [texto]="filtroTexto()"
         (textoChange)="filtroTexto.set($event)">
         <select
@@ -57,8 +57,8 @@
             class="select-filter"
             [ngModel]="filtroTipo()"
             (ngModelChange)="filtroTipo.set($event)">
-            <option value="">Todos los Tipos de Salón</option>
-            @for (tipo of tiposSalon; track tipo) {
+            <option value="">Todos los Tipos de Recurso</option>
+            @for (tipo of tiposRecurso; track tipo) {
             <option [value]="tipo">{{ tipo }}</option>
             }
         </select>
@@ -70,12 +70,11 @@
             <table [appDataTable]="salonesFiltrados()" class="display">
                 <thead>
                     <tr>
-                        <th>Código</th>
-                        <th>Nombre del Salón / Espacio</th>
-                        <th>Tipo de Espacio</th>
-                        <th>Sede Asignada</th>
-                        <th>Bloque / Piso</th>
-                        <th>Capacidad</th>
+                        <th>Nombre del Espacio / Salón</th>
+                        <th>Tipo de Recurso</th>
+                        <th>Sede Institucional</th>
+                        <th>Zona / Bloque / Piso</th>
+                        <th>Ubicación</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
@@ -83,17 +82,15 @@
                 <tbody>
                     @for (item of salonesFiltrados(); track item.id) {
                     <tr>
-                        <td><strong>{{ item.codigo }}</strong></td>
                         <td>
-                            <strong>{{ item.nombre }}</strong><br>
-                            <small class="text-muted">🛠️ {{ item.equipamiento }}</small>
+                            <strong>{{ item.nombre }}</strong>
                         </td>
                         <td>
                             <span class="badge-type">{{ item.tipo }}</span>
                         </td>
                         <td>{{ item.sedeNombre }}</td>
-                        <td>{{ item.bloquePiso }}</td>
-                        <td>{{ item.capacidad }} cupos</td>
+                        <td>{{ item.zonaNombre || 'Sin zona' }}</td>
+                        <td><small class="text-muted">{{ item.ubicacion }}</small></td>
                         <td>
                             <app-status-badge [estado]="item.estado"></app-status-badge>
                         </td>
@@ -113,103 +110,63 @@
     </div>
 </div>
 
-<!-- ==================== MODAL CREAR / EDITAR SALÓN DE SEDE ==================== -->
+<!-- ==================== MODAL CREAR / EDITAR SALÓN / RECURSO FÍSICO ==================== -->
 @if (modalAbierto()) {
 <div class="modal-backdrop">
     <div class="modal-dialog">
         <div class="modal-header">
-            <h3>{{ modoModal() === 'crear' ? '➕ Registrar Salón / Sala en Sede' : '✏️ Editar Salón de la Sede' }}</h3>
+            <h3>{{ modoModal() === 'crear' ? '➕ Registrar Espacio Físico (Recurso)' : '✏️ Editar Espacio Físico' }}</h3>
             <button class="btn-close" type="button" (click)="cerrarModal()">✕</button>
         </div>
 
         <form (ngSubmit)="guardarSalon()" class="modal-body">
-            <div class="form-row">
-                <div class="form-group flex-1">
-                    <label>Código del Salón *</label>
-                    <input
-                        type="text"
-                        class="input-control"
-                        [(ngModel)]="formData.codigo"
-                        name="codigo"
-                        placeholder="Ej. INF-101 / LAB-204 / SAL-302"
-                        required />
-                </div>
-                <div class="form-group flex-1">
-                    <label>Tipo de Salón / Espacio *</label>
-                    <select class="input-control" [(ngModel)]="formData.tipo" name="tipo">
-                        @for (tipo of tiposSalon; track tipo) {
-                        <option [value]="tipo">{{ tipo }}</option>
-                        }
-                    </select>
-                </div>
-            </div>
-
             <div class="form-group">
-                <label>Nombre del Salón, Laboratorio o Sala de Informática *</label>
+                <label>Nombre del Espacio o Salón *</label>
                 <input
                     type="text"
                     class="input-control"
                     [(ngModel)]="formData.nombre"
                     name="nombre"
-                    placeholder="Ej. Sala de Informática 10 / Laboratorio de Redes / Salón 302B"
+                    placeholder="Ej. Salón 201 / Laboratorio de Redes / Auditorio Principal"
+                    minlength="1"
+                    maxlength="100"
                     required />
             </div>
 
             <div class="form-row">
                 <div class="form-group flex-1">
-                    <label>Sede Institucional *</label>
-                    <select class="input-control" [(ngModel)]="formData.sedeNombre" name="sedeNombre">
+                    <label>Sede Institucional (FK 'sedes') *</label>
+                    <select class="input-control" [(ngModel)]="formData.sedeId" name="sedeId" required>
+                        <option [ngValue]="0">Seleccione sede...</option>
                         @for (sede of sedes(); track sede.id) {
-                        <option [value]="sede.nombre">{{ sede.nombre }}</option>
+                        <option [ngValue]="sede.id">{{ sede.nombre }}</option>
                         }
                     </select>
                 </div>
                 <div class="form-group flex-1">
-                    <label>Bloque y Piso *</label>
-                    <input
-                        type="text"
-                        class="input-control"
-                        [(ngModel)]="formData.bloquePiso"
-                        name="bloquePiso"
-                        placeholder="Ej. Bloque B - Piso 2" />
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group flex-1">
-                    <label>Capacidad (Estudiantes / Equipos)</label>
-                    <input
-                        type="number"
-                        min="1"
-                        class="input-control"
-                        [(ngModel)]="formData.capacidad"
-                        name="capacidad" />
-                </div>
-                <div class="form-group flex-1">
-                    <label>Estado Operativo *</label>
-                    <select class="input-control" [(ngModel)]="formData.estado" name="estado">
-                        <option value="Disponible">Disponible</option>
-                        <option value="Ocupado">Ocupado</option>
-                        <option value="En Mantenimiento">En Mantenimiento</option>
-                        <option value="Inactivo">Inactivo</option>
+                    <label>Zona / Bloque (FK 'zonas' - Opcional)</label>
+                    <select class="input-control" [(ngModel)]="formData.zonaId" name="zonaId">
+                        <option [ngValue]="null">Sin zona específica</option>
+                        @for (zona of zonasDeSedeSeleccionada(); track zona.id) {
+                        <option [ngValue]="zona.id">{{ zona.nombre }}</option>
+                        }
                     </select>
                 </div>
             </div>
 
             <div class="form-group">
-                <label>Equipamiento y Recursos del Salón</label>
-                <input
-                    type="text"
-                    class="input-control"
-                    [(ngModel)]="formData.equipamiento"
-                    name="equipamiento"
-                    placeholder="Ej. 30 PCs Core i7, Video Beam, Tablero Acrílico..." />
+                <label>Tipo de Recurso Físico (Enum BD) *</label>
+                <select class="input-control" [(ngModel)]="formData.tipo" name="tipo" required>
+                    @for (tipo of tiposRecurso; track tipo) {
+                    <option [value]="tipo">{{ tipo }}</option>
+                    }
+                </select>
             </div>
 
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
                 <button type="submit" class="btn-primary">
-                    {{ modoModal() === 'crear' ? 'Registrar Salón' : 'Guardar Cambios' }}
+                    {{ modoModal() === 'crear' ? 'Registrar Espacio' : 'Guardar Cambios' }}
                 </button>
             </div>
         </form>
@@ -220,10 +177,9 @@
 <!-- ==================== MODAL CONFIRMAR CAMBIO DE ESTADO ==================== -->
 <app-confirm-modal
     [abierto]="modalEliminarAbierto() && !!salonAEliminar()"
-    titulo="⚠️ Confirmar Cambio de Estado de Salón"
-    [mensaje]="'¿Deseas cambiar el estado de ' + (salonAEliminar()?.nombre || '') + ' (' + (salonAEliminar()?.codigo || '') + ') a ' + (salonAEliminar()?.estado === 'Inactivo' ? 'Disponible' : 'Inactivo') + '?'"
+    titulo="⚠️ Confirmar Cambio de Estado de Espacio"
+    [mensaje]="'¿Deseas cambiar el estado de ' + (salonAEliminar()?.nombre || '') + ' a ' + (salonAEliminar()?.estado === 'Inactivo' ? 'Disponible' : 'Inactivo') + '?'"
     textoConfirmar="Sí, Cambiar Estado"
     (confirmar)="eliminarSalon()"
     (cancelar)="cerrarModalEliminar()">
 </app-confirm-modal>
-
