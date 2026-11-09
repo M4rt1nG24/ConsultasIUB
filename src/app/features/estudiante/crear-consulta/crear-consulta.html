@@ -76,7 +76,7 @@
                     <select id="sede" class="form-control" [ngModel]="sedeSeleccionada()"
                         (ngModelChange)="cambiarSede($event)" name="sede">
                         @for (sede of sedesDisponibles(); track sede.id) {
-                        <option [value]="sede.nombre">{{ sede.nombre }} ({{ sede.ciudad }})</option>
+                        <option [value]="sede.nombre">{{ sede.nombre }}</option>
                         }
                     </select>
                 </div>

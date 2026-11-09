@@ -28,6 +28,16 @@ export interface MensajeInteraccion {
   adjuntos?: string[];
 }
 
+export type EstadoConsultaFront =
+  | 'Pendiente'
+  | 'Programada'
+  | 'En proceso'
+  | 'Completada'
+  | 'Resuelta'
+  | 'Cancelada'
+  | 'Rechazada'
+  | 'Inactiva';
+
 export interface ConsultaUnificada {
   id: number;
   radicado: string;
@@ -48,18 +58,18 @@ export interface ConsultaUnificada {
   horaConsulta?: string;
   fecha: string;
   franja: string;
-  modalidad: string;
+  modalidad?: string;
   ubicacion: string;
   recursoFisicoId?: number | null;
   prioridad: 'Alta' | 'Media' | 'Baja';
-  estado: 'Pendiente' | 'Programada' | 'En proceso' | 'Completada' | 'Resuelta' | 'Cancelada' | 'Inactiva';
-  tipoAtencion: string;
+  estado: EstadoConsultaFront;
+  tipoAtencion?: string;
   observaciones: string;
   retroalimentacionDocente?: string | null;
   calificacion?: CalificacionResumenSolicitudApi | null;
-  asistencia: number;
-  folioAuditoria: string;
-  reasignado: boolean;
+  asistencia?: number;
+  folioAuditoria?: string;
+  reasignado?: boolean;
   docenteSeleccionado?: string;
   mensajes: MensajeInteraccion[];
 }
@@ -712,11 +722,8 @@ export class Data {
       recursoFisicoId: datos.recursoFisicoId || null,
       prioridad: datos.prioridad || 'Media',
       estado: 'Pendiente',
-      tipoAtencion: 'Tutoría Individual',
       observaciones: 'Pendiente de revisión y respuesta del docente.',
       asistencia: 0,
-      folioAuditoria: `AUD-${new Date().getFullYear()}-${num}`,
-      reasignado: false,
       docenteSeleccionado: '',
       mensajes: [
         {
@@ -1620,8 +1627,9 @@ export class Data {
           const mapeadas: ConsultaUnificada[] = lista.map((s) => {
             let estadoLocal: ConsultaUnificada['estado'] = 'Pendiente';
             if (s.estado === 'EN_PROCESO') estadoLocal = 'En proceso';
-            else if (s.estado === 'RESUELTA') estadoLocal = 'Completada';
-            else if (s.estado === 'CANCELADA' || s.estado === 'RECHAZADA') estadoLocal = 'Cancelada';
+            else if (s.estado === 'RESUELTA') estadoLocal = 'Resuelta';
+            else if (s.estado === 'CANCELADA') estadoLocal = 'Cancelada';
+            else if (s.estado === 'RECHAZADA') estadoLocal = 'Rechazada';
 
             let prioridadLocal: ConsultaUnificada['prioridad'] = 'Media';
             if (s.prioridad === 'ALTA') prioridadLocal = 'Alta';
@@ -1679,11 +1687,13 @@ export class Data {
               : null;
             const observacionesIniciales =
               (metaRetro?.textoLimpio && metaRetro.textoLimpio.trim()) ||
-              (estadoLocal === 'Completada'
+              (estadoLocal === 'Resuelta'
                 ? 'Consulta atendida y resuelta por el docente.'
                 : estadoLocal === 'Cancelada'
                   ? 'Solicitud cancelada.'
-                  : 'Pendiente de revisión y respuesta del docente.');
+                  : estadoLocal === 'Rechazada'
+                    ? 'Solicitud rechazada por el docente.'
+                    : 'Pendiente de revisión y respuesta del docente.');
 
             return {
               id: s.id,
@@ -1710,17 +1720,16 @@ export class Data {
               recursoFisicoId: recursoId,
               prioridad: prioridadLocal,
               estado: estadoLocal,
-              tipoAtencion: metaRetro?.tipoAtencion || 'Tutoría Individual',
               observaciones: observacionesIniciales,
               retroalimentacionDocente: metaRetro?.textoLimpio || s.retroalimentacionDocente || null,
               calificacion: s.calificacion || null,
               asistencia:
                 metaRetro?.asistencia !== undefined
                   ? metaRetro.asistencia
-                  : estadoLocal === 'Completada'
+                  : estadoLocal === 'Resuelta'
                     ? 1
                     : 0,
-              folioAuditoria: `AUD-${s.numeroConsulta || s.id}`,
+              folioAuditoria: s.numeroConsulta || `CON-${s.id}`,
               reasignado: false,
               docenteSeleccionado: s.nombreCompletoDocente,
               mensajes: [

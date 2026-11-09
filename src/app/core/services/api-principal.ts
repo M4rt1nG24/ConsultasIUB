@@ -398,6 +398,8 @@ export interface RecursoFisicoResponseApi {
   tipo: TipoRecursoFisicoApi;
   ubicacion: string;
   estado: boolean;
+  nombreSede?: string | null;
+  nombreZona?: string | null;
 }
 
 export interface RegistroRecursoFisicoRequestApi {

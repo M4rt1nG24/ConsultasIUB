@@ -9,11 +9,11 @@
     <app-page-header
         badge="Módulo Administrador • Infraestructura"
         titulo="🏢 Gestión de Sedes Institucionales"
-        subtitulo="Administración de sedes físicas y campus virtuales de la Institución Universitaria de Barranquilla (IUB).">
+        subtitulo="Administración de sedes físicas registradas en la base de datos de la Institución Universitaria de Barranquilla (IUB).">
         <button class="btn-primary" type="button" (click)="abrirModalCrear()">+ Nueva Sede</button>
     </app-page-header>
 
-    <!-- KPIs de Sedes -->
+    <!-- KPIs de Sedes (Sincronizados con la BD) -->
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-icon">🏢</div>
@@ -32,15 +32,15 @@
         <div class="stat-card">
             <div class="stat-icon">🚪</div>
             <div>
-                <span class="stat-label">Capacidad Total de Espacios</span>
-                <h3 class="stat-value">{{ totalAulas() }} Salones</h3>
+                <span class="stat-label">Espacios Físicos Vinculados</span>
+                <h3 class="stat-value">{{ totalEspacios() }} Espacios</h3>
             </div>
         </div>
     </div>
 
-    <!-- Barra de filtros compartida -->
+    <!-- Barra de filtros -->
     <app-filter-bar
-        placeholder="Buscar sede por código, nombre, ciudad, dirección o coordinador..."
+        placeholder="Buscar sede por nombre o tipo de estructura..."
         [texto]="filtroTexto()"
         (textoChange)="filtroTexto.set($event)">
         <select
@@ -49,7 +49,6 @@
             (ngModelChange)="filtroEstado.set($event)">
             <option value="">Todos los Estados</option>
             <option value="Activa">Activa</option>
-            <option value="En Mantenimiento">En Mantenimiento</option>
             <option value="Inactiva">Inactiva</option>
         </select>
     </app-filter-bar>
@@ -60,12 +59,10 @@
             <table [appDataTable]="sedesFiltradas()" class="display">
                 <thead>
                     <tr>
-                        <th>Código</th>
                         <th>Nombre de la Sede</th>
-                        <th>Ciudad</th>
-                        <th>Dirección / Ubicación</th>
-                        <th>Coordinador Encargado</th>
-                        <th>Capacidad</th>
+                        <th>Tipo de Estructura</th>
+                        <th>Zonas / Bloques</th>
+                        <th>Espacios Físicos</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
@@ -73,15 +70,12 @@
                 <tbody>
                     @for (s of sedesFiltradas(); track s.id) {
                     <tr>
-                        <td><strong>{{ s.codigo }}</strong></td>
+                        <td><strong>{{ s.nombre }}</strong></td>
                         <td>
-                            <strong>{{ s.nombre }}</strong><br>
-                            <small class="text-muted">📞 {{ s.telefono }}</small>
+                            <span class="badge-type">{{ s.tipoEstructura }}</span>
                         </td>
-                        <td>{{ s.ciudad }}</td>
-                        <td>{{ s.direccion }}</td>
-                        <td>{{ s.coordinador }}</td>
-                        <td>{{ s.capacidadAulas }} salones</td>
+                        <td>{{ s.totalZonas }} zona(s)</td>
+                        <td>{{ s.totalRecursos }} espacio(s)</td>
                         <td>
                             <app-status-badge [estado]="s.estado"></app-status-badge>
                         </td>
@@ -111,29 +105,6 @@
         </div>
 
         <form (ngSubmit)="guardarSede()" class="modal-body">
-            <div class="form-row">
-                <div class="form-group flex-1">
-                    <label>Código de Sede *</label>
-                    <input
-                        type="text"
-                        class="input-control"
-                        [(ngModel)]="formData.codigo"
-                        name="codigo"
-                        placeholder="Ej. SED-BAQ-01"
-                        required />
-                </div>
-                <div class="form-group flex-1">
-                    <label>Ciudad / Municipio *</label>
-                    <select class="input-control" [(ngModel)]="formData.ciudad" name="ciudad">
-                        <option value="Barranquilla">Barranquilla</option>
-                        <option value="Soledad">Soledad</option>
-                        <option value="Malambo">Malambo</option>
-                        <option value="Puerto Colombia">Puerto Colombia</option>
-                        <option value="Barranquilla / Remoto">Barranquilla / Remoto</option>
-                    </select>
-                </div>
-            </div>
-
             <div class="form-group">
                 <label>Nombre Oficial de la Sede *</label>
                 <input
@@ -141,71 +112,34 @@
                     class="input-control"
                     [(ngModel)]="formData.nombre"
                     name="nombre"
-                    placeholder="Ej. Sede Plaza de la Paz"
+                    placeholder="Ej. Sede Soledad / Sede Plaza de la Paz"
+                    minlength="3"
+                    maxlength="100"
                     required />
             </div>
 
-            <div class="form-row">
-                <div class="form-group flex-1">
-                    <label>Tipo de Estructura (API) *</label>
-                    <select class="input-control" [(ngModel)]="formData.tipoEstructura" name="tipoEstructura">
-                        <option value="BLOQUES">Por Bloques (BLOQUES)</option>
-                        <option value="PISOS">Por Pisos (PISOS)</option>
-                        <option value="SALONES">Salones Directos (SALONES)</option>
-                    </select>
-                </div>
-                <div class="form-group flex-1">
-                    <label>Zona Inicial / Dirección *</label>
-                    <input
-                        type="text"
-                        class="input-control"
-                        [(ngModel)]="formData.direccion"
-                        name="direccion"
-                        placeholder="Ej. Bloque A / Piso 1"
-                        required />
-                </div>
+            <div class="form-group">
+                <label>Tipo de Estructura (Tabla 'sedes') *</label>
+                <select class="input-control" [(ngModel)]="formData.tipoEstructura" name="tipoEstructura">
+                    <option value="BLOQUES">Distribución por Bloques (BLOQUES)</option>
+                    <option value="PISOS">Distribución por Pisos (PISOS)</option>
+                    <option value="SALONES">Salones Directos (SALONES)</option>
+                </select>
             </div>
 
-            <div class="form-row">
-                <div class="form-group flex-1">
-                    <label>Teléfono / PBX</label>
-                    <input
-                        type="text"
-                        class="input-control"
-                        [(ngModel)]="formData.telefono"
-                        name="telefono"
-                        placeholder="(605) 385 5050" />
-                </div>
-                <div class="form-group flex-1">
-                    <label>Capacidad de Salones</label>
-                    <input
-                        type="number"
-                        min="1"
-                        class="input-control"
-                        [(ngModel)]="formData.capacidadAulas"
-                        name="capacidadAulas" />
-                </div>
+            @if (modoModal() === 'crear') {
+            <div class="form-group">
+                <label>Zona o Bloque Inicial (Tabla 'zonas' - Opcional)</label>
+                <input
+                    type="text"
+                    class="input-control"
+                    [(ngModel)]="formData.zonaInicial"
+                    name="zonaInicial"
+                    placeholder="Ej. Bloque A / Piso 1 / Aula Magna"
+                    maxlength="100" />
+                <small class="text-muted">Si se especifica, se creará automáticamente en la tabla <code>zonas</code> vinculada a esta sede.</small>
             </div>
-
-            <div class="form-row">
-                <div class="form-group flex-1">
-                    <label>Coordinador de Sede</label>
-                    <input
-                        type="text"
-                        class="input-control"
-                        [(ngModel)]="formData.coordinador"
-                        name="coordinador"
-                        placeholder="Ej. Ing. Roberto Pineda" />
-                </div>
-                <div class="form-group flex-1">
-                    <label>Estado Operativo *</label>
-                    <select class="input-control" [(ngModel)]="formData.estado" name="estado">
-                        <option value="Activa">Activa</option>
-                        <option value="En Mantenimiento">En Mantenimiento</option>
-                        <option value="Inactiva">Inactiva</option>
-                    </select>
-                </div>
-            </div>
+            }
 
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
@@ -222,9 +156,8 @@
 <app-confirm-modal
     [abierto]="modalEliminarAbierto() && !!sedeAEliminar()"
     titulo="⚠️ Confirmar Cambio de Estado de Sede"
-    [mensaje]="'¿Deseas cambiar el estado de la sede ' + (sedeAEliminar()?.nombre || '') + ' (' + (sedeAEliminar()?.codigo || '') + ') a ' + (sedeAEliminar()?.estado === 'Inactiva' ? 'Activa' : 'Inactiva') + '?'"
+    [mensaje]="'¿Deseas cambiar el estado de la sede ' + (sedeAEliminar()?.nombre || '') + ' a ' + (sedeAEliminar()?.estado === 'Inactiva' ? 'Activa' : 'Inactiva') + '?'"
     textoConfirmar="Sí, Cambiar Estado"
     (confirmar)="eliminarSede()"
     (cancelar)="cerrarModalEliminar()">
 </app-confirm-modal>
-

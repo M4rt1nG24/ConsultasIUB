@@ -5,48 +5,42 @@ import {
   RecursoFisicoResponseApi,
   SedeResponseApi,
   TipoEstructuraApi,
+  TipoRecursoFisicoApi,
   ZonaResponseApi
 } from './api-principal';
 
+/**
+ * Modelo de Sede institucional sincronizado 1:1 con la tabla 'sedes' de PostgreSQL.
+ * Columnas: id, nombre, tipo_estructura (BLOQUES, SALONES, PISOS), estado.
+ */
 export interface SedeItem {
   id: number;
-  codigo: string;
   nombre: string;
-  tipoEstructura?: TipoEstructuraApi;
-  ciudad: string;
-  direccion: string;
-  telefono: string;
-  coordinador: string;
-  capacidadAulas: number;
-  estado: 'Activa' | 'En Mantenimiento' | 'Inactiva';
+  tipoEstructura: TipoEstructuraApi;
+  estado: 'Activa' | 'Inactiva';
+  totalZonas: number;
+  totalRecursos: number;
 }
 
-export type TipoSalon =
-  | 'Sala de Informática'
-  | 'Laboratorio'
-  | 'Salón de Clase'
-  | 'Aula de Tutoría'
-  | 'Auditorio'
-  | 'Sala Virtual';
-
+/**
+ * Modelo de Espacio Físico (Salón/Laboratorio) sincronizado 1:1 con la tabla 'recursos_fisicos' de PostgreSQL.
+ * Columnas: id, sede_id, zona_id, nombre, tipo (SALON, LABORATORIO, AUDITORIO, SALA, OFICINA), estado.
+ */
 export interface SalonSedeItem {
   id: number;
-  sedeId?: number;
-  zonaId?: number | null;
-  codigo: string;
-  nombre: string;
-  tipo: TipoSalon;
+  sedeId: number;
   sedeNombre: string;
-  bloquePiso: string;
-  capacidad: number;
-  equipamiento: string;
-  estado: 'Disponible' | 'Ocupado' | 'En Mantenimiento' | 'Inactivo';
+  zonaId?: number | null;
+  zonaNombre?: string;
+  bloquePiso?: string;
+  nombre: string;
+  tipo: TipoRecursoFisicoApi;
+  ubicacion: string;
+  estado: 'Disponible' | 'Inactivo';
 }
 
 const STORAGE_KEY_SEDES = 'iub_sedes_api_cache';
 const STORAGE_KEY_SALONES = 'iub_salones_api_cache';
-const STORAGE_KEY_META_SEDES = 'iub_meta_sedes_v1';
-const STORAGE_KEY_META_SALONES = 'iub_meta_salones_v1';
 
 @Injectable({
   providedIn: 'root'
@@ -85,52 +79,6 @@ export class EspaciosAux {
     }
   }
 
-  guardarMetaSede(id: number, meta: Partial<SedeItem>): void {
-    try {
-      if (typeof localStorage === 'undefined' || !id) return;
-      const raw = localStorage.getItem(STORAGE_KEY_META_SEDES);
-      const mapa = raw ? JSON.parse(raw) : {};
-      mapa[String(id)] = { ...(mapa[String(id)] || {}), ...meta };
-      localStorage.setItem(STORAGE_KEY_META_SEDES, JSON.stringify(mapa));
-    } catch {
-      // Ignorar errores de storage
-    }
-  }
-
-  private obtenerMetaSede(id: number): Partial<SedeItem> | null {
-    try {
-      if (typeof localStorage === 'undefined') return null;
-      const raw = localStorage.getItem(STORAGE_KEY_META_SEDES);
-      if (!raw) return null;
-      return JSON.parse(raw)[String(id)] || null;
-    } catch {
-      return null;
-    }
-  }
-
-  guardarMetaSalon(id: number, meta: Partial<SalonSedeItem>): void {
-    try {
-      if (typeof localStorage === 'undefined' || !id) return;
-      const raw = localStorage.getItem(STORAGE_KEY_META_SALONES);
-      const mapa = raw ? JSON.parse(raw) : {};
-      mapa[String(id)] = { ...(mapa[String(id)] || {}), ...meta };
-      localStorage.setItem(STORAGE_KEY_META_SALONES, JSON.stringify(mapa));
-    } catch {
-      // Ignorar errores de storage
-    }
-  }
-
-  private obtenerMetaSalon(id: number): Partial<SalonSedeItem> | null {
-    try {
-      if (typeof localStorage === 'undefined') return null;
-      const raw = localStorage.getItem(STORAGE_KEY_META_SALONES);
-      if (!raw) return null;
-      return JSON.parse(raw)[String(id)] || null;
-    } catch {
-      return null;
-    }
-  }
-
   /**
    * Obtiene las sedes activas disponibles para agendar tutorías
    */
@@ -142,24 +90,19 @@ export class EspaciosAux {
    * Obtiene los espacios/salones pertenecientes a una sede específica
    */
   obtenerEspaciosPorSede(sedeNombreOId: string | number): SalonSedeItem[] {
-    const todos = this.salones().filter(
-      s => s.estado !== 'Inactivo' && s.estado !== 'En Mantenimiento'
-    );
+    const todos = this.salones().filter(s => s.estado === 'Disponible');
     if (!sedeNombreOId) return todos;
 
     if (typeof sedeNombreOId === 'number') {
       return todos.filter(s => s.sedeId === sedeNombreOId);
     }
-    const nombreLimpio = sedeNombreOId.toLowerCase().trim();
+    const nombreLimpio = String(sedeNombreOId).toLowerCase().trim();
     return todos.filter(s => s.sedeNombre.toLowerCase().trim() === nombreLimpio);
   }
 
   /**
-   * Sincroniza sedes (/sedes), zonas (/zonas) y recursos físicos (/recursos-fisicos).
-   * Si el usuario es ADMIN solicita incluirInactivos=true; si es ESTUDIANTE/DOCENTE
-   * solicita incluirInactivos=false, y si el endpoint restringe por rol (403),
-   * utiliza la caché sincronizada o el catálogo institucional para que el estudiante
-   * siempre pueda elegir sede y salón disponible.
+   * Sincroniza sedes (/sedes), zonas (/zonas) y recursos físicos (/recursos-fisicos)
+   * directamente desde PostgreSQL vía FastAPI.
    */
   sincronizarDesdeBackend(): void {
     if (!this.api || !this.api.baseUrl || !this.api.tieneTokenActivo()) return;
@@ -194,28 +137,14 @@ export class EspaciosAux {
       const sedesMapeadas: SedeItem[] = listaSedes.map((s) => {
         const zonasSede = listaZonas.filter((z) => z.sedeId === s.id);
         const recursosSede = listaRecursos.filter((r) => r.sedeId === s.id);
-        const nombresZonas = zonasSede.map((z) => z.nombre).join(', ');
-        const meta = this.obtenerMetaSede(s.id);
 
         return {
           id: s.id,
-          codigo: meta?.codigo || `SED-${String(s.id).padStart(2, '0')}`,
           nombre: s.nombre,
           tipoEstructura: s.tipoEstructura,
-          ciudad:
-            meta?.ciudad ||
-            (s.nombre.toLowerCase().includes('soledad') ? 'Soledad' : 'Barranquilla'),
-          direccion:
-            meta?.direccion ||
-            (nombresZonas ? `${nombresZonas}` : `Estructura por ${s.tipoEstructura}`),
-          telefono: meta?.telefono || `(605) 385 5050`,
-          coordinador:
-            meta?.coordinador || `${zonasSede.length} zona(s) configurada(s)`,
-          capacidadAulas:
-            recursosSede.length > 0
-              ? recursosSede.length
-              : Number(meta?.capacidadAulas || 0),
-          estado: s.estado ? 'Activa' : 'Inactiva'
+          estado: s.estado ? 'Activa' : 'Inactiva',
+          totalZonas: zonasSede.length,
+          totalRecursos: recursosSede.length
         };
       });
 
@@ -229,30 +158,19 @@ export class EspaciosAux {
       const salonesMapeados: SalonSedeItem[] = listaRecursos.map((r) => {
         const sedeObj = listaSedes.find((s) => s.id === r.sedeId);
         const zonaObj = listaZonas.find((z) => z.id === r.zonaId);
-        const meta = this.obtenerMetaSalon(r.id);
-
-        let tipoLocal: TipoSalon = meta?.tipo || 'Salón de Clase';
-        if (!meta?.tipo) {
-          if (r.tipo === 'LABORATORIO') tipoLocal = 'Laboratorio';
-          else if (r.tipo === 'SALA') tipoLocal = 'Sala de Informática';
-          else if (r.tipo === 'OFICINA') tipoLocal = 'Aula de Tutoría';
-          else if (r.tipo === 'AUDITORIO') tipoLocal = 'Auditorio';
-        }
+        const nombreZonaResuelta =
+          r.nombreZona || (zonaObj ? zonaObj.nombre : (r.zonaId ? `Zona ${r.zonaId}` : 'Sin zona asignada'));
 
         return {
           id: r.id,
           sedeId: r.sedeId,
           zonaId: r.zonaId,
-          codigo: meta?.codigo || `${r.tipo.substring(0, 3)}-${String(r.id).padStart(2, '0')}`,
           nombre: r.nombre,
-          tipo: tipoLocal,
-          sedeNombre: sedeObj ? sedeObj.nombre : meta?.sedeNombre || 'Sede Institucional',
-          bloquePiso:
-            meta?.bloquePiso || zonaObj?.nombre || r.ubicacion || 'Ubicación Principal',
-          capacidad: Number(meta?.capacidad || 30),
-          equipamiento:
-            meta?.equipamiento ||
-            `Tipo: ${r.tipo}${zonaObj ? ' • Zona: ' + zonaObj.nombre : ''}`,
+          tipo: r.tipo,
+          sedeNombre: r.nombreSede || (sedeObj ? sedeObj.nombre : 'Sede Institucional'),
+          zonaNombre: nombreZonaResuelta,
+          bloquePiso: nombreZonaResuelta,
+          ubicacion: r.ubicacion || `${sedeObj?.nombre || 'Sede'} - ${r.nombre}`,
           estado: r.estado ? 'Disponible' : 'Inactivo'
         };
       });
