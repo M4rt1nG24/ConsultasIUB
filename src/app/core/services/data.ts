@@ -801,17 +801,12 @@ export class Data {
         .subscribe({
           next: (creadaRemota) => vincularEspacioYRefrescar(creadaRemota),
           error: (errInicial) => {
-            if (errInicial?.status === 503) {
-              console.warn(
-                'El servidor en Render devolvió 503 al validar festivos en el microservicio externo. La tutoría se mantiene guardada y programada en el sistema.'
-              );
-              alert(
-                'Nota del sistema: El servicio de verificación de festivos externo no está disponible temporalmente (503). Tu solicitud de tutoría ha quedado agendada y registrada exitosamente en el sistema.'
-              );
-              return;
-            }
-            // Mantener SIEMPRE el docenteId elegido por el estudiante para que aparezca en el perfil de ese docente.
-            // Si el backend rechazó por horario de disponibilidad_docente o porque el docente está vinculado a otro módulo:
+            console.warn(
+              'Aviso inicial al registrar solicitud en API:',
+              errInicial?.status,
+              'Intentando ajustar horario con disponibilidad activa del docente...'
+            );
+            // Si el backend rechazó por horario de disponibilidad_docente, modulo vinculado o validación:
             this.api!
               .listarDisponibilidadDocente(docenteId, false)
               .pipe(catchError(() => of([] as DisponibilidadResponseApi[])))
@@ -841,7 +836,7 @@ export class Data {
                   .subscribe({
                     next: (creadaRemota) => vincularEspacioYRefrescar(creadaRemota),
                     error: (errRetryDocente) => {
-                      // Último recurso si el docente aún no tenía ningún módulo en BD
+                      // Intentar con docente alterno asignado al módulo si el titular no pudo vincularse
                       this.api?.listarDocentesPorModulo(moduloIdPreferido).subscribe({
                         next: (docentesModulo) => {
                           const docAlterno = docentesModulo?.[0]?.id;
@@ -869,34 +864,44 @@ export class Data {
                                   .subscribe({
                                     next: (creadaRemota) => vincularEspacioYRefrescar(creadaRemota),
                                     error: () => {
-                                      this.consultas.update(lista => lista.filter(c => c.id !== nueva.id));
-                                      alert(
-                                        this.api!.extraerMensajeError(
-                                          errRetryDocente,
-                                          'No se pudo registrar la consulta en la base de datos.'
-                                        )
-                                      );
+                                      // Encolar para sincronizar en BD tan pronto el servicio esté disponible
+                                      this.encolarSolicitudPendienteBD({
+                                        localId: nueva.id,
+                                        prioridad: prioridadApi,
+                                        asunto: asuntoSeguro,
+                                        descripcion: descripcionParaApi,
+                                        fechaConsulta: slotAlt.fecha,
+                                        horaConsulta: slotAlt.hora,
+                                        docenteId: docAlterno,
+                                        moduloId: moduloIdPreferido
+                                      });
                                     }
                                   });
                               });
                           } else {
-                            this.consultas.update(lista => lista.filter(c => c.id !== nueva.id));
-                            alert(
-                              this.api!.extraerMensajeError(
-                                errInicial,
-                                'No se pudo registrar la consulta en la base de datos.'
-                              )
-                            );
+                            this.encolarSolicitudPendienteBD({
+                              localId: nueva.id,
+                              prioridad: prioridadApi,
+                              asunto: asuntoSeguro,
+                              descripcion: descripcionParaApi,
+                              fechaConsulta: slotValido.fecha,
+                              horaConsulta: slotValido.hora,
+                              docenteId,
+                              moduloId: moduloValido
+                            });
                           }
                         },
                         error: () => {
-                          this.consultas.update(lista => lista.filter(c => c.id !== nueva.id));
-                          alert(
-                            this.api!.extraerMensajeError(
-                              errInicial,
-                              'No se pudo registrar la consulta en la base de datos.'
-                            )
-                          );
+                          this.encolarSolicitudPendienteBD({
+                            localId: nueva.id,
+                            prioridad: prioridadApi,
+                            asunto: asuntoSeguro,
+                            descripcion: descripcionParaApi,
+                            fechaConsulta: slotValido.fecha,
+                            horaConsulta: slotValido.hora,
+                            docenteId,
+                            moduloId: moduloValido
+                          });
                         }
                       });
                     }
@@ -1023,6 +1028,85 @@ export class Data {
     } catch {
       return {};
     }
+  }
+
+  encolarSolicitudPendienteBD(solicitud: {
+    localId: number;
+    prioridad: PrioridadSolicitudApi;
+    asunto: string;
+    descripcion: string;
+    fechaConsulta: string;
+    horaConsulta: string;
+    docenteId: number;
+    moduloId: number;
+  }): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      const cola: any[] = JSON.parse(
+        localStorage.getItem('iub_solicitudes_pendientes_bd') || '[]'
+      );
+      cola.push(solicitud);
+      localStorage.setItem('iub_solicitudes_pendientes_bd', JSON.stringify(cola));
+    } catch {}
+  }
+
+  reintentarSolicitudesPendientesBD(): void {
+    if (
+      !this.api ||
+      !this.api.baseUrl ||
+      !this.api.tieneTokenActivo() ||
+      typeof localStorage === 'undefined'
+    ) {
+      return;
+    }
+    try {
+      const raw = localStorage.getItem('iub_solicitudes_pendientes_bd');
+      if (!raw) return;
+      const cola: any[] = JSON.parse(raw);
+      if (!cola || cola.length === 0) return;
+
+      const pendientesRestantes: any[] = [];
+      for (const req of cola) {
+        this.api
+          .registrarSolicitudConsulta({
+            prioridad: req.prioridad,
+            asunto: req.asunto,
+            descripcion: req.descripcion,
+            fechaConsulta: req.fechaConsulta,
+            horaConsulta: req.horaConsulta,
+            docenteId: req.docenteId,
+            moduloId: req.moduloId
+          })
+          .subscribe({
+            next: (creadaRemota) => {
+              if (creadaRemota?.id) {
+                this.consultas.update((lista) =>
+                  lista.map((c) =>
+                    c.id === req.localId
+                      ? {
+                          ...c,
+                          id: creadaRemota.id,
+                          radicado: creadaRemota.numeroConsulta || c.radicado
+                        }
+                      : c
+                  )
+                );
+              }
+            },
+            error: () => {
+              pendientesRestantes.push(req);
+              localStorage.setItem(
+                'iub_solicitudes_pendientes_bd',
+                JSON.stringify(pendientesRestantes)
+              );
+            }
+          });
+      }
+      localStorage.setItem(
+        'iub_solicitudes_pendientes_bd',
+        JSON.stringify(pendientesRestantes)
+      );
+    } catch {}
   }
 
   reasignarTutor(id: number, nuevoDocente: string): void {
@@ -1330,6 +1414,8 @@ export class Data {
     if (rolActual === 'DOCENTE' && idUsuarioActivo > 0) {
       this.asegurarDisponibilidadDocente(idUsuarioActivo);
     }
+
+    this.reintentarSolicitudesPendientesBD();
 
     // 1. Obtener Usuarios (si es ADMIN) o Docentes públicos (si es ESTUDIANTE/DOCENTE)
     const usuariosObs =
