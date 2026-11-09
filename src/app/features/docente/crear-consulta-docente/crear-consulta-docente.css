@@ -1,22 +1,676 @@
-.consulta-container {
-    max-width: 1000px;
+:host {
+    display: block;
+    width: 100%;
+}
+
+.view-wrapper {
+    max-width: 960px;
     margin: 0 auto;
-    padding-bottom: 2rem;
+    padding: 10px 20px 50px 20px;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
-.card {
+/* ==================== ENCABEZADO ==================== */
+.header-section {
+    margin-bottom: 24px;
+}
+
+.badge-tag {
+    display: inline-block;
+    background-color: #e5edf7;
+    color: #173b6c;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.header-section h2 {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f2747;
+    margin-bottom: 6px;
+}
+
+.header-section p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ==================== TARJETAS DE SECCIÓN ==================== */
+.form-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-section-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 18px rgba(15, 39, 71, 0.04);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-section-card:hover {
+    box-shadow: 0 6px 24px rgba(15, 39, 71, 0.07);
+}
+
+.section-header {
+    background-color: #f8fafc;
+    border-bottom: 1px solid #edf2f7;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.section-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: #184275;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 13px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f2747;
+    margin: 0 0 2px 0;
+}
+
+.section-desc {
+    font-size: 12.5px;
+    color: #64748b;
+    margin: 0;
+}
+
+.section-body {
+    padding: 22px;
+}
+
+/* ==================== BÚSQUEDA DE ESTUDIANTE ==================== */
+.doc-search-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+@media (min-width: 680px) {
+    .doc-search-container {
+        grid-template-columns: 1.2fr 1.8fr;
+    }
+}
+
+.doc-input-wrapper,
+.doc-select-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: 12px;
+    font-size: 16px;
+    pointer-events: none;
+}
+
+.input-doc {
+    padding-left: 38px !important;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* ==================== TARJETA DE ESTUDIANTE ENCONTRADO ==================== */
+.student-card-found {
+    background: linear-gradient(135deg, #f0f7ff 0%, #e6f4ff 100%);
+    border: 1px solid #91caff;
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    box-shadow: 0 2px 10px rgba(24, 66, 117, 0.05);
+    animation: fadeIn 0.25s ease-in-out;
+}
+
+.student-avatar-box {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    background: #184275;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.student-avatar-icon {
+    font-size: 24px;
+}
+
+.badge-status-dot {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    background: #52c41a;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+}
+
+.student-info-content {
+    flex: 1;
+}
+
+.student-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.badge-verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #e6f9ed;
+    color: #137333;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid #b7eb8f;
+}
+
+.verified-icon {
+    font-weight: 900;
+}
+
+.student-db-id {
+    font-size: 11px;
+    color: #64748b;
+    font-family: monospace;
+    font-weight: 600;
+    background: #ffffff;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid #d9d9d9;
+}
+
+.student-full-name {
+    font-size: 18px;
+    font-weight: 800;
+    color: #002c66;
+    margin: 0 0 10px 0;
+}
+
+.student-chips-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+@media (min-width: 600px) {
+    .student-chips-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 820px) {
+    .student-chips-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.student-chip {
+    background: #ffffff;
+    border: 1px solid #d0e2ff;
+    border-radius: 8px;
+    padding: 7px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.chip-label {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.chip-value {
+    font-size: 13px;
+    color: #1e293b;
+    word-break: break-word;
+}
+
+.chip-highlight {
+    color: #0958d9;
+    font-weight: 700;
+}
+
+/* ==================== ALERTAS Y HINTS DE ESTUDIANTE ==================== */
+.student-not-found-card {
+    background: #fffbe6;
+    border: 1px solid #ffe58f;
     border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
 }
 
-.card-header {
-    border-bottom: 1px solid #f0f0f0;
+.alert-symbol {
+    font-size: 22px;
+    flex-shrink: 0;
 }
 
-.form-label {
-    font-size: 0.9rem;
-    color: #333;
+.alert-copy strong {
+    font-size: 13px;
+    color: #d46b08;
+    display: block;
+    margin-bottom: 2px;
 }
 
-.input-group-text {
-    background-color: #f8f9fa;
+.alert-copy p {
+    font-size: 12.5px;
+    color: #873800;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.student-hint-card {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.hint-symbol {
+    font-size: 18px;
+}
+
+/* ==================== FORMULARIO Y CONTROLES ==================== */
+.form-row-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+@media (min-width: 650px) {
+    .form-row-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.input-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.span-full {
+    grid-column: 1 / -1;
+}
+
+.field-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.required-star {
+    color: #e11d48;
+}
+
+.field-hint {
+    font-size: 11px;
+    color: #8c9ba5;
+}
+
+.field-hint code {
+    background: #f1f5f9;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #0f2747;
+}
+
+.form-control {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    color: #1e293b;
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.form-control:focus {
+    background-color: #ffffff;
+    border-color: #184275;
+    box-shadow: 0 0 0 3px rgba(24, 66, 117, 0.12);
+}
+
+textarea.form-control {
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.mt-3 {
+    margin-top: 14px;
+}
+
+/* ==================== ALERTA DE DISPONIBILIDAD ==================== */
+.availability-alert {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+.availability-alert .alert-icon {
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.availability-alert.available {
+    background: #f6ffed;
+    border: 1px solid #b7eb8f;
+    color: #237804;
+}
+
+.availability-alert.occupied {
+    background: #fff2f0;
+    border: 1px solid #ffccc7;
+    color: #cf1322;
+}
+
+.availability-alert p {
+    margin: 2px 0 0 0;
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+/* ==================== DOCENTE RESPONSABLE ==================== */
+.teacher-badge-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.teacher-avatar {
+    width: 42px;
+    height: 42px;
+    background: #e2e8f0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.teacher-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.teacher-info strong {
+    font-size: 15px;
+    color: #0f2747;
+}
+
+.teacher-sub {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.badge-role {
+    background: #184275;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+/* ==================== BOTONES DE ACCIÓN ==================== */
+.button-action-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 10px;
+}
+
+.btn {
+    padding: 11px 24px;
+    font-size: 13.5px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-cancel {
+    background-color: #e2e8f0;
+    color: #475569;
+}
+
+.btn-cancel:hover {
+    background-color: #cbd5e1;
+    color: #1e293b;
+}
+
+.btn-submit {
+    background-color: #184275;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(24, 66, 117, 0.25);
+}
+
+.btn-submit:hover:not(:disabled) {
+    background-color: #102d52;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(24, 66, 117, 0.35);
+}
+
+.btn-submit:disabled {
+    background-color: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 0.7;
+}
+
+/* ==================== MODAL DE CONFIRMACIÓN ==================== */
+.modal-backdrop-custom {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 39, 71, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.modal-dialog-custom {
+    background: #ffffff;
+    border-radius: 16px;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-header-custom {
+    background: linear-gradient(135deg, #184275 0%, #0f2747 100%);
+    color: #ffffff;
+    padding: 24px;
+    text-align: center;
+}
+
+.modal-success-icon {
+    font-size: 38px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.modal-title-custom {
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0 0 6px 0;
+}
+
+.modal-subtitle-custom {
+    font-size: 13px;
+    color: #cbd5e1;
+    margin: 0;
+}
+
+.modal-body-custom {
+    padding: 24px;
+}
+
+.radicado-display {
+    background: #f0f7ff;
+    border: 1px dashed #91caff;
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    margin-bottom: 18px;
+}
+
+.radicado-label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.radicado-code {
+    font-size: 20px;
+    font-family: monospace;
+    color: #0958d9;
+    letter-spacing: 1px;
+}
+
+.summary-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 13px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.summary-key {
+    color: #64748b;
+    font-weight: 600;
+}
+
+.summary-val {
+    color: #0f2747;
+    text-align: right;
+}
+
+.modal-footer-custom {
+    padding: 16px 24px;
+    background: #f8fafc;
+    border-top: 1px solid #edf2f7;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn-outline {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+}
+
+.btn-outline:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.btn-primary-custom {
+    background: #184275;
+    color: #ffffff;
+}
+
+.btn-primary-custom:hover {
+    background: #102d52;
+}
+
+/* ==================== ANIMACIONES ==================== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
 }

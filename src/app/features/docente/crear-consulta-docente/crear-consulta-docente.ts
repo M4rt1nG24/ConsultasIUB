@@ -3,8 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Data } from '../../../core/services/data';
+import { ApiPrincipal } from '../../../core/services/api-principal';
 import { EspaciosAux, SalonSedeItem } from '../../../core/services/espacios-aux';
 import { Auth } from '../../../core/services/auth';
+import { UsuarioSistema } from '../../../core/models/consulta.models';
+import { mapearUsuarioApiAFront } from '../../../core/services/data-helpers';
 
 export interface EspacioConDisponibilidad extends SalonSedeItem {
   disponibleEnHorario: boolean;
@@ -13,6 +16,7 @@ export interface EspacioConDisponibilidad extends SalonSedeItem {
 
 @Component({
   selector: 'app-crear-consulta-docente',
+  standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './crear-consulta-docente.html',
   styleUrl: './crear-consulta-docente.css'
@@ -20,29 +24,95 @@ export interface EspacioConDisponibilidad extends SalonSedeItem {
 export class CrearConsultaDocente {
   private router = inject(Router);
   private dataService = inject(Data);
+  private apiPrincipal = inject(ApiPrincipal);
   private espaciosService = inject(EspaciosAux);
   private authService = inject(Auth);
 
-  // 1. Datos del Estudiante
+  // 1. Datos del Estudiante (el docente solo ingresa el documento)
   documentoEstudiante = signal<string>('');
   nombreEstudiante = signal<string>('');
   correoEstudiante = signal<string>('');
   programaEstudiante = signal<string>('');
   estudianteId = signal<number | undefined>(undefined);
+  tipoDocumentoEstudiante = signal<string>('CC');
 
-  // Estudiantes del sistema para sugerencias / autocompletado
-  estudiantesSistema = computed(() =>
-    this.dataService.usuarios().filter(u => u.rol === 'ESTUDIANTE' && u.estado === 'Activo')
-  );
+  // Estudiantes cargados directamente de la API si están disponibles
+  estudiantesApi = signal<UsuarioSistema[]>([]);
 
-  estudianteAutocompletado = computed(() => {
+  // Estudiantes consolidados del sistema (API + DataService + Consultas existentes)
+  estudiantesDisponibles = computed<UsuarioSistema[]>(() => {
+    const mapa = new Map<string, UsuarioSistema>();
+
+    // 1. Estudiantes obtenidos de la API
+    for (const u of this.estudiantesApi()) {
+      const doc = (u.identificacion || '').trim();
+      if (doc) mapa.set(doc.toLowerCase(), u);
+    }
+
+    // 2. Estudiantes en el servicio reactivo Data
+    for (const u of this.dataService.usuarios()) {
+      if (u.rol === 'ESTUDIANTE' || u.rol !== 'ADMIN') {
+        const doc = (u.identificacion || '').trim();
+        if (doc && !mapa.has(doc.toLowerCase())) {
+          mapa.set(doc.toLowerCase(), u);
+        }
+      }
+    }
+
+    // 3. Estudiantes recolectados de consultas históricas
+    for (const c of this.dataService.consultas()) {
+      const doc = (c.documento || '').trim();
+      if (doc && !mapa.has(doc.toLowerCase()) && c.estudiante) {
+        mapa.set(doc.toLowerCase(), {
+          id: c.estudianteId || 0,
+          tipoIdentificacion: 'CC',
+          identificacion: doc,
+          tipoDocumentoSigla: 'CC',
+          nombre: c.estudiante,
+          nombreSolo: c.estudiante.split(' ')[0],
+          apellido: c.estudiante.split(' ').slice(1).join(' '),
+          email: c.correoEstudiante || '',
+          rol: 'ESTUDIANTE',
+          estado: 'Activo',
+          programa: c.nombrePrograma || 'Estudiante IUB',
+          fechaCreacion: ''
+        });
+      }
+    }
+
+    return Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  });
+
+  // Búsqueda reactiva del estudiante por número de documento
+  estudianteAutocompletado = computed<UsuarioSistema | null>(() => {
     const doc = this.documentoEstudiante().trim();
     if (!doc) return null;
-    return (
-      this.estudiantesSistema().find(
-        u => (u.identificacion || '').trim() === doc
-      ) || null
+    const docLimpio = doc.replace(/\D/g, '');
+
+    const lista = this.estudiantesDisponibles();
+
+    // Coincidencia exacta de documento
+    const exacto = lista.find(
+      e => (e.identificacion || '').trim().toLowerCase() === doc.toLowerCase()
     );
+    if (exacto) return exacto;
+
+    // Coincidencia solo con dígitos numéricos
+    if (docLimpio.length >= 4) {
+      const numerico = lista.find(
+        e => (e.identificacion || '').trim().replace(/\D/g, '') === docLimpio
+      );
+      if (numerico) return numerico;
+    }
+
+    // Coincidencia por ID numérico si comienza con #
+    if (doc.startsWith('#') || !isNaN(Number(doc))) {
+      const idNum = Number(doc.replace('#', ''));
+      const porId = lista.find(e => e.id === idNum);
+      if (porId) return porId;
+    }
+
+    return null;
   });
 
   // 2. Asignatura / Módulo
@@ -50,7 +120,7 @@ export class CrearConsultaDocente {
   moduloId = signal<number>(0);
   asignatura = signal<string>('');
 
-  // 3. Prioridad y Asunto / Descripción (tabla solicitudes_consultas)
+  // 3. Prioridad y Asunto / Descripción
   prioridad: 'Alta' | 'Media' | 'Baja' = 'Media';
   tema = '';
   descripcion = '';
@@ -137,9 +207,28 @@ export class CrearConsultaDocente {
   radicadoGenerado = signal<string>('');
   ubicacionConfirmada = signal<string>('');
 
+  // Docente en sesión
+  nombreDocenteSesion = signal<string>('');
+
   constructor() {
-    // Sincronizar catálogos si no están cargados
     this.dataService.sincronizarDesdeBackend();
+
+    // Cargar nombre del docente activo
+    const nom = localStorage.getItem('nombreUsuarioActivo') || 'Docente Tutor';
+    this.nombreDocenteSesion.set(nom);
+
+    // Intentar cargar usuarios de la API para obtener estudiantes actualizados
+    this.apiPrincipal.listarUsuarios(true).subscribe({
+      next: (remotos) => {
+        if (Array.isArray(remotos)) {
+          const mapeados = remotos.map(mapearUsuarioApiAFront);
+          this.estudiantesApi.set(mapeados.filter(u => u.rol === 'ESTUDIANTE' || u.rol !== 'ADMIN'));
+        }
+      },
+      error: () => {
+        // Fallback transparente al servicio Data
+      }
+    });
 
     // Precargar primera sede activa
     effect(() => {
@@ -158,14 +247,20 @@ export class CrearConsultaDocente {
       }
     });
 
-    // Auto-completar estudiante cuando se encuentra por cédula
+    // Sincronizar automáticamente todos los datos del estudiante a partir del documento
     effect(() => {
       const encontrado = this.estudianteAutocompletado();
       if (encontrado) {
         this.nombreEstudiante.set(encontrado.nombre);
-        this.correoEstudiante.set(encontrado.email);
-        this.programaEstudiante.set(encontrado.programa || 'Sin programa asignado');
-        this.estudianteId.set(encontrado.id);
+        this.correoEstudiante.set(encontrado.email || '');
+        this.programaEstudiante.set(encontrado.programa || 'Estudiante IUB');
+        this.estudianteId.set(encontrado.id || undefined);
+        this.tipoDocumentoEstudiante.set(encontrado.tipoDocumentoSigla || 'CC');
+      } else {
+        this.nombreEstudiante.set('');
+        this.correoEstudiante.set('');
+        this.programaEstudiante.set('');
+        this.estudianteId.set(undefined);
       }
     });
   }
@@ -176,12 +271,11 @@ export class CrearConsultaDocente {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  seleccionarEstudianteSugerido(est: any): void {
-    this.documentoEstudiante.set(est.identificacion || '');
-    this.nombreEstudiante.set(est.nombre);
-    this.correoEstudiante.set(est.email);
-    this.programaEstudiante.set(est.programa || '');
-    this.estudianteId.set(est.id);
+  onSeleccionarEstudianteDropdown(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    if (select && select.value) {
+      this.documentoEstudiante.set(select.value);
+    }
   }
 
   cambiarSede(nuevaSede: string): void {
@@ -206,9 +300,10 @@ export class CrearConsultaDocente {
       return;
     }
 
-    const nom = this.nombreEstudiante().trim();
+    const estudiante = this.estudianteAutocompletado();
+    const nom = estudiante?.nombre || this.nombreEstudiante().trim();
     if (!nom) {
-      alert('Por favor ingresa el nombre completo del estudiante.');
+      alert(`No se encontró ningún estudiante con el documento "${doc}". Por favor selecciona un estudiante registrado de la lista.`);
       return;
     }
 
