@@ -137,11 +137,11 @@
                     </select>
                 </div>
                 <div class="form-group flex-1">
-                    <label>Docente / Tutor</label>
-                    <select class="form-control" [(ngModel)]="nuevoDocente">
-                        <option value="Asignación Automática (Recomendado)">Asignación Automática (Recomendado)</option>
-                        @for (d of docentesDisponibles(); track d) {
-                        <option [value]="d">{{ d }}</option>
+                    <label>Docente Tutor Destinatario *</label>
+                    <select class="form-control" [ngModel]="nuevoDocenteId()" (ngModelChange)="nuevoDocenteId.set(+$event)" required>
+                        <option [ngValue]="0" disabled>-- Seleccione el docente --</option>
+                        @for (d of docentesDisponiblesModal(); track d.id) {
+                        <option [ngValue]="d.id">{{ d.nombre }} {{ d.correo ? '(' + d.correo + ')' : '' }}</option>
                         }
                     </select>
                 </div>

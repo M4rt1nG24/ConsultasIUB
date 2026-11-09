@@ -619,6 +619,8 @@ export class Data {
     tema: string;
     descripcion?: string;
     tutor?: string;
+    docenteId?: number;
+    moduloId?: number;
     modalidad: string;
     franja: string;
     fecha?: string;
@@ -635,6 +637,7 @@ export class Data {
 
     const listaCursos = this.cursos();
     const cursoMatch =
+      (datos.moduloId ? listaCursos.find(c => c.id === datos.moduloId) : undefined) ||
       listaCursos.find(
         c => c.asignatura.toLowerCase() === (datos.asignatura || '').toLowerCase()
       ) || listaCursos[0];
@@ -647,7 +650,12 @@ export class Data {
     const docentesDelCurso = cursoMatch?.docentesAsignados || [];
     const docentesActivos = this.usuarios().filter(u => u.rol === 'DOCENTE');
 
-    // Priorizar SIEMPRE el docente exacto elegido por el usuario (por nombre en usuarios o en el curso)
+    // Priorizar SIEMPRE el docente exacto elegido por el usuario (por ID o por nombre)
+    const docenteDirectoPorId = datos.docenteId
+      ? docentesActivos.find(u => u.id === datos.docenteId) ||
+        docentesDelCurso.find(d => d.id === datos.docenteId)
+      : undefined;
+
     const docenteElegidoEnUsuarios = tutorAsignado
       ? docentesActivos.find(
           u => u.nombre.trim().toLowerCase() === tutorAsignado.toLowerCase()
@@ -668,6 +676,15 @@ export class Data {
       : undefined;
 
     const docenteObj =
+      (docenteDirectoPorId
+        ? {
+            id: docenteDirectoPorId.id,
+            nombre:
+              'apellido' in docenteDirectoPorId && (docenteDirectoPorId as any).apellido
+                ? `${docenteDirectoPorId.nombre} ${(docenteDirectoPorId as any).apellido}`.trim()
+                : docenteDirectoPorId.nombre
+          }
+        : undefined) ||
       (docenteElegidoEnUsuarios
         ? { id: docenteElegidoEnUsuarios.id, nombre: docenteElegidoEnUsuarios.nombre }
         : undefined) ||
@@ -707,12 +724,12 @@ export class Data {
       estudiante: datos.estudiante || nombreEstudianteSesion,
       documento: datos.documento || docEstudianteSesion,
       correoEstudiante: datos.correoEstudiante || correoEstudianteSesion,
-      moduloId: cursoMatch?.id,
+      moduloId: datos.moduloId || cursoMatch?.id,
       asignatura: datos.asignatura || cursoMatch?.asignatura || 'Asignatura General',
       tema: datos.tema,
       descripcion: datos.descripcion || datos.tema,
-      docenteId: docenteObj?.id || cursoMatch?.docenteId,
-      tutor: docenteObj?.nombre || tutorAsignado,
+      docenteId: datos.docenteId || docenteObj?.id || cursoMatch?.docenteId,
+      tutor: docenteObj?.nombre || tutorAsignado || 'Docente Asignado',
       fechaConsulta: fechaIso,
       horaConsulta: horaIso,
       fecha: fechaFormateada,
@@ -724,7 +741,7 @@ export class Data {
       estado: 'Pendiente',
       observaciones: 'Pendiente de revisión y respuesta del docente.',
       asistencia: 0,
-      docenteSeleccionado: '',
+      docenteSeleccionado: docenteObj?.nombre || tutorAsignado || '',
       mensajes: [
         {
           autor: datos.estudiante || nombreEstudianteSesion,
@@ -748,8 +765,8 @@ export class Data {
       const prioridadApi: PrioridadSolicitudApi =
         nueva.prioridad === 'Alta' ? 'ALTA' : nueva.prioridad === 'Baja' ? 'BAJA' : 'MEDIA';
 
-      const moduloIdPreferido = cursoMatch?.id || 1;
-      const docenteId = docenteObj?.id || cursoMatch?.docenteId || 1;
+      const moduloIdPreferido = datos.moduloId || cursoMatch?.id || 1;
+      const docenteId = datos.docenteId || docenteObj?.id || cursoMatch?.docenteId || 1;
       const rolActual =
         typeof localStorage !== 'undefined'
           ? localStorage.getItem('rolActivo') || 'ESTUDIANTE'

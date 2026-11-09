@@ -56,7 +56,52 @@ export class MisSolicitudes {
   modoModalRapido = signal<'crear' | 'editar'>('crear');
   idEditando = signal<number | null>(null);
   nuevaAsignatura = '';
-  nuevoDocente = 'Asignación Automática (Recomendado)';
+  nuevoDocenteId = signal<number>(0);
+  nuevoDocente = '';
+
+  docentesDisponiblesModal = computed(() => {
+    const asig = (this.nuevaAsignatura || '').toLowerCase().trim();
+    const curso = this.cursosDisponibles().find(c => c.asignatura.toLowerCase().trim() === asig);
+    const mapa = new Map<number, { id: number; nombre: string; correo: string }>();
+
+    if (curso?.docentesAsignados && curso.docentesAsignados.length > 0) {
+      for (const d of curso.docentesAsignados) {
+        if (d.id) {
+          const uDoc = this.dataService.usuarios().find(u => u.id === d.id);
+          mapa.set(d.id, {
+            id: d.id,
+            nombre: `${d.nombre} ${d.apellido || ''}`.trim(),
+            correo: uDoc?.email || d.correo || ''
+          });
+        }
+      }
+    }
+
+    if (curso?.docenteId && !mapa.has(curso.docenteId)) {
+      const uDoc = this.dataService.usuarios().find(u => u.id === curso.docenteId);
+      if (uDoc) {
+        mapa.set(uDoc.id, {
+          id: uDoc.id,
+          nombre: `${uDoc.nombre} ${uDoc.apellido || ''}`.trim(),
+          correo: uDoc.email || ''
+        });
+      }
+    }
+
+    const docentesUsuarios = this.dataService.usuarios().filter(u => u.rol === 'DOCENTE');
+    for (const u of docentesUsuarios) {
+      if (u.id && !mapa.has(u.id)) {
+        mapa.set(u.id, {
+          id: u.id,
+          nombre: `${u.nombre} ${u.apellido || ''}`.trim(),
+          correo: u.email || ''
+        });
+      }
+    }
+
+    return Array.from(mapa.values());
+  });
+
   nuevaPrioridad: 'Alta' | 'Media' | 'Baja' = 'Media';
   nuevoTema = '';
   nuevaDescripcion = '';
@@ -188,7 +233,9 @@ export class MisSolicitudes {
     this.idEditando.set(null);
     const primerCurso = this.cursosDisponibles()[0]?.asignatura || '';
     this.nuevaAsignatura = primerCurso;
-    this.nuevoDocente = 'Asignación Automática (Recomendado)';
+    const primerDoc = this.docentesDisponiblesModal()[0];
+    this.nuevoDocenteId.set(primerDoc?.id || 0);
+    this.nuevoDocente = primerDoc?.nombre || '';
     this.nuevaPrioridad = 'Media';
     this.nuevoTema = '';
     this.nuevaDescripcion = '';
@@ -206,7 +253,8 @@ export class MisSolicitudes {
     this.modoModalRapido.set('editar');
     this.idEditando.set(item.id);
     this.nuevaAsignatura = item.asignatura;
-    this.nuevoDocente = item.tutor || 'Asignación Automática (Recomendado)';
+    this.nuevoDocenteId.set(item.docenteId || 0);
+    this.nuevoDocente = item.tutor || '';
     this.nuevaPrioridad = item.prioridad || 'Media';
     this.nuevoTema = item.tema;
     this.nuevaDescripcion = item.descripcion || '';
@@ -254,13 +302,17 @@ export class MisSolicitudes {
         : `${this.nuevaSede()} - ${esp?.nombre || ''}`;
     const horarioObj = this.horariosDisponibles.find(h => h.valor === this.nuevaHora());
 
+    const idDoc = Number(this.nuevoDocenteId());
+    const docObj = this.docentesDisponiblesModal().find(d => d.id === idDoc);
+    const tutorFinal = docObj?.nombre || this.nuevoDocente || 'Docente Tutor';
+    const cursoMatch = this.cursosDisponibles().find(
+      c => c.asignatura.toLowerCase().trim() === this.nuevaAsignatura.toLowerCase().trim()
+    );
+
     if (this.modoModalRapido() === 'editar' && this.idEditando() !== null) {
       this.dataService.actualizarConsulta(this.idEditando()!, {
         asignatura: this.nuevaAsignatura,
-        tutor:
-          this.nuevoDocente && !this.nuevoDocente.includes('Automática')
-            ? this.nuevoDocente
-            : undefined,
+        tutor: tutorFinal,
         prioridad: this.nuevaPrioridad,
         tema: this.nuevoTema.trim(),
         descripcion: this.nuevaDescripcion.trim() || this.nuevoTema.trim(),
@@ -277,9 +329,16 @@ export class MisSolicitudes {
       return;
     }
 
+    if (!idDoc || idDoc <= 0) {
+      alert('Por favor selecciona el docente tutor destinatario.');
+      return;
+    }
+
     const nuevoItem = this.dataService.crearConsulta({
       asignatura: this.nuevaAsignatura,
-      tutor: this.nuevoDocente,
+      tutor: tutorFinal,
+      docenteId: idDoc,
+      moduloId: cursoMatch?.id,
       prioridad: this.nuevaPrioridad,
       tema: this.nuevoTema.trim(),
       descripcion: this.nuevaDescripcion.trim() || this.nuevoTema.trim(),

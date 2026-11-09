@@ -112,6 +112,7 @@ export interface DocenteResumenApi {
   id: number;
   nombre: string;
   apellido: string;
+  correo?: string;
 }
 
 // ============================================================================
@@ -490,8 +491,7 @@ export class ApiPrincipal {
   login(payload: LoginRequestApi): Observable<LoginResponseApi> {
     return this.http.post<LoginResponseApi>(`${this.baseUrl}/auth/login`, payload).pipe(
       catchError((err) => {
-        if (this.usarProxyMismoOrigen && (err?.status === 404 || err?.status === 405)) {
-          this.usarProxyMismoOrigen = false;
+        if (this.baseUrl === '/api-proxy' && (err?.status === 404 || err?.status === 405)) {
           return this.http.post<LoginResponseApi>(`${this.urlRemotaDirecta}/auth/login`, payload);
         }
         throw err;
@@ -500,7 +500,9 @@ export class ApiPrincipal {
   }
 
   registrarUsuarioPublico(payload: RegistroUsuarioRequestApi): Observable<string> {
-    return this.http.post<string>(`${this.baseUrl}/auth/register`, payload);
+    return this.http.post(`${this.baseUrl}/auth/register`, payload, {
+      responseType: 'text'
+    });
   }
 
   miPerfil(): Observable<MeResponseApi> {
@@ -1096,6 +1098,9 @@ export class ApiPrincipal {
    */
   extraerMensajeError(err: any, porDefecto = 'Ocurrió un error al procesar la solicitud.'): string {
     if (!err) return porDefecto;
+    if (err.status === 0) {
+      return 'El servidor backend en la nube (Render) está despertando de su suspensión o tardó en responder. Por favor espera unos segundos y reintenta.';
+    }
     const body = err.error;
     if (body) {
       if (body.errors && typeof body.errors === 'object') {
@@ -1115,6 +1120,12 @@ export class ApiPrincipal {
         return body.detail;
       }
       if (typeof body === 'string' && body.trim()) {
+        try {
+          const parsed = JSON.parse(body);
+          if (parsed && typeof parsed === 'object') {
+            return this.extraerMensajeError({ error: parsed, status: err.status }, porDefecto);
+          }
+        } catch {}
         return body;
       }
     }

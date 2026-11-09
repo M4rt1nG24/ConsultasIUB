@@ -21,11 +21,11 @@
                 </div>
 
                 <div class="input-block flex-1">
-                    <label for="doc">Docente / Tutor de Preferencia</label>
-                    <select id="doc" class="form-control" [(ngModel)]="docente" name="doc">
-                        <option value="Asignación Automática (Recomendado)">Asignación Automática (Recomendado)</option>
-                        @for (d of docentesDisponibles(); track d) {
-                        <option [value]="d">{{ d }}</option>
+                    <label for="doc">Docente Tutor Destinatario *</label>
+                    <select id="doc" class="form-control" [ngModel]="docenteId()" (ngModelChange)="docenteId.set(+$event)" name="doc" required>
+                        <option [ngValue]="0" disabled>-- Seleccione el docente que atenderá su consulta --</option>
+                        @for (d of docentesDisponiblesPorCurso(); track d.id) {
+                        <option [ngValue]="d.id">{{ d.nombre }} {{ d.correo ? '(' + d.correo + ')' : '' }}</option>
                         }
                     </select>
                 </div>
@@ -152,7 +152,7 @@
                     radicadoGenerado() }}</strong>.</p>
             <div class="summary-box">
                 <div><strong>Asignatura:</strong> {{ asignatura }}</div>
-                <div><strong>Tutor preferido:</strong> {{ docente }}</div>
+                <div><strong>Docente tutor asignado:</strong> {{ docenteNombreConfirmado() }}</div>
                 <div><strong>Modalidad:</strong> {{ modalidad() }}</div>
                 <div><strong>Lugar / Espacio:</strong> {{ ubicacionConfirmada() }}</div>
                 <div><strong>Fecha y Hora:</strong> {{ fechaConsulta() }} • {{ horaConsulta() }}</div>

@@ -210,6 +210,7 @@ export class DirectorioTutorias {
     const nueva = this.dataService.crearConsulta({
       asignatura: asignaturaElegida,
       tutor: tutor?.nombre || '',
+      docenteId: tutor?.id,
       modalidad: this.modalidadCita(),
       franja: franjaEtiqueta,
       hora: this.horaCita(),
