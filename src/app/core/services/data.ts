@@ -98,6 +98,13 @@ const STORAGE_KEY_CURSOS = 'iub_cursos_api_cache';
 const STORAGE_KEY_USUARIOS = 'iub_usuarios_api_cache';
 const STORAGE_KEY_CONSULTA_ACTIVA = 'iub_consulta_activa_id';
 
+const TIPOS_DOC_FALLBACK: TipoDocumentoResponseApi[] = [
+  { id: 1, sigla: 'CC', nombre: 'Cédula de Ciudadanía', estado: true },
+  { id: 2, sigla: 'TI', nombre: 'Tarjeta de Identidad', estado: true },
+  { id: 3, sigla: 'CE', nombre: 'Cédula de Extranjería', estado: true },
+  { id: 4, sigla: 'PAS', nombre: 'Pasaporte', estado: true },
+];
+
 @Injectable({
   providedIn: 'root'
 })
@@ -108,7 +115,7 @@ export class Data {
   cursos = signal<CursoSistema[]>(this.cargarCache(STORAGE_KEY_CURSOS, []));
   usuarios = signal<UsuarioSistema[]>(this.cargarCache(STORAGE_KEY_USUARIOS, []));
   programas = signal<ProgAcademicoResponseApi[]>([]);
-  tiposDocumento = signal<TipoDocumentoResponseApi[]>([]);
+  tiposDocumento = signal<TipoDocumentoResponseApi[]>(TIPOS_DOC_FALLBACK);
   periodosAcademicos = signal<PeriodoResponseApi[]>([]);
   disponibilidadesDocentes = signal<DisponibilidadResponseApi[]>([]);
   notificaciones = signal<NotificacionResponseApi[]>([]);
@@ -1372,7 +1379,11 @@ export class Data {
     });
 
     this.api.listarTiposDocumento(rolActual === 'ADMIN').subscribe({
-      next: (tipos) => this.tiposDocumento.set(tipos || []),
+      next: (tipos) => {
+        if (tipos && tipos.length > 0) {
+          this.tiposDocumento.set(tipos);
+        }
+      },
       error: () => {}
     });
 

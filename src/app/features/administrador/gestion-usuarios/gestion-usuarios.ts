@@ -66,7 +66,7 @@ export class GestionUsuarios {
 
   abrirModalCrear(): void {
     this.modoModal.set('crear');
-    const primerTipoDoc = this.tiposDocumento()[0]?.id ?? null;
+    const primerTipoDoc = this.tiposDocumento()[0]?.id ?? 1;
     const primerPrograma = this.programas()[0]?.id ?? null;
     this.formData = {
       id: Date.now(),
@@ -93,7 +93,7 @@ export class GestionUsuarios {
       identificacion: usuario.identificacion || '',
       nombreSolo: usuario.nombreSolo || partes[0] || '',
       apellido: usuario.apellido || partes.slice(1).join(' ') || 'Institucional',
-      tipoDocumentoId: usuario.tipoDocumentoId ?? (this.tiposDocumento()[0]?.id ?? null),
+      tipoDocumentoId: usuario.tipoDocumentoId ?? (this.tiposDocumento()[0]?.id ?? 1),
       programaId: usuario.programaId ?? null,
       passwordInicial: ''
     };
@@ -123,7 +123,9 @@ export class GestionUsuarios {
     const rolApi: RolApi =
       this.formData.rol === 'ADMIN' ? 'ADMINISTRADOR' : this.formData.rol;
     const programaId = this.formData.programaId ? Number(this.formData.programaId) : null;
-    const tipoDocumentoId = this.formData.tipoDocumentoId ? Number(this.formData.tipoDocumentoId) : null;
+    const tipoDocumentoId = this.formData.tipoDocumentoId
+      ? Number(this.formData.tipoDocumentoId)
+      : (this.tiposDocumento()[0]?.id ? Number(this.tiposDocumento()[0].id) : 1);
 
     if (this.modoModal() === 'crear') {
       const password = (this.formData.passwordInicial || 'ClaveIub#2026!').trim();

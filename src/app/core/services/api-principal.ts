@@ -420,19 +420,25 @@ export class ApiPrincipal {
    * URL base oficial configurada en environment.apiUrl o sobreescrita vía proxy o localStorage.
    */
   readonly urlRemotaDirecta = environment.apiUrl || 'https://sistemaconsultas-api.onrender.com';
-  private usarProxyMismoOrigen =
-    typeof window !== 'undefined' &&
-    window.location.hostname !== 'localhost' &&
-    window.location.hostname !== '127.0.0.1';
+  private usarProxyMismoOrigen = typeof window !== 'undefined';
 
   get baseUrl(): string {
     if (typeof localStorage !== 'undefined') {
       const personalizada = localStorage.getItem('iub_api_url');
-      if (personalizada && personalizada.trim()) {
+      if (
+        personalizada &&
+        personalizada.trim() &&
+        !personalizada.includes('sistemaconsultas-api.onrender.com')
+      ) {
         return personalizada.trim().replace(/\/+$/, '');
       }
     }
-    return this.usarProxyMismoOrigen ? '/api-proxy' : this.urlRemotaDirecta;
+    // En el navegador, siempre usar el proxy de mismo origen (/api-proxy)
+    // para evitar bloqueos por CORS tanto en localhost (Angular CLI) como en despliegues con reverse proxy.
+    if (this.usarProxyMismoOrigen) {
+      return '/api-proxy';
+    }
+    return this.urlRemotaDirecta;
   }
 
   establecerBaseUrl(url: string): void {
