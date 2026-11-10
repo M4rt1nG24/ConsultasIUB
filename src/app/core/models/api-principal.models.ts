@@ -267,6 +267,7 @@ export interface RegistroSolicitudConsultaRequestApi {
   horaConsulta: string;
   docenteId: number;
   moduloId: number;
+  estudianteId?: number | null;
 }
 
 export interface UpdateSolicitudConsultaRequestApi {

@@ -587,6 +587,7 @@ export function registrarSolicitudConFallback(
     horaConsulta: string;
     docenteId: number;
     moduloId: number;
+    estudianteId?: number | null;
   },
   consultas: ConsultaUnificada[],
   cursos: CursoSistema[],

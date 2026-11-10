@@ -430,7 +430,8 @@ export class Data {
           fechaConsulta: fechaIso,
           horaConsulta: horaIso,
           docenteId,
-          moduloId: moduloIdPreferido
+          moduloId: moduloIdPreferido,
+          estudianteId: estudianteIdFinal || null
         },
         this.consultas(),
         this.cursos(),
