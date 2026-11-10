@@ -8,6 +8,10 @@ import { EspaciosAux, SalonSedeItem } from '../../../core/services/espacios-aux'
 import { Auth } from '../../../core/services/auth';
 import { UsuarioSistema } from '../../../core/models/consulta.models';
 import { mapearUsuarioApiAFront } from '../../../core/services/data-helpers';
+import {
+  PrioridadSolicitudApi,
+  RegistroSolicitudConsultaRequestApi
+} from '../../../core/models/api-principal.models';
 
 export interface EspacioConDisponibilidad extends SalonSedeItem {
   disponibleEnHorario: boolean;
@@ -51,7 +55,7 @@ export class CrearConsultaDocente {
 
     // 2. Estudiantes en el servicio reactivo Data
     for (const u of this.dataService.usuarios()) {
-      if (u.rol === 'ESTUDIANTE' || u.rol !== 'ADMIN') {
+      if (u.rol === 'ESTUDIANTE') {
         const doc = (u.identificacion || '').trim();
         if (doc && !mapa.has(doc.toLowerCase())) {
           mapa.set(doc.toLowerCase(), u);
@@ -60,11 +64,12 @@ export class CrearConsultaDocente {
     }
 
     // 3. Estudiantes recolectados de consultas históricas
+    //    Solo se usan si traen id real: sin id no se puede cumplir la FK estudiante_id.
     for (const c of this.dataService.consultas()) {
       const doc = (c.documento || '').trim();
-      if (doc && !mapa.has(doc.toLowerCase()) && c.estudiante) {
+      if (doc && c.estudianteId && !mapa.has(doc.toLowerCase()) && c.estudiante) {
         mapa.set(doc.toLowerCase(), {
-          id: c.estudianteId || 0,
+          id: c.estudianteId,
           tipoIdentificacion: 'CC',
           identificacion: doc,
           tipoDocumentoSigla: 'CC',
@@ -207,6 +212,9 @@ export class CrearConsultaDocente {
   radicadoGenerado = signal<string>('');
   ubicacionConfirmada = signal<string>('');
 
+  // Estado de guardado (evita doble envío)
+  guardando = signal<boolean>(false);
+
   // Docente en sesión
   nombreDocenteSesion = signal<string>('');
 
@@ -222,7 +230,7 @@ export class CrearConsultaDocente {
       next: (remotos) => {
         if (Array.isArray(remotos)) {
           const mapeados = remotos.map(mapearUsuarioApiAFront);
-          this.estudiantesApi.set(mapeados.filter(u => u.rol === 'ESTUDIANTE' || u.rol !== 'ADMIN'));
+          this.estudiantesApi.set(mapeados.filter(u => u.rol === 'ESTUDIANTE'));
         }
       },
       error: () => {
@@ -271,6 +279,12 @@ export class CrearConsultaDocente {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
+  /** Id del docente en sesión; undefined si no hay un id válido guardado. */
+  private obtenerDocenteId(): number | undefined {
+    const id = Number(localStorage.getItem('idUsuarioActivo'));
+    return Number.isFinite(id) && id > 0 ? id : undefined;
+  }
+
   onSeleccionarEstudianteDropdown(event: Event): void {
     const select = event.target as HTMLSelectElement;
     if (select && select.value) {
@@ -294,6 +308,8 @@ export class CrearConsultaDocente {
   }
 
   registrarConsulta(): void {
+    if (this.guardando()) return;
+
     const doc = this.documentoEstudiante().trim();
     if (!doc) {
       alert('Por favor digita el número de documento de identificación del estudiante.');
@@ -301,8 +317,7 @@ export class CrearConsultaDocente {
     }
 
     const estudiante = this.estudianteAutocompletado();
-    const nom = estudiante?.nombre || this.nombreEstudiante().trim();
-    if (!nom) {
+    if (!estudiante) {
       alert(`No se encontró ningún estudiante con el documento "${doc}". Por favor selecciona un estudiante registrado de la lista.`);
       return;
     }
@@ -318,41 +333,78 @@ export class CrearConsultaDocente {
       return;
     }
 
+    // IDs obligatorios: solicitudes_consultas los exige NOT NULL con FK a usuarios / modulos
+    const docenteId = this.obtenerDocenteId();
+    if (!docenteId) {
+      alert('No se pudo identificar al docente en sesión. Vuelve a iniciar sesión.');
+      return;
+    }
+
+    const estudianteId = this.estudianteId();
+    if (!estudianteId) {
+      alert('Este estudiante no tiene un id válido en la base de datos. Debe estar registrado en el sistema.');
+      return;
+    }
+
+    const moduloId = this.moduloId();
+    if (!moduloId) {
+      alert('Selecciona un módulo válido.');
+      return;
+    }
+
     const esp = this.espacioActualObj();
     const ubicacionFinal =
       this.modalidad() === 'Virtual'
         ? 'Campus Virtual Institucional (Microsoft Teams / Google Meet)'
         : `${this.sedeSeleccionada()} - ${esp?.nombre || ''}`;
 
-    const horarioObj = this.horariosDisponibles.find(h => h.valor === this.horaConsulta());
-    const idDocenteSesion = Number(localStorage.getItem('idUsuarioActivo')) || undefined;
-    const nombreDocenteSesion = localStorage.getItem('nombreUsuarioActivo') || 'Docente Tutor';
+    // Payload exacto del contrato RegistroSolicitudConsultaRequestApi
+    const payload: RegistroSolicitudConsultaRequestApi = {
+      prioridad: this.prioridad.toUpperCase() as PrioridadSolicitudApi,
+      asunto: this.tema.trim(),
+      descripcion: this.descripcion.trim() || this.tema.trim(),
+      fechaConsulta: this.fechaConsulta(),
+      horaConsulta: this.horaConsulta(),
+      docenteId,
+      moduloId,
+      estudianteId
+    };
 
-    const curso = this.cursosDisponibles().find(c => c.id === this.moduloId()) || this.cursosDisponibles()[0];
+    this.guardando.set(true);
 
-    const creada = this.dataService.crearConsulta({
-      estudiante: nom,
-      documento: doc,
-      correoEstudiante: this.correoEstudiante().trim(),
-      estudianteId: this.estudianteId(),
-      moduloId: curso?.id,
-      asignatura: this.asignatura() || curso?.asignatura || 'Asignatura General',
-      tema: this.tema.trim(),
-      descripcion: (this.descripcion.trim() || this.tema.trim()),
-      docenteId: idDocenteSesion,
-      tutor: nombreDocenteSesion,
-      modalidad: this.modalidad(),
-      franja: horarioObj?.etiqueta || this.horaConsulta(),
-      fecha: this.fechaConsulta(),
-      hora: this.horaConsulta(),
-      ubicacion: ubicacionFinal,
-      recursoFisicoId: this.modalidad() === 'Presencial' ? esp?.id || null : null,
-      prioridad: this.prioridad
+    this.apiPrincipal.registrarSolicitudConsulta(payload).subscribe({
+      next: (creada: { id: number; numeroConsulta: string }) => {
+        const finalizar = () => {
+          this.guardando.set(false);
+          this.dataService.sincronizarDesdeBackend();
+          this.ubicacionConfirmada.set(ubicacionFinal);
+          this.radicadoGenerado.set(creada.numeroConsulta);
+          this.modalConfirmacionAbierto.set(true);
+        };
+
+        // El espacio físico se asigna en una llamada aparte (no va en el POST de creación)
+        if (this.modalidad() === 'Presencial' && esp) {
+          this.apiPrincipal.asignarRecursoFisicoSolicitud(creada.id, esp.id).subscribe({
+            next: () => finalizar(),
+            error: () => {
+              finalizar();
+              alert('La consulta se creó, pero no se pudo asignar el espacio físico.');
+            }
+          });
+        } else {
+          finalizar();
+        }
+      },
+      error: (err: any) => {
+        this.guardando.set(false);
+        const detalle = err?.error?.detail;
+        alert(
+          detalle
+            ? `No se pudo registrar la consulta: ${typeof detalle === 'string' ? detalle : JSON.stringify(detalle)}`
+            : 'No se pudo registrar la consulta.'
+        );
+      }
     });
-
-    this.ubicacionConfirmada.set(ubicacionFinal);
-    this.radicadoGenerado.set(creada.radicado);
-    this.modalConfirmacionAbierto.set(true);
   }
 
   cerrarModalYVolver(): void {
