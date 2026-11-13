@@ -2,7 +2,6 @@ import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { Observable, catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
 import {
   ApiPrincipal,
-  CalificacionResponseApi,
   CalificacionResumenSolicitudApi,
   ComentarioResponseApi,
   DisponibilidadResponseApi,
@@ -12,7 +11,6 @@ import {
   ModuloResponseApi,
   NotificacionResponseApi,
   PeriodoResponseApi,
-  PrioridadSolicitudApi,
   ProgAcademicoResponseApi,
   SolicitudConsultaResponseApi,
   TipoDocumentoResponseApi,
@@ -21,7 +19,6 @@ import {
 export * from '../models/consulta.models';
 import {
   MensajeInteraccion,
-  EstadoConsultaFront,
   ConsultaUnificada,
   CursoSistema,
   UsuarioSistema
@@ -34,7 +31,8 @@ import {
   obtenerHoraPorFranja,
   obtenerFechaFuturaIso,
   construirEtiquetaMetaConsulta,
-  encontrarSlotBackendParaDocente,
+  limpiarNombreAsignatura,
+  normalizarCapitalizacionAsignatura,
   mapearUsuarioApiAFront,
   mapearDocenteApiAFront,
   mapearModuloApiAFront,
@@ -61,12 +59,32 @@ import {
   STORAGE_KEY_CONSULTA_ACTIVA,
   TIPOS_DOC_FALLBACK
 } from './data-storage';
+import {
+  aPrioridadApi,
+  asuntoSeguro,
+  escribirStorage,
+  fechaIsoLocal,
+  leerStorage,
+  marcaTiempo,
+  sesion
+} from '../utils/comun';
 
 @Injectable({
   providedIn: 'root'
 })
 export class Data {
   private readonly api = inject(ApiPrincipal, { optional: true });
+
+  /** Observer que vuelve a sincronizar con el backend tanto si la petición termina bien como si falla. */
+  private readonly resincronizar = {
+    next: () => this.sincronizarDesdeBackend(),
+    error: () => this.sincronizarDesdeBackend()
+  };
+
+  /** true si hay API configurada para persistir en el backend. */
+  private get apiDisponible(): boolean {
+    return !!this.api?.baseUrl;
+  }
 
   consultas = signal<ConsultaUnificada[]>(cargarCacheDeStorage(STORAGE_KEY_CONSULTAS, []));
   cursos = signal<CursoSistema[]>(cargarCacheDeStorage(STORAGE_KEY_CURSOS, []));
@@ -89,20 +107,12 @@ export class Data {
    * de los estudiantes nunca sean rechazadas por falta de horario o asignación.
    */
   asegurarDisponibilidadDocente(docenteId: number): void {
-    if (!this.api || !this.api.baseUrl || !docenteId) return;
-    const rolActual =
-      typeof localStorage !== 'undefined'
-        ? localStorage.getItem('rolActivo') || 'ESTUDIANTE'
-        : 'ESTUDIANTE';
-    asegurarDisponibilidadDocenteHelper(this.api, docenteId, this.cursos(), rolActual);
+    if (!this.apiDisponible || !docenteId) return;
+    asegurarDisponibilidadDocenteHelper(this.api!, docenteId, this.cursos(), sesion.rol());
   }
 
   // Consulta activa seleccionada para ver detalle o atender entre vistas
-  consultaActivaId = signal<number>(
-    typeof localStorage !== 'undefined'
-      ? Number(localStorage.getItem(STORAGE_KEY_CONSULTA_ACTIVA) || 0)
-      : 0
-  );
+  consultaActivaId = signal<number>(Number(leerStorage(STORAGE_KEY_CONSULTA_ACTIVA)) || 0);
 
   consultaActiva = computed(() => {
     const id = this.consultaActivaId();
@@ -118,21 +128,16 @@ export class Data {
 
   seleccionarConsulta(id: number): void {
     this.consultaActivaId.set(id);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY_CONSULTA_ACTIVA, String(id));
-    }
+    escribirStorage(STORAGE_KEY_CONSULTA_ACTIVA, String(id));
     this.cargarComentariosDeConsulta(id);
   }
 
   cargarComentariosDeConsulta(idSolicitud: number): void {
-    if (!this.api || !this.api.baseUrl || !idSolicitud) return;
+    if (!this.apiDisponible || !idSolicitud) return;
 
     // Verificar si el usuario actual es participante de esta consulta
     const consulta = this.consultas().find(c => c.id === idSolicitud);
-    const idUsuarioActivo =
-      typeof localStorage !== 'undefined'
-        ? Number(localStorage.getItem('idUsuarioActivo')) || 0
-        : 0;
+    const idUsuarioActivo = sesion.idUsuario();
 
     if (consulta && idUsuarioActivo) {
       const esParticipante =
@@ -142,7 +147,7 @@ export class Data {
       if (!esParticipante) return;
     }
 
-    this.api.listarComentariosPorSolicitud(idSolicitud).subscribe({
+    this.api!.listarComentariosPorSolicitud(idSolicitud).subscribe({
       next: (comentarios: ComentarioResponseApi[]) => {
         const lista = comentarios || [];
         this.consultas.update(actuales =>
@@ -205,21 +210,6 @@ export class Data {
     });
   }
 
-  private guardarUbicacionLocal(
-    clave: string,
-    info: { ubicacion: string; recursoFisicoId?: number | null; modalidad: string }
-  ): void {
-    storageGuardarUbicacion(clave, info);
-  }
-
-  private obtenerUbicacionLocal(
-    id: number,
-    fechaConsulta: string,
-    horaConsulta: string
-  ): { ubicacion: string; recursoFisicoId?: number | null; modalidad: string } | null {
-    return storageObtenerUbicacion(id, fechaConsulta, horaConsulta);
-  }
-
   /**
    * Verifica si un espacio físico (salón, sala o laboratorio) de una sede
    * está disponible en la fecha (YYYY-MM-DD) y hora (HH:mm) seleccionadas.
@@ -274,34 +264,19 @@ export class Data {
       this.usuarios()
     );
 
-    const rolActual =
-      typeof localStorage !== 'undefined'
-        ? localStorage.getItem('rolActivo') || 'ESTUDIANTE'
-        : 'ESTUDIANTE';
-    const nombreUsuarioSesion =
-      typeof localStorage !== 'undefined'
-        ? localStorage.getItem('nombreUsuarioActivo') || ''
-        : '';
-    const correoUsuarioSesion =
-      typeof localStorage !== 'undefined'
-        ? localStorage.getItem('correoActivo') || ''
-        : '';
-    const docUsuarioSesion =
-      typeof localStorage !== 'undefined'
-        ? localStorage.getItem('identificacionUsuarioActivo') || ''
-        : '';
-    const idUsuarioSesion =
-      typeof localStorage !== 'undefined'
-        ? Number(localStorage.getItem('idUsuarioActivo')) || undefined
-        : undefined;
+    const rolActual = sesion.rol();
+    const esEstudiante = rolActual === 'ESTUDIANTE';
+    const nombreUsuarioSesion = sesion.nombre();
+    const idUsuarioSesion = sesion.idUsuario() || undefined;
+    const nombreEstudiante = datos.estudiante || (esEstudiante ? nombreUsuarioSesion : 'Estudiante');
+    const recursoFisicoId = datos.recursoFisicoId || null;
 
     const modalidadFinal = datos.modalidad.includes('Virtual') ? 'Virtual' : 'Presencial';
     const ubicacionFinal =
       datos.ubicacion ||
       (modalidadFinal === 'Virtual' ? 'Sala Virtual Institucional' : 'Por asignar');
 
-    const estudianteIdFinal =
-      datos.estudianteId || (rolActual === 'ESTUDIANTE' ? idUsuarioSesion : undefined);
+    const estudianteIdFinal = datos.estudianteId || (esEstudiante ? idUsuarioSesion : undefined);
     const docenteIdFinal =
       datos.docenteId || (rolActual === 'DOCENTE' ? idUsuarioSesion : docenteObj?.id || cursoMatch?.docenteId);
     const tutorFinal =
@@ -313,11 +288,11 @@ export class Data {
       id: Date.now(),
       radicado,
       estudianteId: estudianteIdFinal,
-      estudiante: datos.estudiante || (rolActual === 'ESTUDIANTE' ? nombreUsuarioSesion : 'Estudiante'),
-      documento: datos.documento || (rolActual === 'ESTUDIANTE' ? docUsuarioSesion : ''),
-      correoEstudiante: datos.correoEstudiante || (rolActual === 'ESTUDIANTE' ? correoUsuarioSesion : ''),
+      estudiante: nombreEstudiante,
+      documento: datos.documento || (esEstudiante ? sesion.identificacion() : ''),
+      correoEstudiante: datos.correoEstudiante || (esEstudiante ? sesion.correo() : ''),
       moduloId: datos.moduloId || cursoMatch?.id,
-      asignatura: datos.asignatura || cursoMatch?.asignatura || 'Asignatura General',
+      asignatura: limpiarNombreAsignatura(datos.asignatura || cursoMatch?.asignatura || 'Constitución Política'),
       tema: datos.tema,
       descripcion: datos.descripcion || datos.tema,
       docenteId: docenteIdFinal,
@@ -328,7 +303,7 @@ export class Data {
       franja: datos.franja || obtenerFranjaDesdeHora(horaIso),
       modalidad: modalidadFinal,
       ubicacion: ubicacionFinal,
-      recursoFisicoId: datos.recursoFisicoId || null,
+      recursoFisicoId,
       prioridad: datos.prioridad || 'Media',
       estado: 'Pendiente',
       observaciones: 'Pendiente de revisión y respuesta del docente.',
@@ -336,7 +311,7 @@ export class Data {
       docenteSeleccionado: tutorFinal,
       mensajes: [
         {
-          autor: datos.estudiante || (rolActual === 'ESTUDIANTE' ? nombreUsuarioSesion : 'Estudiante'),
+          autor: nombreEstudiante,
           rol: 'ESTUDIANTE',
           fechaHora: fechaFormateada,
           mensaje: datos.descripcion || datos.tema
@@ -344,36 +319,27 @@ export class Data {
       ]
     };
 
-    this.guardarUbicacionLocal(`FH_${fechaIso}_${horaIso.substring(0, 5)}`, {
-      ubicacion: ubicacionFinal,
-      recursoFisicoId: datos.recursoFisicoId || null,
-      modalidad: modalidadFinal
-    });
+    const infoUbicacion = { ubicacion: ubicacionFinal, recursoFisicoId, modalidad: modalidadFinal };
+    storageGuardarUbicacion(`FH_${fechaIso}_${horaIso.substring(0, 5)}`, infoUbicacion);
 
     this.consultas.update(lista => [nueva, ...lista]);
     this.consultaActivaId.set(nueva.id);
 
     if (this.api && this.api.baseUrl) {
-      const prioridadApi: PrioridadSolicitudApi =
-        nueva.prioridad === 'Alta' ? 'ALTA' : nueva.prioridad === 'Baja' ? 'BAJA' : 'MEDIA';
-
+      const prioridadApi = aPrioridadApi(nueva.prioridad);
       const moduloIdPreferido = datos.moduloId || cursoMatch?.id || 1;
       const docenteId = docenteIdFinal || 1;
-
-      const asuntoSeguro =
-        nueva.tema.trim().length >= 5
-          ? nueva.tema.trim().substring(0, 100)
-          : `Tema: ${nueva.tema.trim()}`.substring(0, 100);
+      const asunto = asuntoSeguro(nueva.tema);
 
       const etiquetaMeta = construirEtiquetaMetaConsulta({
         ubicacion: ubicacionFinal,
         modalidad: modalidadFinal,
-        recursoFisicoId: datos.recursoFisicoId || null,
+        recursoFisicoId,
         asignatura: nueva.asignatura,
         fechaAgenda: fechaIso,
         horaAgenda: horaIso,
-        estudianteDoc: datos.documento,
-        estudianteNombre: datos.estudiante
+        estudianteDoc: nueva.documento,
+        estudianteNombre: nueva.estudiante
       });
       const descripcionParaApi = `${etiquetaMeta}${nueva.descripcion}`.trim();
 
@@ -389,24 +355,18 @@ export class Data {
                     estudianteId: creadaRemota.estudianteId || c.estudianteId,
                     docenteId: creadaRemota.docenteId || c.docenteId,
                     estudiante: creadaRemota.nombreCompletoEstudiante || c.estudiante,
+                    documento: c.documento || creadaRemota.identificacionEstudiante || '',
                     tutor: creadaRemota.nombreCompletoDocente || c.tutor
                   }
                 : c
             )
           );
           this.consultaActivaId.set(creadaRemota.id);
-          this.guardarUbicacionLocal(`ID_${creadaRemota.id}`, {
-            ubicacion: ubicacionFinal,
-            recursoFisicoId: datos.recursoFisicoId || null,
-            modalidad: modalidadFinal
-          });
-          if (datos.recursoFisicoId && (rolActual === 'DOCENTE' || rolActual === 'ADMIN')) {
+          storageGuardarUbicacion(`ID_${creadaRemota.id}`, infoUbicacion);
+          if (recursoFisicoId && (rolActual === 'DOCENTE' || rolActual === 'ADMIN')) {
             this.api
-              ?.asignarRecursoFisicoSolicitud(creadaRemota.id, datos.recursoFisicoId)
-              .subscribe({
-                next: () => this.sincronizarDesdeBackend(),
-                error: () => this.sincronizarDesdeBackend()
-              });
+              ?.asignarRecursoFisicoSolicitud(creadaRemota.id, recursoFisicoId)
+              .subscribe(this.resincronizar);
             return;
           }
         }
@@ -425,7 +385,7 @@ export class Data {
         this.api,
         {
           prioridad: prioridadApi,
-          asunto: asuntoSeguro,
+          asunto,
           descripcion: descripcionParaApi,
           fechaConsulta: fechaIso,
           horaConsulta: horaIso,
@@ -438,10 +398,10 @@ export class Data {
         {
           onSuccess: (creadaRemota) => vincularEspacioYRefrescar(creadaRemota),
           onErrorFinal: (fallbackInfo) => {
-            this.encolarSolicitudPendienteBD({
+            storageEncolarSolicitud({
               localId: nueva.id,
               prioridad: prioridadApi,
-              asunto: asuntoSeguro,
+              asunto,
               descripcion: descripcionParaApi,
               fechaConsulta: fallbackInfo.slot?.fecha || fechaIso,
               horaConsulta: fallbackInfo.slot?.hora || horaIso,
@@ -465,25 +425,17 @@ export class Data {
       asistenciaConfirmada: boolean;
     }
   ): void {
-    const ahora = new Date();
-    const marcaTiempo = `${String(ahora.getDate()).padStart(2, '0')}/${String(ahora.getMonth() + 1).padStart(2, '0')}/${ahora.getFullYear()} - ${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+    const fechaHora = marcaTiempo();
     const consultaPrevia = this.consultas().find(c => c.id === id);
     const estabaPendiente = !consultaPrevia || consultaPrevia.estado === 'Pendiente';
+    const observaciones = datos.observaciones.trim();
+    const asistencia = datos.asistenciaConfirmada ? 1 : 0;
 
     // Persistir de inmediato en la caché de atenciones docentes para asegurar presencia en Historial
-    this.guardarAtencionDocenteLocal(id, {
-      tipoAtencion: datos.tipoAtencion,
-      tema: datos.temaTratado,
-      observaciones: datos.observaciones.trim(),
-      asistencia: datos.asistenciaConfirmada ? 1 : 0
-    });
+    const atencion = { tipoAtencion: datos.tipoAtencion, tema: datos.temaTratado, observaciones, asistencia };
+    storageGuardarAtencion(id, atencion);
     if (consultaPrevia?.radicado) {
-      this.guardarAtencionDocenteLocal(consultaPrevia.radicado, {
-        tipoAtencion: datos.tipoAtencion,
-        tema: datos.temaTratado,
-        observaciones: datos.observaciones.trim(),
-        asistencia: datos.asistenciaConfirmada ? 1 : 0
-      });
+      storageGuardarAtencion(consultaPrevia.radicado, atencion);
     }
 
     this.consultas.update(lista =>
@@ -492,16 +444,16 @@ export class Data {
         const nuevoMensaje: MensajeInteraccion = {
           autor: c.tutor,
           rol: 'DOCENTE',
-          fechaHora: marcaTiempo,
-          mensaje: datos.observaciones.trim()
+          fechaHora,
+          mensaje: observaciones
         };
         return {
           ...c,
           tipoAtencion: datos.tipoAtencion,
           tema: datos.temaTratado,
-          observaciones: datos.observaciones.trim(),
-          retroalimentacionDocente: datos.observaciones.trim(),
-          asistencia: datos.asistenciaConfirmada ? 1 : 0,
+          observaciones,
+          retroalimentacionDocente: observaciones,
+          asistencia,
           estado: 'Completada',
           mensajes: [...c.mensajes, nuevoMensaje]
         };
@@ -509,8 +461,8 @@ export class Data {
     );
 
     if (this.api && this.api.baseUrl) {
-      const obsLimpia = datos.observaciones.trim() || 'Consulta atendida satisfactoriamente por el docente.';
-      const contenidoActa = `[ActaDocente | Tipo:${datos.tipoAtencion} | Tema:${datos.temaTratado} | Asistencia:${datos.asistenciaConfirmada ? 1 : 0}] ${obsLimpia}`;
+      const obsLimpia = observaciones || 'Consulta atendida satisfactoriamente por el docente.';
+      const contenidoActa = `[ActaDocente | Tipo:${datos.tipoAtencion} | Tema:${datos.temaTratado} | Asistencia:${asistencia}] ${obsLimpia}`;
 
       // El backend exige transición PENDIENTE -> EN_PROCESO antes de comentar y antes de pasar a RESUELTA
       const pasoEnProceso$: Observable<any> = estabaPendiente
@@ -539,31 +491,8 @@ export class Data {
             })
           )
         )
-        .subscribe({
-          next: () => this.sincronizarDesdeBackend(),
-          error: () => this.sincronizarDesdeBackend()
-        });
+        .subscribe(this.resincronizar);
     }
-  }
-
-  guardarAtencionDocenteLocal(
-    id: number | string,
-    datos: {
-      tipoAtencion: string;
-      tema: string;
-      observaciones: string;
-      asistencia: number;
-    }
-  ): void {
-    storageGuardarAtencion(id, datos);
-  }
-
-  obtenerAtencionesDocenteLocales(): Record<string, any> {
-    return storageObtenerAtenciones();
-  }
-
-  encolarSolicitudPendienteBD(solicitud: SolicitudPendienteBd): void {
-    storageEncolarSolicitud(solicitud);
   }
 
   reintentarSolicitudesPendientesBD(): void {
@@ -651,17 +580,11 @@ export class Data {
     );
 
     if (this.api && this.api.baseUrl && actual) {
-      const asignaturaFinal = cambios.asignatura || actual.asignatura;
+      const asignaturaFinal = limpiarNombreAsignatura(cambios.asignatura || actual.asignatura);
       const cursoMatch = this.cursos().find(
         c => c.asignatura.toLowerCase() === asignaturaFinal.toLowerCase()
       );
       const moduloId = cursoMatch?.id || actual.moduloId || 1;
-      const prioridadApi: PrioridadSolicitudApi =
-        (cambios.prioridad || actual.prioridad) === 'Alta'
-          ? 'ALTA'
-          : (cambios.prioridad || actual.prioridad) === 'Baja'
-            ? 'BAJA'
-            : 'MEDIA';
 
       const fechaConsulta = cambios.fechaConsulta || actual.fechaConsulta || obtenerFechaFuturaIso();
       const horaConsulta = cambios.horaConsulta
@@ -682,22 +605,19 @@ export class Data {
         fechaAgenda: fechaConsulta,
         horaAgenda: horaConsulta
       });
-      const parsedPrev = extraerMetadatosDescripcion(cambios.descripcion || actual.descripcion || '');
-      const descBase = parsedPrev.descripcionLimpia;
-
-      const temaTexto = (cambios.tema || actual.tema || '').trim();
-      const asuntoSeguro =
-        temaTexto.length >= 5 ? temaTexto.substring(0, 100) : `Tema: ${temaTexto}`.substring(0, 100);
+      const descBase = extraerMetadatosDescripcion(cambios.descripcion || actual.descripcion || '').descripcionLimpia;
 
       this.api
         .actualizarSolicitudConsulta(id, {
-          prioridad: prioridadApi,
-          asunto: asuntoSeguro,
+          prioridad: aPrioridadApi(cambios.prioridad || actual.prioridad),
+          asunto: asuntoSeguro(cambios.tema || actual.tema || ''),
           descripcion: `${etiquetaMeta}${descBase}`.trim(),
           fechaConsulta,
           horaConsulta,
           moduloId,
-          motivo: 'Actualización de solicitud'
+          motivo: 'Actualización de solicitud',
+          recursoFisicoId: recursoIdFinal,
+          recurso_fisico_id: recursoIdFinal
         })
         .subscribe({
           next: () => this.sincronizarDesdeBackend(),
@@ -705,6 +625,46 @@ export class Data {
             alert(this.api!.extraerMensajeError(err, 'No se pudo actualizar la solicitud en la base de datos.'));
           }
         });
+    }
+  }
+
+  asignarEspacioConsulta(id: number, recursoFisicoId: number, ubicacion: string): void {
+    const actual = this.consultas().find(c => c.id === id);
+    if (!actual) return;
+
+    this.consultas.update(lista =>
+      lista.map(c => (c.id === id ? { ...c, recursoFisicoId, ubicacion } : c))
+    );
+
+    const infoUbicacion = {
+      ubicacion,
+      recursoFisicoId,
+      modalidad: actual.modalidad || 'Presencial'
+    };
+    storageGuardarUbicacion(`ID_${id}`, infoUbicacion);
+    if (actual.radicado) {
+      storageGuardarUbicacion(actual.radicado, infoUbicacion);
+    }
+    const fecha = actual.fechaConsulta || actual.fecha?.split(' ')[0] || '';
+    const hora = actual.horaConsulta?.substring(0, 5) || '09:00';
+    if (fecha && hora) {
+      storageGuardarUbicacion(`FH_${fecha}_${hora}`, infoUbicacion);
+    }
+
+    // Persistir en la base de datos vía PUT (actualiza descripcion con etiqueta meta y recursoFisicoId)
+    this.actualizarConsulta(id, {
+      ubicacion,
+      recursoFisicoId
+    });
+
+    // Persistir clave foránea en la base de datos vía PATCH /recurso-fisico
+    if (this.api && this.api.baseUrl) {
+      this.api.asignarRecursoFisicoSolicitud(id, recursoFisicoId).subscribe({
+        next: () => this.sincronizarDesdeBackend(),
+        error: (err) => {
+          console.warn('Nota en PATCH recurso-fisico (actualizado vía PUT):', err);
+        }
+      });
     }
   }
 
@@ -717,14 +677,7 @@ export class Data {
     const estabaPendiente = !consultaPrevia || consultaPrevia.estado === 'Pendiente';
 
     this.consultas.update(lista =>
-      lista.map(c => {
-        if (c.id !== id) return c;
-        return {
-          ...c,
-          estado: nuevoEstado,
-          observaciones: motivo ? motivo : c.observaciones
-        };
-      })
+      lista.map(c => (c.id === id ? { ...c, estado: nuevoEstado, observaciones: motivo || c.observaciones } : c))
     );
 
     if (this.api && this.api.baseUrl) {
@@ -749,53 +702,40 @@ export class Data {
               this.api!.cambiarEstadoSolicitud(id, { estado: 'RESUELTA', motivo: motivoSeguro })
             )
           )
-          .subscribe({
-            next: () => this.sincronizarDesdeBackend(),
-            error: () => this.sincronizarDesdeBackend()
-          });
+          .subscribe(this.resincronizar);
         return;
       }
 
       this.api
         .cambiarEstadoSolicitud(id, { estado: estadoApi, motivo: motivoSeguro })
-        .subscribe({
-          next: () => this.sincronizarDesdeBackend(),
-          error: () => this.sincronizarDesdeBackend()
-        });
+        .subscribe(this.resincronizar);
     }
   }
 
   agregarComentario(id: number, autor: string, rol: 'ESTUDIANTE' | 'DOCENTE' | 'ADMIN', texto: string): void {
-    if (!texto.trim()) return;
-    const ahora = new Date();
-    const fechaHora = `${String(ahora.getDate()).padStart(2, '0')}/${String(ahora.getMonth() + 1).padStart(2, '0')}/${ahora.getFullYear()} - ${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
-    const consultaPrevia = this.consultas().find(c => c.id === id);
-    const estabaPendiente = consultaPrevia?.estado === 'Pendiente';
+    const mensaje = texto.trim();
+    if (!mensaje) return;
+    const fechaHora = marcaTiempo();
+    // El backend solo permite comentar cuando la solicitud está EN_PROCESO
+    const pasarAEnProceso =
+      this.consultas().find(c => c.id === id)?.estado === 'Pendiente' && (rol === 'DOCENTE' || rol === 'ADMIN');
 
     this.consultas.update(lista =>
-      lista.map(c => {
-        if (c.id !== id) return c;
-        return {
-          ...c,
-          estado: estabaPendiente && (rol === 'DOCENTE' || rol === 'ADMIN') ? 'En proceso' : c.estado,
-          observaciones: rol === 'DOCENTE' ? texto.trim() : c.observaciones,
-          mensajes: [
-            ...c.mensajes,
-            {
-              autor,
-              rol,
-              fechaHora,
-              mensaje: texto.trim()
+      lista.map(c =>
+        c.id !== id
+          ? c
+          : {
+              ...c,
+              estado: pasarAEnProceso ? 'En proceso' : c.estado,
+              observaciones: rol === 'DOCENTE' ? mensaje : c.observaciones,
+              mensajes: [...c.mensajes, { autor, rol, fechaHora, mensaje }]
             }
-          ]
-        };
-      })
+      )
     );
 
     if (this.api && this.api.baseUrl) {
-      // El backend solo permite comentar cuando la solicitud está EN_PROCESO
       const prePaso$: Observable<any> =
-        estabaPendiente && (rol === 'DOCENTE' || rol === 'ADMIN')
+        pasarAEnProceso
           ? this.api
               .cambiarEstadoSolicitud(id, {
                 estado: 'EN_PROCESO',
@@ -807,10 +747,7 @@ export class Data {
       prePaso$
         .pipe(
           switchMap(() =>
-            this.api!.registrarComentario({
-              solicitudConsultaId: id,
-              contenido: texto.trim()
-            })
+            this.api!.registrarComentario({ solicitudConsultaId: id, contenido: mensaje })
           )
         )
         .subscribe({
@@ -823,11 +760,11 @@ export class Data {
   }
 
   calificarConsulta(idSolicitud: number, puntaje: number, comentario?: string): void {
-    const fechaIso = new Date().toISOString();
+    const comentarioLimpio = comentario?.trim() || null;
     const resumenCalif: CalificacionResumenSolicitudApi = {
       puntaje,
-      comentario: comentario?.trim() || null,
-      fecha: fechaIso
+      comentario: comentarioLimpio,
+      fecha: new Date().toISOString()
     };
 
     this.consultas.update((lista) =>
@@ -836,10 +773,7 @@ export class Data {
 
     if (this.api && this.api.baseUrl) {
       this.api
-        .calificarSolicitud(idSolicitud, {
-          puntaje,
-          comentario: comentario?.trim() || null
-        })
+        .calificarSolicitud(idSolicitud, { puntaje, comentario: comentarioLimpio })
         .subscribe({
           next: () => this.sincronizarDesdeBackend(),
           error: (err) => {
@@ -862,14 +796,8 @@ export class Data {
   sincronizarDesdeBackend(): void {
     if (!this.api || !this.api.baseUrl || !this.api.tieneTokenActivo()) return;
 
-    const rolActual =
-      typeof localStorage !== 'undefined'
-        ? localStorage.getItem('rolActivo') || 'ESTUDIANTE'
-        : 'ESTUDIANTE';
-    const idUsuarioActivo =
-      typeof localStorage !== 'undefined'
-        ? Number(localStorage.getItem('idUsuarioActivo') || 0)
-        : 0;
+    const rolActual = sesion.rol();
+    const idUsuarioActivo = sesion.idUsuario();
 
     // Cargar catálogos transversales (/programas, /tipos-documento, /periodos-academicos, /notificaciones)
     this.api.listarProgramas().subscribe({
@@ -927,28 +855,17 @@ export class Data {
 
     this.reintentarSolicitudesPendientesBD();
 
-    // 1. Obtener Usuarios (si es ADMIN) o Docentes públicos (si es ESTUDIANTE/DOCENTE)
-    const usuariosObs =
-      rolActual === 'ADMIN'
-        ? this.api.listarUsuarios(true).pipe(
-            map((usuariosRemotos: UsuarioResponseApi[]) =>
-              (usuariosRemotos || []).map(mapearUsuarioApiAFront)
-            ),
-            catchError(() =>
-              this.api!.listarDocentes().pipe(
-                map((docentes: DocenteResumenApi[]) =>
-                  (docentes || []).map(mapearDocenteApiAFront)
-                ),
-                catchError(() => of([] as UsuarioSistema[]))
-              )
-            )
-          )
-        : this.api.listarDocentes().pipe(
-            map((docentes: DocenteResumenApi[]) =>
-              (docentes || []).map(mapearDocenteApiAFront)
-            ),
-            catchError(() => of([] as UsuarioSistema[]))
-          );
+    // 1. Obtener Usuarios (catálogo completo de estudiantes y docentes de la BD)
+    const docentesObs = this.api.listarDocentes().pipe(
+      map((docentes: DocenteResumenApi[]) => (docentes || []).map(mapearDocenteApiAFront)),
+      catchError(() => of([] as UsuarioSistema[]))
+    );
+    const usuariosObs = this.api.listarUsuarios(true).pipe(
+      map((usuariosRemotos: UsuarioResponseApi[]) =>
+        (usuariosRemotos || []).map(mapearUsuarioApiAFront)
+      ),
+      catchError(() => docentesObs)
+    );
 
     const modulosObs = this.api
       .listarModulosAsignaturas()
@@ -1012,17 +929,16 @@ export class Data {
       this.api!.listarSolicitudesConsulta().subscribe({
         next: (solicitudesRemotas: SolicitudConsultaResponseApi[]) => {
           const lista = solicitudesRemotas || [];
-          const atencionesDocente = this.obtenerAtencionesDocenteLocales();
+          const atencionesDocente = storageObtenerAtenciones();
           const mapeadas: ConsultaUnificada[] = lista.map((s) => {
             const metaDesc = extraerMetadatosDescripcion(s.descripcion || '');
             const fechaReal = metaDesc.fechaAgenda || s.fechaConsulta;
             const horaReal = metaDesc.horaAgenda || s.horaConsulta;
-            const ubicGuardada = this.obtenerUbicacionLocal(s.id, fechaReal, horaReal);
+            const ubicGuardada = storageObtenerUbicacion(s.id, fechaReal, horaReal);
 
             if (
               !s.recursoFisicoId &&
               (metaDesc.recursoId || ubicGuardada?.recursoFisicoId) &&
-              (s.estado === 'PENDIENTE' || s.estado === 'EN_PROCESO') &&
               (rolActual === 'ADMIN' || (rolActual === 'DOCENTE' && s.docenteId === idUsuarioActivo))
             ) {
               const recId = metaDesc.recursoId || ubicGuardada?.recursoFisicoId;

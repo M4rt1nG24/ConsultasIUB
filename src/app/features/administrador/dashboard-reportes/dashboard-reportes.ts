@@ -7,6 +7,7 @@ import { DataTableDirective } from '../../../shared/directives/datatable.directi
 import { KpiCard } from '../../../shared/components/kpi-card/kpi-card';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { PriorityBadge } from '../../../shared/components/priority-badge/priority-badge';
+import { ModalReporteConsultas } from '../../../shared/components/modal-reporte-consultas/modal-reporte-consultas';
 
 export interface ReporteCursoItem {
   codigo: string;
@@ -28,7 +29,16 @@ export interface ResumenBarraItem {
 @Component({
   selector: 'app-dashboard-reportes',
   standalone: true,
-  imports: [CommonModule, FormsModule, DataTableDirective, AiInsightCard, KpiCard, PageHeader, PriorityBadge],
+  imports: [
+    CommonModule,
+    FormsModule,
+    DataTableDirective,
+    AiInsightCard,
+    KpiCard,
+    PageHeader,
+    PriorityBadge,
+    ModalReporteConsultas
+  ],
   styleUrl: './dashboard-reportes.css',
   templateUrl: './dashboard-reportes.html',
 })
@@ -36,6 +46,7 @@ export class DashboardReportes {
   private dataService = inject(Data);
 
   modalExportarAbierto = signal<boolean>(false);
+  modalReporteExcelAbierto = signal<boolean>(false);
   mensajeToast = signal<string | null>(null);
 
   totalResueltas = computed(() =>
@@ -131,11 +142,19 @@ export class DashboardReportes {
   incluirDetalleDocente = true;
 
   abrirModalExportar(): void {
-    this.modalExportarAbierto.set(true);
+    this.modalReporteExcelAbierto.set(true);
   }
 
   cerrarModalExportar(): void {
     this.modalExportarAbierto.set(false);
+  }
+
+  abrirModalReporteExcel(): void {
+    this.modalReporteExcelAbierto.set(true);
+  }
+
+  cerrarModalReporteExcel(): void {
+    this.modalReporteExcelAbierto.set(false);
   }
 
   descargarReporte(): void {

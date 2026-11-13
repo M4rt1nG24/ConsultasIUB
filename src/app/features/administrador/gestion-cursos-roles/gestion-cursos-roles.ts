@@ -10,6 +10,7 @@ import {
 } from '../../../core/services/api-principal';
 import { Auth } from '../../../core/services/auth';
 import { Data, CursoSistema } from '../../../core/services/data';
+import { normalizarCapitalizacionAsignatura } from '../../../core/services/data-helpers';
 import { DataTableDirective } from '../../../shared/directives/datatable.directive';
 import { FilterBar } from '../../../shared/components/filter-bar/filter-bar';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
@@ -177,7 +178,7 @@ export class GestionCursosRoles implements OnInit {
 
   guardarAsignacion(): void {
     const codigoLimpio = this.nuevoCodigo.trim().toUpperCase();
-    const asignaturaLimpia = this.nuevaAsignatura.trim();
+    const asignaturaLimpia = normalizarCapitalizacionAsignatura(this.nuevaAsignatura.trim());
 
     if (!codigoLimpio || asignaturaLimpia.length < 3) {
       alert('Por favor ingresa un código y un nombre de asignatura de al menos 3 caracteres.');

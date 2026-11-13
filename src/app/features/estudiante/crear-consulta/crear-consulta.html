@@ -2,18 +2,37 @@
     <div class="header-section">
         <span class="badge-tag">Módulo Estudiante</span>
         <h2>Crear Nueva Consulta</h2>
-        <p>Selecciona la asignatura, sede, espacio físico y horario. El sistema verifica en tiempo real que el salón
-            seleccionado esté disponible a esa hora.</p>
+        <p>Selecciona la asignatura, docente tutor destinatario, modalidad deseada y fecha/horario de tu consulta. La
+            asignación del espacio físico la realiza el docente tutor al gestionar tu solicitud.</p>
     </div>
 
     <div class="main-card">
         <form (ngSubmit)="enviarSolicitud()" class="form-content">
 
+            <!-- Datos de Identificación del Estudiante Solicitante -->
+            <div class="student-strip"
+                style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 16px; border-radius: 8px; margin-bottom: 20px;">
+                <div>
+                    <span
+                        style="font-size: 0.82rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block;">Estudiante
+                        Solicitante</span>
+                    <strong style="color: #0f172a; font-size: 0.95rem;">{{ estudianteNombre() }}</strong>
+                </div>
+                <div>
+                    <span
+                        style="font-size: 0.82rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block;">Identificación</span>
+                    <span
+                        style="font-family: monospace; font-weight: 700; color: #1e3a8a; background: #e0f2fe; padding: 3px 8px; border-radius: 4px; font-size: 0.9rem; display: inline-block;">{{
+                        estudianteDoc() }}</span>
+                </div>
+            </div>
+
             <!-- Asignatura y Docente Preferido -->
             <div class="form-row">
                 <div class="input-block flex-1">
                     <label for="asig">Asignatura *</label>
-                    <select id="asig" class="form-control" [(ngModel)]="asignatura" (ngModelChange)="asignaturaSignal.set($event)" name="asig">
+                    <select id="asig" class="form-control" [(ngModel)]="asignatura"
+                        (ngModelChange)="asignaturaSignal.set($event)" name="asig">
                         @for (c of cursosDisponibles(); track c.codigo) {
                         <option [value]="c.asignatura">{{ c.asignatura }} ({{ c.docente }})</option>
                         }
@@ -22,7 +41,8 @@
 
                 <div class="input-block flex-1">
                     <label for="doc">Docente Tutor Destinatario *</label>
-                    <select id="doc" class="form-control" [ngModel]="docenteId()" (ngModelChange)="docenteId.set(+$event)" name="doc" required>
+                    <select id="doc" class="form-control" [ngModel]="docenteId()"
+                        (ngModelChange)="docenteId.set(+$event)" name="doc" required>
                         <option [ngValue]="0" disabled>-- Seleccione el docente que atenderá su consulta --</option>
                         @for (d of docentesDisponiblesPorCurso(); track d.id) {
                         <option [ngValue]="d.id">{{ d.nombre }} {{ d.correo ? '(' + d.correo + ')' : '' }}</option>
@@ -68,40 +88,24 @@
                 </div>
             </div>
 
-            <!-- Selección de Sede y Espacio Disponible (Solo Presencial) -->
+            <!-- Información sobre asignación de espacio según la modalidad -->
             @if (modalidad() === 'Presencial') {
-            <div class="form-row">
-                <div class="input-block flex-1">
-                    <label for="sede">Sede Institucional *</label>
-                    <select id="sede" class="form-control" [ngModel]="sedeSeleccionada()"
-                        (ngModelChange)="cambiarSede($event)" name="sede">
-                        @for (sede of sedesDisponibles(); track sede.id) {
-                        <option [value]="sede.nombre">{{ sede.nombre }}</option>
-                        }
-                    </select>
-                </div>
-
-                <div class="input-block flex-1">
-                    <label for="espacio">Espacio / Salón Disponible en la Sede *</label>
-                    <select id="espacio" class="form-control" [ngModel]="espacioSeleccionadoId()"
-                        (ngModelChange)="espacioSeleccionadoId.set(+$event)" name="espacio">
-                        @for (esp of espaciosDeSede(); track esp.id) {
-                        <option [value]="esp.id">
-                            {{ esp.disponibleEnHorario ? '✅ Disponible' : '🚫 Ocupado en esta hora' }} — {{ esp.nombre
-                            }} ({{ esp.bloquePiso }})
-                        </option>
-                        }
-                    </select>
+            <div class="info-aviso-modalidad presencial">
+                <span class="info-icon">📍</span>
+                <div class="info-text">
+                    <strong>Asignación de Espacio Físico (Presencial):</strong>
+                    <span>La sede y el salón institucional serán asignados directamente por el docente tutor al revisar
+                        y aceptar tu solicitud.</span>
                 </div>
             </div>
-
-            <!-- Indicador en tiempo real de disponibilidad del espacio en la fecha/hora seleccionada -->
-            <div style="padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; font-weight: 500;"
-                [style.background]="verificacionDisponibilidad().disponible ? '#ecfdf5' : '#fef2f2'"
-                [style.border]="verificacionDisponibilidad().disponible ? '1px solid #10b981' : '1px solid #ef4444'"
-                [style.color]="verificacionDisponibilidad().disponible ? '#065f46' : '#991b1b'">
-                <span>{{ verificacionDisponibilidad().disponible ? '✅ ' : '⚠️ ' }}{{
-                    verificacionDisponibilidad().mensaje }}</span>
+            } @else {
+            <div class="info-aviso-modalidad virtual">
+                <span class="info-icon">💻</span>
+                <div class="info-text">
+                    <strong>Modalidad Virtual:</strong>
+                    <span>La sesión se realizará a través del Campus Virtual Institucional (Microsoft Teams / Google
+                        Meet). El enlace de conexión se habilitará una vez aprobada la consulta.</span>
+                </div>
             </div>
             }
 
@@ -129,8 +133,7 @@
             <!-- Acciones -->
             <div class="button-row">
                 <button type="button" class="btn-cancel" (click)="cancelar()">Cancelar</button>
-                <button type="submit" class="btn-submit"
-                    [disabled]="modalidad() === 'Presencial' && !verificacionDisponibilidad().disponible">
+                <button type="submit" class="btn-submit">
                     Enviar Solicitud
                 </button>
             </div>
@@ -151,6 +154,11 @@
             <p>Tu solicitud de tutoría ha sido registrada en el sistema institucional con el radicado <strong>{{
                     radicadoGenerado() }}</strong>.</p>
             <div class="summary-box">
+                <div><strong>Radicado:</strong> {{ radicadoGenerado() }}</div>
+                <div><strong>Estudiante:</strong> {{ estudianteNombre() }}</div>
+                <div><strong>Identificación:</strong> <span
+                        style="font-family: monospace; font-weight: 700; color: #1e3a8a;">{{ estudianteDoc() }}</span>
+                </div>
                 <div><strong>Asignatura:</strong> {{ asignatura }}</div>
                 <div><strong>Docente tutor asignado:</strong> {{ docenteNombreConfirmado() }}</div>
                 <div><strong>Modalidad:</strong> {{ modalidad() }}</div>
@@ -158,8 +166,8 @@
                 <div><strong>Fecha y Hora:</strong> {{ fechaConsulta() }} • {{ horaConsulta() }}</div>
                 <div><strong>Tema:</strong> {{ tema }}</div>
             </div>
-            <p class="modal-info-text">El espacio ha quedado reservado para tu sesión en ese horario y ya está
-                disponible en la bandeja del docente.</p>
+            <p class="modal-info-text">Tu solicitud ha sido radicada y enviada a la bandeja del docente tutor. El
+                docente validará la solicitud y asignará el espacio institucional correspondiente.</p>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" (click)="crearOtra()">Crear Otra Solicitud</button>
                 <button type="submit" class="btn-submit" (click)="cerrarModalYVolver()">Ver Mis Solicitudes</button>

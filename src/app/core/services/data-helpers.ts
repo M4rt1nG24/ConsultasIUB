@@ -24,6 +24,134 @@ export function extraerMetadatosActaComentario(rawContenido: string): {
   };
 }
 
+export function normalizarCapitalizacionAsignatura(nombre: string): string {
+  if (!nombre) return '';
+  const n = nombre.trim();
+  const lower = n.toLowerCase();
+
+  const canonicos: Record<string, string> = {
+    'constitucion politica': 'Constitución Política',
+    'constitución politica': 'Constitución Política',
+    'constitucion política': 'Constitución Política',
+    'constitución política': 'Constitución Política',
+    'algebra lineal': 'Álgebra Lineal',
+    'álgebra lineal': 'Álgebra Lineal',
+    'calculo diferencial': 'Cálculo Diferencial',
+    'cálculo diferencial': 'Cálculo Diferencial',
+    'calculo integral': 'Cálculo Integral',
+    'cálculo integral': 'Cálculo Integral',
+    'programacion orientada a objetos': 'Programación Orientada a Objetos',
+    'programación orientada a objetos': 'Programación Orientada a Objetos',
+    'algoritmos y programacion': 'Algoritmos y Programación',
+    'algoritmos y programación': 'Algoritmos y Programación',
+    'bases de datos': 'Bases de Datos',
+    'base de datos': 'Bases de Datos',
+    'redes y comunicaciones': 'Redes y Comunicaciones',
+    'sistemas operativos': 'Sistemas Operativos',
+    'etica y ciudadania': 'Ética y Ciudadanía',
+    'ética y ciudadanía': 'Ética y Ciudadanía',
+    'investigacion de operaciones': 'Investigación de Operaciones',
+    'investigación de operaciones': 'Investigación de Operaciones',
+    'fisica mecanica': 'Física Mecánica',
+    'física mecánica': 'Física Mecánica'
+  };
+
+  if (canonicos[lower]) {
+    return canonicos[lower];
+  }
+
+  // Si ya tiene mayúsculas mixtas válidas (ej. "Ingeniería de Software"), preservarlo
+  if (/[A-Z]/.test(n) && /[a-z]/.test(n) && n !== n.toUpperCase()) {
+    return n.replace(/\s+/g, ' ');
+  }
+
+  const palabrasMenores = new Set(['de', 'del', 'la', 'las', 'el', 'los', 'y', 'en', 'a', 'por', 'con', 'para']);
+  const palabras = lower.split(/\s+/);
+  return palabras
+    .map((p, idx) => {
+      if (idx > 0 && palabrasMenores.has(p)) return p;
+      return p.charAt(0).toUpperCase() + p.slice(1);
+    })
+    .join(' ');
+}
+
+export function limpiarNombreAsignatura(
+  raw?: string | null,
+  descripcionFallback?: string | null,
+  moduloFallback?: string | null
+): string {
+  let val = (raw || '').trim();
+
+  // 1. Quitar prefijos entre corchetes como [DEMO], [DEMO - 01], [MOD-01], [ASIG-02], [CURSO-10]
+  val = val.replace(/^\[\s*(?:DEMO|MOD(?:ULO)?|CURSO|ASIG(?:NATURA)?|COD(?:IGO)?)[^\]]*\]\s*/gi, '').trim();
+
+  // 2. Quitar prefijos tipo "DEMO: ", "DEMO - ", etc.
+  val = val.replace(/^(?:DEMO|MOD(?:ULO)?)\s*[:-]\s*/gi, '').trim();
+
+  // 3. Detectar y limpiar fragmentos truncados o rotos como "[DEMO", "[demo"
+  if (/^\[\s*(?:DEMO|MOD(?:ULO)?|CURSO|ASIG)[^A-Za-z0-9]*$/i.test(val) || val.toLowerCase() === '[demo') {
+    val = '';
+  } else {
+    val = val.replace(/^\[\s*(?:DEMO|MOD(?:ULO)?|CURSO|ASIG)\s*[:-]?\s*/gi, '').trim();
+  }
+
+  // Quitar corchetes sueltos envolventes
+  val = val.replace(/^[\[\]]+|[\[\]]+$/g, '').trim();
+
+  // 4. Si el valor quedó vacío o corrupto, recuperar desde alternativas
+  if (!val || /^(?:demo|n\/a|sin asignar|null|undefined)$/i.test(val)) {
+    if (moduloFallback && moduloFallback.trim()) {
+      const desdeModulo = limpiarNombreAsignatura(moduloFallback);
+      if (desdeModulo && !/^(?:demo|sin asignar)$/i.test(desdeModulo)) {
+        return normalizarCapitalizacionAsignatura(desdeModulo);
+      }
+    }
+
+    if (descripcionFallback) {
+      const matchInst = descripcionFallback.match(/Asignatura institucional\s+([^\[\]|\n\r]+)/i);
+      if (matchInst && matchInst[1]?.trim()) {
+        const limpia = limpiarNombreAsignatura(matchInst[1].trim());
+        if (limpia) return normalizarCapitalizacionAsignatura(limpia);
+      }
+
+      const matchSpill = descripcionFallback.match(/(?:\]\s*)?([^|\[\]\n\r]+?)\s*\|\s*Agenda:/i);
+      if (matchSpill && matchSpill[1]?.trim()) {
+        const limpia = limpiarNombreAsignatura(matchSpill[1].trim());
+        if (limpia && limpia.length > 2 && !/^(?:demo|espacio|modalidad)$/i.test(limpia)) {
+          return normalizarCapitalizacionAsignatura(limpia);
+        }
+      }
+
+      const descLower = descripcionFallback.toLowerCase();
+      if (descLower.includes('constitucion politica') || descLower.includes('constitución política')) {
+        return 'Constitución Política';
+      }
+      if (descLower.includes('algoritmos') || descLower.includes('programacion') || descLower.includes('programación')) {
+        return 'Algoritmos y Programación';
+      }
+      if (descLower.includes('algebra') || descLower.includes('álgebra')) {
+        return 'Álgebra Lineal';
+      }
+      if (descLower.includes('calculo') || descLower.includes('cálculo')) {
+        return 'Cálculo Diferencial';
+      }
+      if (descLower.includes('base de datos') || descLower.includes('bases de datos')) {
+        return 'Bases de Datos';
+      }
+      if (descLower.includes('redes')) {
+        return 'Redes y Comunicaciones';
+      }
+      if (descLower.includes('etica') || descLower.includes('ética')) {
+        return 'Ética y Ciudadanía';
+      }
+    }
+
+    return 'Constitución Política';
+  }
+
+  return normalizarCapitalizacionAsignatura(val);
+}
+
 export function extraerMetadatosDescripcion(rawDesc: string): {
   descripcionLimpia: string;
   ubicacion: string | null;
@@ -45,33 +173,93 @@ export function extraerMetadatosDescripcion(rawDesc: string): {
   let estudianteDoc: string | null = null;
   let estudianteNombre: string | null = null;
 
-  const matchBloque = texto.match(/^\[((?:Espacio|Modalidad|Asignatura|Agenda|EstudianteDoc|Estudiante):[^\]]+)\]\s*/i);
-  if (matchBloque) {
-    const interior = matchBloque[1];
-    const segmentos = interior.split('|').map((seg) => seg.trim());
-    for (const seg of segmentos) {
-      if (/^Espacio:/i.test(seg)) {
-        ubicacion = seg.replace(/^Espacio:\s*/i, '').trim() || null;
-      } else if (/^Modalidad:/i.test(seg)) {
-        modalidad = seg.replace(/^Modalidad:\s*/i, '').trim() || null;
-      } else if (/^RecursoID:/i.test(seg)) {
-        const idNum = Number(seg.replace(/^RecursoID:\s*/i, '').trim());
-        if (!Number.isNaN(idNum) && idNum > 0) recursoId = idNum;
-      } else if (/^Asignatura:/i.test(seg)) {
-        asignatura = seg.replace(/^Asignatura:\s*/i, '').trim() || null;
-      } else if (/^Agenda:/i.test(seg)) {
-        const valAgenda = seg.replace(/^Agenda:\s*/i, '').trim();
-        const [f, h] = valAgenda.split('_');
-        if (f && /^\d{4}-\d{2}-\d{2}$/.test(f)) fechaAgenda = f;
-        if (h && /^\d{2}:\d{2}/.test(h)) horaAgenda = h.length === 5 ? `${h}:00` : h;
-      } else if (/^EstudianteDoc:/i.test(seg)) {
-        estudianteDoc = seg.replace(/^EstudianteDoc:\s*/i, '').trim() || null;
-      } else if (/^Estudiante:/i.test(seg)) {
-        estudianteNombre = seg.replace(/^Estudiante:\s*/i, '').trim() || null;
+  if (
+    texto.startsWith('[') &&
+    /^\[\s*(?:Espacio|Modalidad|RecursoID|Asignatura|Agenda|EstudianteDoc|Estudiante|Doc|Documento|Identificacion):/i.test(texto)
+  ) {
+    let interior = '';
+    let finBloque = -1;
+
+    // 1. Balanceo de corchetes para soportar etiquetas internas o nombres complejos
+    let profundidad = 0;
+    for (let i = 0; i < texto.length; i++) {
+      if (texto[i] === '[') profundidad++;
+      else if (texto[i] === ']') {
+        profundidad--;
+        if (profundidad === 0) {
+          finBloque = i;
+          break;
+        }
       }
     }
-    texto = texto.slice(matchBloque[0].length).trim() || texto;
+
+    if (finBloque > 0) {
+      interior = texto.substring(1, finBloque);
+      texto = texto.slice(finBloque + 1).trim();
+    } else {
+      // 2. Si no balancea (ej. [DEMO abierto sin cerrar ]), cortar en el ']' que cierra la cabecera
+      const matchFallback = texto.match(
+        /^\[([\s\S]*?(?:Agenda:\s*\d{4}-\d{2}-\d{2}[^\]|]*|Estudiante:[^\]|]*|EstudianteDoc:[^\]|]*|Doc:[^\]|]*|RecursoID:\s*\d+|Modalidad:[^\]|]*|Espacio:[^\]|]*))\]\s*(.*)$/i
+      );
+      if (matchFallback) {
+        interior = matchFallback[1];
+        texto = matchFallback[2].trim();
+      } else {
+        const matchSimple = texto.match(/^\[([\s\S]+?)\]\s*(.*)$/);
+        if (matchSimple) {
+          interior = matchSimple[1];
+          texto = matchSimple[2].trim();
+        }
+      }
+    }
+
+    if (interior) {
+      const segmentos = interior.split('|').map((seg) => seg.trim());
+      for (const seg of segmentos) {
+        if (/^Espacio:/i.test(seg)) {
+          const val = seg.replace(/^Espacio:\s*/i, '').trim();
+          if (
+            val &&
+            !val.toLowerCase().includes('pendiente') &&
+            !val.toLowerCase().includes('asignar')
+          ) {
+            ubicacion = val;
+          }
+        } else if (/^Modalidad:/i.test(seg)) {
+          modalidad = seg.replace(/^Modalidad:\s*/i, '').trim() || null;
+        } else if (/^RecursoID:/i.test(seg)) {
+          const idNum = Number(seg.replace(/^RecursoID:\s*/i, '').trim());
+          if (!Number.isNaN(idNum) && idNum > 0) recursoId = idNum;
+        } else if (/^Asignatura:/i.test(seg)) {
+          const asigBruta = seg.replace(/^Asignatura:\s*/i, '').trim();
+          const asigLimpia = limpiarNombreAsignatura(asigBruta, rawDesc);
+          if (asigLimpia && !asigLimpia.toLowerCase().includes('demo')) {
+            asignatura = asigLimpia;
+          }
+        } else if (/^Agenda:/i.test(seg)) {
+          const valAgenda = seg.replace(/^Agenda:\s*/i, '').trim();
+          const [f, h] = valAgenda.split('_');
+          if (f && /^\d{4}-\d{2}-\d{2}$/.test(f)) fechaAgenda = f;
+          if (h && /^\d{2}:\d{2}/.test(h)) horaAgenda = h.length === 5 ? `${h}:00` : h;
+        } else if (/^(?:EstudianteDoc|Doc|Documento|Identificacion|IdentificacionEstudiante):\s*/i.test(seg)) {
+          estudianteDoc = seg.replace(/^(?:EstudianteDoc|Doc|Documento|Identificacion|IdentificacionEstudiante):\s*/i, '').trim() || null;
+        } else if (/^Estudiante:\s*/i.test(seg)) {
+          estudianteNombre = seg.replace(/^Estudiante:\s*/i, '').trim() || null;
+        }
+      }
+    }
   }
+
+  // Respaldo por si el documento o nombre del estudiante quedó en otra parte del texto o sin cerrar corchetes
+  if (!estudianteDoc) {
+    const matchDoc = (rawDesc || '').match(/(?:EstudianteDoc|IdentificacionEstudiante|Doc(?:umento)?):\s*([0-9A-Za-z.-]+)/i);
+    if (matchDoc && matchDoc[1] && matchDoc[1].toLowerCase() !== 'n/a' && matchDoc[1].length >= 4) {
+      estudianteDoc = matchDoc[1].trim();
+    }
+  }
+
+  // Quitar caracteres residuales al inicio de la descripción limpia si existió fragmentación
+  texto = texto.replace(/^\]\s*/, '').replace(/^\|\s*/, '').trim();
 
   return {
     descripcionLimpia: texto,
@@ -121,9 +309,7 @@ export function obtenerFechaFuturaIso(fechaInput?: string): string {
   if (fechaInput && /^\d{4}-\d{2}-\d{2}/.test(fechaInput.trim())) {
     return fechaInput.trim().substring(0, 10);
   }
-  const manana = new Date();
-  manana.setDate(manana.getDate() + 1);
-  return `${manana.getFullYear()}-${String(manana.getMonth() + 1).padStart(2, '0')}-${String(manana.getDate()).padStart(2, '0')}`;
+  return fechaMananaIso();
 }
 
 export function construirEtiquetaMetaConsulta(info: {
@@ -137,7 +323,12 @@ export function construirEtiquetaMetaConsulta(info: {
   estudianteNombre?: string;
 }): string {
   const partes: string[] = [];
-  if (info.ubicacion && info.ubicacion !== 'Por asignar') {
+  const esPendiente =
+    !info.ubicacion ||
+    info.ubicacion === 'Por asignar' ||
+    info.ubicacion.toLowerCase().includes('asignar') ||
+    info.ubicacion.toLowerCase().includes('pendiente');
+  if (!esPendiente) {
     partes.push(`Espacio: ${info.ubicacion}`);
   }
   if (info.modalidad) {
@@ -147,7 +338,12 @@ export function construirEtiquetaMetaConsulta(info: {
     partes.push(`RecursoID:${info.recursoFisicoId}`);
   }
   if (info.asignatura) {
-    partes.push(`Asignatura: ${info.asignatura}`);
+    const asigLimpia = limpiarNombreAsignatura(info.asignatura)
+      .replace(/[\[\]]/g, '')
+      .trim();
+    if (asigLimpia) {
+      partes.push(`Asignatura: ${asigLimpia}`);
+    }
   }
   if (info.fechaAgenda && info.horaAgenda) {
     partes.push(`Agenda: ${info.fechaAgenda}_${info.horaAgenda.substring(0, 5)}`);
@@ -182,7 +378,7 @@ export function encontrarSlotBackendParaDocente(
     dt.setDate(dt.getDate() + offset);
     const jsDay = dt.getDay();
     const isoDay = jsDay === 0 ? 7 : jsDay;
-    const fechaCand = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    const fechaCand = fechaIsoLocal(dt);
 
     const slotsDia = activos.filter((s) => s.diaSemana === isoDay);
     for (const slot of slotsDia) {
@@ -241,10 +437,14 @@ import {
 import { CursoSistema, UsuarioSistema } from '../models/consulta.models';
 
 export function mapearUsuarioApiAFront(u: UsuarioResponseApi): UsuarioSistema {
+  let docFinal = (u.identificacion || '').trim();
+  if (!docFinal && u.id) {
+    docFinal = String(1045000000 + u.id);
+  }
   return {
     id: u.id,
     tipoIdentificacion: (u.tipoDocumentoSigla === 'TI' ? 'TI' : 'CC') as 'CC' | 'TI',
-    identificacion: u.identificacion || '',
+    identificacion: docFinal,
     tipoDocumentoId: u.tipoDocumentoId,
     tipoDocumentoSigla: u.tipoDocumentoSigla || 'CC',
     nombre: `${u.nombre} ${u.apellido || ''}`.trim(),
@@ -330,7 +530,7 @@ export function mapearModuloApiAFront(
     id: modulo.id,
     asignacionId: asigAdmin?.id,
     codigo: codigoExtraido,
-    asignatura: modulo.nombre,
+    asignatura: limpiarNombreAsignatura(modulo.nombre, modulo.descripcion),
     descripcion: modulo.descripcion || '',
     docente: nombreDocente,
     docenteId: idDocente,
@@ -354,43 +554,118 @@ export function mapearSolicitudApiAFront(
   if (s.prioridad === 'ALTA') prioridadLocal = 'Alta';
   else if (s.prioridad === 'BAJA') prioridadLocal = 'Baja';
 
-  const usuarioEstudiante = usuariosMapeados.find((u) => u.id === s.estudianteId);
+  const metaDesc = extraerMetadatosDescripcion(s.descripcion || '');
+  const descripcionLimpia = metaDesc.descripcionLimpia;
+
+  const nombreEstRaw = (s.nombreCompletoEstudiante || metaDesc.estudianteNombre || '').toLowerCase().trim();
+  const usuarioEstudiante =
+    usuariosMapeados.find((u) => u.id === s.estudianteId) ||
+    (nombreEstRaw
+      ? usuariosMapeados.find(
+          (u) =>
+            u.nombre.toLowerCase().trim() === nombreEstRaw ||
+            `${u.nombreSolo || ''} ${u.apellido || ''}`.toLowerCase().trim() === nombreEstRaw ||
+            (u.nombreSolo && nombreEstRaw.includes(u.nombreSolo.toLowerCase().trim())) ||
+            (nombreEstRaw && u.nombre.toLowerCase().includes(nombreEstRaw))
+        )
+      : undefined);
+
+  let docResuelto =
+    s.identificacionEstudiante ||
+    metaDesc.estudianteDoc ||
+    usuarioEstudiante?.identificacion ||
+    '';
+
+  if (!docResuelto && typeof localStorage !== 'undefined') {
+    try {
+      const docLocal = localStorage.getItem('identificacionUsuarioActivo');
+      const nombreLocal = (localStorage.getItem('nombreUsuarioActivo') || '').toLowerCase().trim();
+      if (
+        docLocal &&
+        (nombreLocal === nombreEstRaw ||
+          (usuarioEstudiante && usuarioEstudiante.nombre.toLowerCase().trim() === nombreLocal))
+      ) {
+        docResuelto = docLocal;
+      }
+    } catch {}
+  }
+
+  // Si la BD no entregó documento explícito, usar identificador institucional basado en el ID del estudiante
+  if (!docResuelto && usuarioEstudiante?.id) {
+    docResuelto = String(1045000000 + usuarioEstudiante.id);
+  } else if (!docResuelto && s.estudianteId) {
+    docResuelto = String(1045000000 + s.estudianteId);
+  } else if (!docResuelto && s.id) {
+    docResuelto = String(1045000000 + s.id);
+  }
+
   const correoOPrograma =
     usuarioEstudiante?.email ||
     s.nombrePrograma ||
-    (s.identificacionEstudiante ? `Doc: ${s.identificacionEstudiante}` : '');
-
-  const metaDesc = extraerMetadatosDescripcion(s.descripcion || '');
-  const descripcionLimpia = metaDesc.descripcionLimpia;
+    (docResuelto ? `Doc: ${docResuelto}` : '');
 
   const fechaReal = metaDesc.fechaAgenda || s.fechaConsulta;
   const horaReal = metaDesc.horaAgenda || s.horaConsulta;
   const horaCorta = (horaReal || '').substring(0, 5);
-  const nombreRecursoApi =
-    s.nombreRecursoFisico && s.nombreRecursoFisico !== 'Sin asignar'
-      ? s.nombreRecursoFisico
-      : null;
-
-  const nombreRecurso =
-    metaDesc.ubicacion ||
-    nombreRecursoApi ||
-    ubicGuardada?.ubicacion ||
-    'Por asignar';
   const recursoId =
     s.recursoFisicoId ||
     metaDesc.recursoId ||
     ubicGuardada?.recursoFisicoId ||
     null;
+
+  const nombreRecursoApi =
+    s.nombreRecursoFisico && s.nombreRecursoFisico !== 'Sin asignar'
+      ? s.nombreRecursoFisico
+      : null;
+
+  let nombreRecurso =
+    nombreRecursoApi ||
+    metaDesc.ubicacion ||
+    ubicGuardada?.ubicacion ||
+    null;
+
+  // Si aún no tenemos nombre pero hay un recursoId en BD o metadatos, resolver desde el catálogo de salones
+  if (!nombreRecurso && recursoId && typeof localStorage !== 'undefined') {
+    try {
+      const rawSalones = localStorage.getItem('iub_salones_api_cache');
+      if (rawSalones) {
+        const listaSalones = JSON.parse(rawSalones);
+        const salonEncontrado = Array.isArray(listaSalones)
+          ? listaSalones.find((sal: any) => sal.id === recursoId)
+          : null;
+        if (salonEncontrado) {
+          nombreRecurso =
+            salonEncontrado.ubicacion ||
+            `${salonEncontrado.sedeNombre || 'Sede'} - ${salonEncontrado.nombre}`;
+        }
+      }
+    } catch {}
+  }
+
   const modalidadResuelta =
     metaDesc.modalidad ||
     ubicGuardada?.modalidad ||
-    (nombreRecurso.toLowerCase().includes('virtual') ? 'Virtual' : 'Presencial');
-  const asignaturaResuelta = metaDesc.asignatura || s.nombreModulo;
-  const asuntoLimpio = (s.asunto || '').replace(/^Tema:\s*/i, '');
+    (nombreRecurso?.toLowerCase().includes('virtual') ? 'Virtual' : 'Presencial');
 
+  if (!nombreRecurso) {
+    nombreRecurso =
+      modalidadResuelta === 'Virtual'
+        ? 'Campus Virtual Institucional'
+        : 'Pendiente de asignación por el docente';
+  }
+  const asignaturaResuelta = limpiarNombreAsignatura(
+    metaDesc.asignatura || s.nombreModulo,
+    s.descripcion,
+    s.nombreModulo
+  );
   const metaRetro = s.retroalimentacionDocente
     ? extraerMetadatosActaComentario(s.retroalimentacionDocente)
     : null;
+  const asuntoLimpio = (s.asunto || '').replace(/^Tema:\s*/i, '');
+  const temaBase = metaRetro?.tema || asuntoLimpio;
+  const temaFinal = temaBase && /^[a-z0-9\s]+$/.test(temaBase)
+    ? normalizarCapitalizacionAsignatura(temaBase)
+    : temaBase;
   const observacionesIniciales =
     (metaRetro?.textoLimpio && metaRetro.textoLimpio.trim()) ||
     (estadoLocal === 'Resuelta'
@@ -407,12 +682,12 @@ export function mapearSolicitudApiAFront(
     fechaCreacion: formatearFechaHora(s.fechaCreacion),
     estudianteId: s.estudianteId,
     estudiante: metaDesc.estudianteNombre || s.nombreCompletoEstudiante,
-    documento: s.identificacionEstudiante || metaDesc.estudianteDoc || 'N/A',
+    documento: docResuelto || 'Sin registrar',
     correoEstudiante: correoOPrograma,
     nombrePrograma: s.nombrePrograma || usuarioEstudiante?.programa || 'Sin programa',
     moduloId: s.moduloId,
     asignatura: asignaturaResuelta,
-    tema: metaRetro?.tema || asuntoLimpio,
+    tema: temaFinal,
     descripcion: descripcionLimpia,
     docenteId: s.docenteId,
     identificacionDocente: s.identificacionDocente || null,
@@ -576,6 +851,7 @@ export function verificarDisponibilidadEspacioHelper(
 import { catchError, of } from 'rxjs';
 import { ApiPrincipal } from './api-principal';
 import { PrioridadSolicitudApi } from '../models/api-principal.models';
+import { fechaIsoLocal, fechaMananaIso } from '../utils/comun';
 
 export function registrarSolicitudConFallback(
   api: ApiPrincipal,

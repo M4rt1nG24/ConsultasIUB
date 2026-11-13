@@ -1,0 +1,209 @@
+<div class="report-modal-backdrop" *ngIf="visible" (click)="cerrarModal()">
+    <div class="report-modal-container" (click)="$event.stopPropagation()">
+        
+        <!-- Header del Modal -->
+        <div class="report-modal-header">
+            <div class="header-titles">
+                <span class="report-tag">Formato Institucional Oficial IUB</span>
+                <h3>📊 Generar Reporte de Consultas Estudiantiles</h3>
+                <p class="format-code">Código: <strong>FR-GPA-16-V8</strong> • Vigencia: 15/12/2022 • Pág. 1 de 1</p>
+            </div>
+            <button type="button" class="btn-close-modal" (click)="cerrarModal()" title="Cerrar">✕</button>
+        </div>
+
+        <div class="report-modal-body">
+            
+            <!-- Contexto del Rol -->
+            <div class="role-context-banner" [class.docente-banner]="rol === 'DOCENTE'" [class.admin-banner]="rol === 'ADMIN'">
+                <div class="banner-icon">{{ rol === 'DOCENTE' ? '👨‍🏫' : '🏛️' }}</div>
+                <div class="banner-text">
+                    <strong *ngIf="rol === 'DOCENTE'">Reporte de Tutorías para: {{ docenteNombreActual || 'Docente Tutor' }}</strong>
+                    <strong *ngIf="rol === 'ADMIN'">Reporte Consolidado de Gestión Docente (Administrador)</strong>
+                    <p *ngIf="rol === 'DOCENTE'">Genera el formato oficial de tus consultas atendidas y programadas por mes o periodo cuatrimestral.</p>
+                    <p *ngIf="rol === 'ADMIN'">Genera el formato oficial para uno, varios o todos los docentes en el periodo seleccionado (cada docente en su hoja individual de Excel).</p>
+                </div>
+            </div>
+
+            <!-- Paso 1: Selección de Lapso de Tiempo -->
+            <div class="section-block">
+                <label class="section-title">1. Selecciona el Lapso de Tiempo</label>
+                
+                <div class="lapso-selector-grid">
+                    <label class="lapso-card" [class.active]="tipoLapso() === 'PERIODO'">
+                        <input type="radio" name="tipoLapso" [value]="'PERIODO'" [ngModel]="tipoLapso()" (ngModelChange)="tipoLapso.set($event)" />
+                        <div class="lapso-card-content">
+                            <span class="lapso-icon">📅</span>
+                            <span class="lapso-title">Periodo Académico</span>
+                            <small class="lapso-sub">Cuatrimestre regular (duración 4 meses)</small>
+                        </div>
+                    </label>
+
+                    <label class="lapso-card" [class.active]="tipoLapso() === 'MES'">
+                        <input type="radio" name="tipoLapso" [value]="'MES'" [ngModel]="tipoLapso()" (ngModelChange)="tipoLapso.set($event)" />
+                        <div class="lapso-card-content">
+                            <span class="lapso-icon">🗓️</span>
+                            <span class="lapso-title">Mes Calendario</span>
+                            <small class="lapso-sub">Consultas registradas en un mes específico</small>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Configuración según el lapso elegido -->
+                <div class="controls-row mt-3">
+                    <div class="input-item">
+                        <label>Año Académico</label>
+                        <select class="form-select" [ngModel]="anio()" (ngModelChange)="anio.set(+$event)">
+                            @for (a of aniosDisponibles; track a) {
+                            <option [value]="a">{{ a }}</option>
+                            }
+                        </select>
+                    </div>
+
+                    @if (tipoLapso() === 'PERIODO') {
+                    <div class="input-item flex-2">
+                        <label>Periodo Académico (4 Meses)</label>
+                        <select class="form-select" [ngModel]="periodoCuatrimestre()" (ngModelChange)="periodoCuatrimestre.set(+$event)">
+                            @for (p of periodosOpciones(); track p.valor) {
+                            <option [value]="p.valor">{{ p.nombre }} — {{ p.mesesTexto }}</option>
+                            }
+                        </select>
+                    </div>
+                    }
+
+                    @if (tipoLapso() === 'MES') {
+                    <div class="input-item flex-2">
+                        <label>Mes de Consulta</label>
+                        <select class="form-select" [ngModel]="mes()" (ngModelChange)="mes.set(+$event)">
+                            @for (m of meses; track m.valor) {
+                            <option [value]="m.valor">{{ m.nombre }}</option>
+                            }
+                        </select>
+                    </div>
+                    }
+                </div>
+
+                <div class="rango-preview-pill">
+                    ⏱️ <strong>Lapso seleccionado:</strong> {{ rangoDescripcion() }}
+                </div>
+            </div>
+
+            <!-- Paso 2: Selección de Docentes (Solo Administrador) -->
+            @if (rol === 'ADMIN') {
+            <div class="section-block">
+                <label class="section-title">2. Selección de Docentes a Incluir</label>
+                
+                <div class="modo-docente-options">
+                    <label class="radio-label">
+                        <input type="radio" name="modoDoc" value="TODOS" [ngModel]="seleccionDocentesModo()" (ngModelChange)="seleccionDocentesModo.set($event)" />
+                        <span><strong>Todos los Docentes</strong> (Genera un libro Excel con una hoja para cada docente)</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="modoDoc" value="ESPECIFICOS" [ngModel]="seleccionDocentesModo()" (ngModelChange)="seleccionDocentesModo.set($event)" />
+                        <span><strong>Uno o varios docentes específicos</strong></span>
+                    </label>
+                </div>
+
+                @if (seleccionDocentesModo() === 'ESPECIFICOS') {
+                <div class="docentes-selector-box">
+                    <div class="docentes-toolbar">
+                        <input
+                            type="text"
+                            class="search-docente-input"
+                            placeholder="Buscar docente por nombre o programa..."
+                            [ngModel]="busquedaDocente()"
+                            (ngModelChange)="busquedaDocente.set($event)" />
+
+                        <div class="btn-group-mini">
+                            <button type="button" class="btn-mini" (click)="seleccionarTodosDocentes()">Todos</button>
+                            <button type="button" class="btn-mini" (click)="deseleccionarTodosDocentes()">Ninguno</button>
+                        </div>
+                    </div>
+
+                    <div class="docentes-checkbox-list">
+                        @for (doc of docentesFiltrados(); track doc.id) {
+                        <label class="docente-check-item" [class.selected]="isDocenteSeleccionado(doc.id)">
+                            <input
+                                type="checkbox"
+                                [checked]="isDocenteSeleccionado(doc.id)"
+                                (change)="toggleDocente(doc.id)" />
+                            <div class="doc-info">
+                                <span class="doc-name">{{ doc.nombre }}</span>
+                                <small class="doc-prog">{{ doc.programa || 'Docencia Universitaria' }}</small>
+                            </div>
+                        </label>
+                        }
+                    </div>
+
+                    <div class="docentes-count-footer">
+                        <span>{{ docentesSeleccionados().length }} docente(s) seleccionado(s)</span>
+                    </div>
+                </div>
+                }
+            </div>
+            }
+
+            <!-- Paso 3: Filtro de Estado y Formato -->
+            <div class="section-block">
+                <label class="section-title">{{ rol === 'ADMIN' ? '3' : '2' }}. Filtros de Consulta y Formato de Salida</label>
+                
+                <div class="opciones-filtros-grid">
+                    <div class="checkbox-option">
+                        <label class="checkbox-styled">
+                            <input type="checkbox" [ngModel]="soloCompletadas()" (ngModelChange)="soloCompletadas.set($event)" />
+                            <span class="checkmark"></span>
+                            <span class="label-text">
+                                <strong>Solo consultas completadas / atendidas</strong>
+                                <small class="d-block text-muted">Excluir consultas en proceso o canceladas</small>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="format-choice-box">
+                        <label>Formato de Descarga:</label>
+                        <div class="format-radios">
+                            <label class="format-pill" [class.active]="formatoExportacion() === 'xlsx'">
+                                <input type="radio" name="formato" value="xlsx" [ngModel]="formatoExportacion()" (ngModelChange)="formatoExportacion.set($event)" />
+                                <span>📗 Excel Oficial (.xlsx - FR-GPA-16-V8)</span>
+                            </label>
+                            <label class="format-pill" [class.active]="formatoExportacion() === 'csv'">
+                                <input type="radio" name="formato" value="csv" [ngModel]="formatoExportacion()" (ngModelChange)="formatoExportacion.set($event)" />
+                                <span>📄 CSV Delimitado por Comas (.csv)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumen Previo a la Descarga -->
+            <div class="resumen-card">
+                <div class="resumen-kpis">
+                    <div class="kpi-box">
+                        <span class="kpi-num">{{ totalConsultas() }}</span>
+                        <span class="kpi-label">Consultas Encontradas</span>
+                    </div>
+                    <div class="kpi-box" *ngIf="rol === 'ADMIN'">
+                        <span class="kpi-num">{{ totalDocentes() }}</span>
+                        <span class="kpi-label">Docentes Incluidos</span>
+                    </div>
+                    <div class="kpi-box">
+                        <span class="kpi-num">FR-GPA-16-V8</span>
+                        <span class="kpi-label">Plantilla Institucional</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer con Acciones -->
+        <div class="report-modal-footer">
+            <button type="button" class="btn-cancel" (click)="cerrarModal()">
+                Cancelar
+            </button>
+            <button type="button" class="btn-download" (click)="descargarReporte()">
+                📥 Descargar Reporte {{ formatoExportacion() === 'xlsx' ? 'Excel Oficial (.xlsx)' : 'CSV (.csv)' }}
+            </button>
+        </div>
+
+    </div>
+</div>
+

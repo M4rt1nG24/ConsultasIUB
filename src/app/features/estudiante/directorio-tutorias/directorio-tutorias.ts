@@ -192,17 +192,11 @@ export class DirectorioTutorias {
       return;
     }
 
-    const verificacion = this.verificacionDisponibilidadCita();
-    if (esPresencial && verificacion && !verificacion.disponible) {
-      alert(`No es posible agendar en este espacio:\n\n${verificacion.mensaje}`);
-      return;
-    }
-
     const infoHora = this.horasDisponibles.find(h => h.valor === this.horaCita());
     const franjaEtiqueta = infoHora ? infoHora.franja : this.horaCita();
-    const ubicacionFinal = esPresencial && espacio
-      ? `${sede} - ${espacio.nombre} (${espacio.bloquePiso})`
-      : 'Sala Virtual Institucional';
+    const ubicacionFinal = esPresencial
+      ? 'Pendiente de asignación por el docente'
+      : 'Campus Virtual Institucional (Microsoft Teams / Google Meet)';
 
     const tutor = this.tutorSeleccionado();
     const asignaturaElegida = (tutor?.area || '').split(',')[0]?.trim() || tutor?.area || '';
@@ -216,7 +210,7 @@ export class DirectorioTutorias {
       hora: this.horaCita(),
       fecha: this.fechaCita(),
       ubicacion: ubicacionFinal,
-      recursoFisicoId: esPresencial && espacio ? espacio.id : undefined,
+      recursoFisicoId: null, // El docente asigna el espacio institucional
       tema: this.temaCita.trim(),
       descripcion: `Cita solicitada desde el Directorio de Tutorías con ${tutor?.nombre}.`
     });
@@ -225,7 +219,7 @@ export class DirectorioTutorias {
       `¡Cita solicitada exitosamente con ${tutor?.nombre}!\n` +
       `Radicado: ${nueva.radicado}\n` +
       `Fecha: ${this.fechaCita()} (${this.horaCita()})\n` +
-      `Lugar: ${ubicacionFinal}`
+      `Lugar / Espacio: ${ubicacionFinal}`
     );
 
     this.cerrarModalCita();

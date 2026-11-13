@@ -7,9 +7,9 @@
     <app-page-header
         badge="Módulo Administrador"
         titulo="📊 Reportes y Estadísticas"
-        subtitulo="Generación y descarga de analítica institucional del cuatrimestre actual.">
-        <button class="btn-primary" type="button" (click)="abrirModalExportar()">
-            Exportar Informe PDF
+        subtitulo="Generación y descarga de analítica institucional y formato oficial de consultas FR-GPA-16-V8.">
+        <button class="btn-primary" type="button" (click)="abrirModalReporteExcel()" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+            📊 Generar Reporte Excel Oficial
         </button>
     </app-page-header>
 
@@ -126,41 +126,9 @@
     </div>
 </div>
 
-<!-- Modal Exportar Informe PDF -->
-<div class="modal-backdrop" *ngIf="modalExportarAbierto()">
-    <div class="modal-dialog">
-        <div class="modal-header">
-            <h3>📑 Exportar Informe Académico PDF</h3>
-            <button class="btn-close" type="button" (click)="cerrarModalExportar()">✕</button>
-        </div>
-        <div class="modal-body">
-            <p>Configura los parámetros del informe consolidado institucional:</p>
-
-            <div class="form-group">
-                <label>Período Académico</label>
-                <select class="input-control" [(ngModel)]="periodoSeleccionado">
-                    <option value="2026-2">2026-2 (Cuatrimestre en curso)</option>
-                    <option value="2026-1">2026-1 (Histórico anterior)</option>
-                </select>
-            </div>
-
-            <div class="checkbox-group">
-                <label>
-                    <input type="checkbox" [(ngModel)]="incluirGraficos">
-                    <span>Incluir gráficas de demanda y estadísticas de satisfacción</span>
-                </label>
-                <label>
-                    <input type="checkbox" [(ngModel)]="incluirDetalleDocente">
-                    <span>Incluir tabla discriminada por docente y horas dedicadas</span>
-                </label>
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn-secondary" (click)="cerrarModalExportar()">Cancelar</button>
-                <button type="button" class="btn-primary" (click)="descargarReporte()">
-                    <span>📥 Descargar PDF</span>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Modal Reporte Excel Oficial FR-GPA-16-V8 -->
+<app-modal-reporte-consultas
+    [visible]="modalReporteExcelAbierto()"
+    rol="ADMIN"
+    (cerrar)="cerrarModalReporteExcel()">
+</app-modal-reporte-consultas>

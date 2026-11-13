@@ -110,6 +110,38 @@ textarea.form-control {
     border-top: 1px solid #f1f5f9;
 }
 
+.info-aviso-modalidad {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    line-height: 1.5;
+}
+
+.info-aviso-modalidad.presencial {
+    background-color: #f0f7ff;
+    border: 1px solid #bae0fd;
+    color: #034975;
+}
+
+.info-aviso-modalidad.virtual {
+    background-color: #f5f3ff;
+    border: 1px solid #ddd6fe;
+    color: #4c1d95;
+}
+
+.info-aviso-modalidad .info-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.info-aviso-modalidad .info-text strong {
+    display: block;
+    margin-bottom: 2px;
+}
+
 .btn-cancel {
     background-color: #e2e8f0;
     color: #475569;

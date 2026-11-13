@@ -278,6 +278,8 @@ export interface UpdateSolicitudConsultaRequestApi {
   horaConsulta: string;
   moduloId: number;
   motivo?: string | null;
+  recursoFisicoId?: number | null;
+  recurso_fisico_id?: number | null;
 }
 
 export interface CambiarEstadoSolicitudRequestApi {

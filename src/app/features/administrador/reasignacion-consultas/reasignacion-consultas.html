@@ -31,6 +31,7 @@
                     <tr>
                         <th>Radicado</th>
                         <th>Estudiante</th>
+                        <th>Identificación</th>
                         <th>Asignatura / Tema</th>
                         <th>Sede / Espacio</th>
                         <th>Fecha y Hora</th>
@@ -43,7 +44,12 @@
                     @for (item of solicitudesFiltradas(); track item.radicado) {
                     <tr>
                         <td><strong>{{ item.radicado }}</strong></td>
-                        <td>{{ item.estudiante }}</td>
+                        <td>
+                            <strong>{{ item.estudiante }}</strong>
+                        </td>
+                        <td>
+                            <span style="font-family: monospace; font-weight: 700; font-size: 0.85rem; color: #1e3a8a; background: #e0f2fe; padding: 2px 7px; border-radius: 4px; display: inline-block;">{{ item.documento }}</span>
+                        </td>
                         <td>
                             <strong>{{ item.asignatura }}</strong><br>
                             <small class="text-muted">{{ item.tema }}</small>

@@ -59,6 +59,7 @@ import {
   RecursoFisicoResponseApi,
   RegistroRecursoFisicoRequestApi
 } from '../models/api-principal.models';
+import { leerStorage } from '../utils/comun';
 
 const STORAGE_KEY_TOKEN = 'iub_jwt_token';
 
@@ -119,19 +120,35 @@ export class ApiPrincipal {
     }
   }
 
-  private obtenerHeaders(): HttpHeaders {
-    const token =
-      typeof localStorage !== 'undefined'
-        ? localStorage.getItem(STORAGE_KEY_TOKEN) || ''
-        : '';
+  // Helpers para peticiones autenticadas: anteponen baseUrl y añaden el token JWT.
+  private opcionesAuth(params?: HttpParams) {
+    return params ? { headers: this.obtenerHeaders(), params } : { headers: this.obtenerHeaders() };
+  }
 
-    let headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-    if (token) {
-      headers = headers.set('Authorization', `Bearer ${token}`);
-    }
-    return headers;
+  private getAuth<T>(ruta: string, params?: HttpParams): Observable<T> {
+    return this.http.get<T>(`${this.baseUrl}${ruta}`, this.opcionesAuth(params));
+  }
+
+  private postAuth<T>(ruta: string, body: unknown): Observable<T> {
+    return this.http.post<T>(`${this.baseUrl}${ruta}`, body, this.opcionesAuth());
+  }
+
+  private putAuth<T>(ruta: string, body: unknown): Observable<T> {
+    return this.http.put<T>(`${this.baseUrl}${ruta}`, body, this.opcionesAuth());
+  }
+
+  private patchAuth<T>(ruta: string, body: unknown): Observable<T> {
+    return this.http.patch<T>(`${this.baseUrl}${ruta}`, body, this.opcionesAuth());
+  }
+
+  private deleteAuth<T>(ruta: string, params?: HttpParams): Observable<T> {
+    return this.http.delete<T>(`${this.baseUrl}${ruta}`, this.opcionesAuth(params));
+  }
+
+  private obtenerHeaders(): HttpHeaders {
+    const token = leerStorage(STORAGE_KEY_TOKEN);
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    return token ? headers.set('Authorization', `Bearer ${token}`) : headers;
   }
 
   // ==========================================================================
@@ -149,9 +166,7 @@ export class ApiPrincipal {
   }
 
   miPerfil(): Observable<MeResponseApi> {
-    return this.http.get<MeResponseApi>(`${this.baseUrl}/auth/me`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.getAuth<MeResponseApi>(`/auth/me`);
   }
 
   forgotPassword(payload: ForgotPasswordRequestApi): Observable<string> {
@@ -163,9 +178,7 @@ export class ApiPrincipal {
   }
 
   cambiarPassword(payload: CambiarPasswordRequestApi): Observable<string> {
-    return this.http.post<string>(`${this.baseUrl}/auth/cambiar-password`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.postAuth<string>(`/auth/cambiar-password`, payload);
   }
 
   // ==========================================================================
@@ -174,48 +187,31 @@ export class ApiPrincipal {
 
   listarUsuarios(incluirInactivos = true): Observable<UsuarioResponseApi[]> {
     const params = new HttpParams().set('incluir_inactivos', String(incluirInactivos));
-    return this.http.get<UsuarioResponseApi[]>(`${this.baseUrl}/usuarios`, {
-      headers: this.obtenerHeaders(),
-      params
-    });
+    return this.getAuth<UsuarioResponseApi[]>(`/usuarios`, params);
   }
 
   listarDocentes(): Observable<DocenteResumenApi[]> {
-    return this.http.get<DocenteResumenApi[]>(`${this.baseUrl}/usuarios/docentes`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.getAuth<DocenteResumenApi[]>(`/usuarios/docentes`);
   }
 
   obtenerUsuario(idUsuario: number): Observable<UsuarioResponseApi> {
-    return this.http.get<UsuarioResponseApi>(`${this.baseUrl}/usuarios/${idUsuario}`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.getAuth<UsuarioResponseApi>(`/usuarios/${idUsuario}`);
   }
 
   crearUsuario(payload: RegistroUsuarioRequestApi): Observable<UsuarioResponseApi> {
-    return this.http.post<UsuarioResponseApi>(`${this.baseUrl}/usuarios`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.postAuth<UsuarioResponseApi>(`/usuarios`, payload);
   }
 
   actualizarUsuario(idUsuario: number, payload: UpdateUsuarioRequestApi): Observable<UsuarioResponseApi> {
-    return this.http.put<UsuarioResponseApi>(`${this.baseUrl}/usuarios/${idUsuario}`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.putAuth<UsuarioResponseApi>(`/usuarios/${idUsuario}`, payload);
   }
 
   desactivarUsuario(idUsuario: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/usuarios/${idUsuario}`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.deleteAuth<void>(`/usuarios/${idUsuario}`);
   }
 
   activarUsuario(idUsuario: number): Observable<UsuarioResponseApi> {
-    return this.http.patch<UsuarioResponseApi>(
-      `${this.baseUrl}/usuarios/${idUsuario}/activar`,
-      {},
-      { headers: this.obtenerHeaders() }
-    );
+    return this.patchAuth<UsuarioResponseApi>(`/usuarios/${idUsuario}/activar`, {});
   }
 
   // ==========================================================================
@@ -224,32 +220,20 @@ export class ApiPrincipal {
 
   listarRoles(incluirInactivos = true): Observable<RolResponseApi[]> {
     const params = new HttpParams().set('incluir_inactivos', String(incluirInactivos));
-    return this.http.get<RolResponseApi[]>(`${this.baseUrl}/roles`, {
-      headers: this.obtenerHeaders(),
-      params
-    });
+    return this.getAuth<RolResponseApi[]>(`/roles`, params);
   }
 
   obtenerModulosDeRol(idRol: number): Observable<ModuloAsignacionResponseApi[]> {
-    return this.http.get<ModuloAsignacionResponseApi[]>(`${this.baseUrl}/roles/${idRol}/modulos`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.getAuth<ModuloAsignacionResponseApi[]>(`/roles/${idRol}/modulos`);
   }
 
   reemplazarModulosDeRol(idRol: number, moduloIds: number[]): Observable<ModuloAsignacionResponseApi[]> {
-    return this.http.put<ModuloAsignacionResponseApi[]>(
-      `${this.baseUrl}/roles/${idRol}/modulos`,
-      { moduloIds },
-      { headers: this.obtenerHeaders() }
-    );
+    return this.putAuth<ModuloAsignacionResponseApi[]>(`/roles/${idRol}/modulos`, { moduloIds });
   }
 
   listarModulosSistema(incluirInactivos = true): Observable<ModuloSistemaResponseApi[]> {
     const params = new HttpParams().set('incluir_inactivos', String(incluirInactivos));
-    return this.http.get<ModuloSistemaResponseApi[]>(`${this.baseUrl}/modulos-sistema`, {
-      headers: this.obtenerHeaders(),
-      params
-    });
+    return this.getAuth<ModuloSistemaResponseApi[]>(`/modulos-sistema`, params);
   }
 
   // ==========================================================================
@@ -257,59 +241,37 @@ export class ApiPrincipal {
   // ==========================================================================
 
   listarProgramas(): Observable<ProgAcademicoResponseApi[]> {
-    return this.http.get<ProgAcademicoResponseApi[]>(`${this.baseUrl}/programas`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.getAuth<ProgAcademicoResponseApi[]>(`/programas`);
   }
 
   crearPrograma(nombre: string): Observable<ProgAcademicoResponseApi> {
-    return this.http.post<ProgAcademicoResponseApi>(
-      `${this.baseUrl}/programas`,
-      { nombre },
-      { headers: this.obtenerHeaders() }
-    );
+    return this.postAuth<ProgAcademicoResponseApi>(`/programas`, { nombre });
   }
 
   actualizarPrograma(idPrograma: number, nombre: string): Observable<ProgAcademicoResponseApi> {
-    return this.http.put<ProgAcademicoResponseApi>(
-      `${this.baseUrl}/programas/${idPrograma}`,
-      { nombre },
-      { headers: this.obtenerHeaders() }
-    );
+    return this.putAuth<ProgAcademicoResponseApi>(`/programas/${idPrograma}`, { nombre });
   }
 
   eliminarPrograma(idPrograma: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/programas/${idPrograma}`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.deleteAuth<void>(`/programas/${idPrograma}`);
   }
 
   listarTiposDocumento(incluirInactivos = false): Observable<TipoDocumentoResponseApi[]> {
     const params = new HttpParams().set('incluir_inactivos', String(incluirInactivos));
-    return this.http.get<TipoDocumentoResponseApi[]>(`${this.baseUrl}/tipos-documento`, {
-      headers: this.obtenerHeaders(),
-      params
-    });
+    return this.getAuth<TipoDocumentoResponseApi[]>(`/tipos-documento`, params);
   }
 
   crearTipoDocumento(payload: RegistroTipoDocumentoRequestApi): Observable<TipoDocumentoResponseApi> {
-    return this.http.post<TipoDocumentoResponseApi>(`${this.baseUrl}/tipos-documento`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.postAuth<TipoDocumentoResponseApi>(`/tipos-documento`, payload);
   }
 
   listarPeriodosAcademicos(incluirInactivos = false): Observable<PeriodoResponseApi[]> {
     const params = new HttpParams().set('incluir_inactivos', String(incluirInactivos));
-    return this.http.get<PeriodoResponseApi[]>(`${this.baseUrl}/periodos-academicos`, {
-      headers: this.obtenerHeaders(),
-      params
-    });
+    return this.getAuth<PeriodoResponseApi[]>(`/periodos-academicos`, params);
   }
 
   crearPeriodoAcademico(payload: RegistroPeriodoRequestApi): Observable<PeriodoResponseApi> {
-    return this.http.post<PeriodoResponseApi>(`${this.baseUrl}/periodos-academicos`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.postAuth<PeriodoResponseApi>(`/periodos-academicos`, payload);
   }
 
   listarDisponibilidadDocente(
@@ -320,113 +282,71 @@ export class ApiPrincipal {
     if (docenteId) {
       params = params.set('docenteId', String(docenteId));
     }
-    return this.http.get<DisponibilidadResponseApi[]>(`${this.baseUrl}/disponibilidad-docente`, {
-      headers: this.obtenerHeaders(),
-      params
-    });
+    return this.getAuth<DisponibilidadResponseApi[]>(`/disponibilidad-docente`, params);
   }
 
   crearDisponibilidadDocente(
     payload: RegistroDisponibilidadRequestApi
   ): Observable<DisponibilidadResponseApi> {
-    return this.http.post<DisponibilidadResponseApi>(
-      `${this.baseUrl}/disponibilidad-docente`,
-      payload,
-      { headers: this.obtenerHeaders() }
-    );
+    return this.postAuth<DisponibilidadResponseApi>(`/disponibilidad-docente`, payload);
   }
 
   actualizarDisponibilidadDocente(
     idDisponibilidad: number,
     payload: UpdateDisponibilidadRequestApi
   ): Observable<DisponibilidadResponseApi> {
-    return this.http.put<DisponibilidadResponseApi>(
-      `${this.baseUrl}/disponibilidad-docente/${idDisponibilidad}`,
-      payload,
-      { headers: this.obtenerHeaders() }
-    );
+    return this.putAuth<DisponibilidadResponseApi>(`/disponibilidad-docente/${idDisponibilidad}`, payload);
   }
 
   eliminarDisponibilidadDocente(idDisponibilidad: number): Observable<void> {
-    return this.http.delete<void>(
-      `${this.baseUrl}/disponibilidad-docente/${idDisponibilidad}`,
-      { headers: this.obtenerHeaders() }
-    );
+    return this.deleteAuth<void>(`/disponibilidad-docente/${idDisponibilidad}`);
   }
 
   activarDisponibilidadDocente(idDisponibilidad: number): Observable<DisponibilidadResponseApi> {
-    return this.http.patch<DisponibilidadResponseApi>(
-      `${this.baseUrl}/disponibilidad-docente/${idDisponibilidad}/activar`,
-      {},
-      { headers: this.obtenerHeaders() }
-    );
+    return this.patchAuth<DisponibilidadResponseApi>(`/disponibilidad-docente/${idDisponibilidad}/activar`, {});
   }
 
   obtenerPromedioCalificacionesDocente(
     idDocente: number
   ): Observable<PromedioCalificacionesResponseApi> {
-    return this.http.get<PromedioCalificacionesResponseApi>(
-      `${this.baseUrl}/docentes/${idDocente}/calificaciones/promedio`,
-      { headers: this.obtenerHeaders() }
-    );
+    return this.getAuth<PromedioCalificacionesResponseApi>(`/docentes/${idDocente}/calificaciones/promedio`);
   }
 
   listarModulosAsignaturas(): Observable<ModuloResponseApi[]> {
-    return this.http.get<ModuloResponseApi[]>(`${this.baseUrl}/modulos`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.getAuth<ModuloResponseApi[]>(`/modulos`);
   }
 
   crearModuloAsignatura(payload: RegistroModuloRequestApi): Observable<ModuloResponseApi> {
-    return this.http.post<ModuloResponseApi>(`${this.baseUrl}/modulos`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.postAuth<ModuloResponseApi>(`/modulos`, payload);
   }
 
   actualizarModuloAsignatura(idModulo: number, payload: RegistroModuloRequestApi): Observable<ModuloResponseApi> {
-    return this.http.put<ModuloResponseApi>(`${this.baseUrl}/modulos/${idModulo}`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.putAuth<ModuloResponseApi>(`/modulos/${idModulo}`, payload);
   }
 
   desactivarModuloAsignatura(idModulo: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/modulos/${idModulo}`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.deleteAuth<void>(`/modulos/${idModulo}`);
   }
 
   listarDocentesPorModulo(idModulo: number): Observable<DocenteResumenApi[]> {
-    return this.http.get<DocenteResumenApi[]>(`${this.baseUrl}/modulos/${idModulo}/docentes`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.getAuth<DocenteResumenApi[]>(`/modulos/${idModulo}/docentes`);
   }
 
   listarDocentesModulos(incluirInactivos = true): Observable<DocenteModuloResponseApi[]> {
     const params = new HttpParams().set('incluir_inactivos', String(incluirInactivos));
-    return this.http.get<DocenteModuloResponseApi[]>(`${this.baseUrl}/docentes-modulos`, {
-      headers: this.obtenerHeaders(),
-      params
-    });
+    return this.getAuth<DocenteModuloResponseApi[]>(`/docentes-modulos`, params);
   }
 
   asignarDocenteModulo(payload: AsignarDocenteModuloRequestApi): Observable<DocenteModuloResponseApi> {
-    return this.http.post<DocenteModuloResponseApi>(`${this.baseUrl}/docentes-modulos`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.postAuth<DocenteModuloResponseApi>(`/docentes-modulos`, payload);
   }
 
   desactivarDocenteModulo(idAsignacion: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/docentes-modulos/${idAsignacion}`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.deleteAuth<void>(`/docentes-modulos/${idAsignacion}`);
   }
 
   activarDocenteModulo(idAsignacion: number): Observable<DocenteModuloResponseApi> {
-    return this.http.patch<DocenteModuloResponseApi>(
-      `${this.baseUrl}/docentes-modulos/${idAsignacion}/activar`,
-      {},
-      { headers: this.obtenerHeaders() }
-    );
+    return this.patchAuth<DocenteModuloResponseApi>(`/docentes-modulos/${idAsignacion}/activar`, {});
   }
 
   // ==========================================================================
@@ -434,92 +354,61 @@ export class ApiPrincipal {
   // ==========================================================================
 
   listarSolicitudesConsulta(): Observable<SolicitudConsultaResponseApi[]> {
-    return this.http.get<SolicitudConsultaResponseApi[]>(`${this.baseUrl}/solicitudes-consultas`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.getAuth<SolicitudConsultaResponseApi[]>(`/solicitudes-consultas`);
   }
 
   obtenerSolicitudConsulta(idSolicitud: number): Observable<SolicitudConsultaResponseApi> {
-    return this.http.get<SolicitudConsultaResponseApi>(
-      `${this.baseUrl}/solicitudes-consultas/${idSolicitud}`,
-      { headers: this.obtenerHeaders() }
-    );
+    return this.getAuth<SolicitudConsultaResponseApi>(`/solicitudes-consultas/${idSolicitud}`);
   }
 
   registrarSolicitudConsulta(payload: RegistroSolicitudConsultaRequestApi): Observable<SolicitudConsultaResponseApi> {
-    return this.http.post<SolicitudConsultaResponseApi>(
-      `${this.baseUrl}/solicitudes-consultas`,
-      payload,
-      { headers: this.obtenerHeaders() }
-    );
+    return this.postAuth<SolicitudConsultaResponseApi>(`/solicitudes-consultas`, payload);
   }
 
   actualizarSolicitudConsulta(
     idSolicitud: number,
     payload: UpdateSolicitudConsultaRequestApi
   ): Observable<SolicitudConsultaResponseApi> {
-    return this.http.put<SolicitudConsultaResponseApi>(
-      `${this.baseUrl}/solicitudes-consultas/${idSolicitud}`,
-      payload,
-      { headers: this.obtenerHeaders() }
-    );
+    return this.putAuth<SolicitudConsultaResponseApi>(`/solicitudes-consultas/${idSolicitud}`, payload);
   }
 
   eliminarSolicitudConsulta(idSolicitud: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/solicitudes-consultas/${idSolicitud}`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.deleteAuth<void>(`/solicitudes-consultas/${idSolicitud}`);
   }
 
   cambiarEstadoSolicitud(
     idSolicitud: number,
     payload: CambiarEstadoSolicitudRequestApi
   ): Observable<SolicitudConsultaResponseApi> {
-    return this.http.patch<SolicitudConsultaResponseApi>(
-      `${this.baseUrl}/solicitudes-consultas/${idSolicitud}/estado`,
-      payload,
-      { headers: this.obtenerHeaders() }
-    );
+    return this.patchAuth<SolicitudConsultaResponseApi>(`/solicitudes-consultas/${idSolicitud}/estado`, payload);
   }
 
   reasignarDocenteSolicitud(
     idSolicitud: number,
     docenteId: number
   ): Observable<SolicitudConsultaResponseApi> {
-    return this.http.patch<SolicitudConsultaResponseApi>(
-      `${this.baseUrl}/solicitudes-consultas/${idSolicitud}/docente`,
-      { docenteId },
-      { headers: this.obtenerHeaders() }
-    );
+    return this.patchAuth<SolicitudConsultaResponseApi>(`/solicitudes-consultas/${idSolicitud}/docente`, { docenteId });
   }
 
   asignarRecursoFisicoSolicitud(
     idSolicitud: number,
     recursoFisicoId: number
   ): Observable<SolicitudConsultaResponseApi> {
-    return this.http.patch<SolicitudConsultaResponseApi>(
-      `${this.baseUrl}/solicitudes-consultas/${idSolicitud}/recurso-fisico`,
-      { recursoFisicoId },
-      { headers: this.obtenerHeaders() }
-    );
+    return this.patchAuth<SolicitudConsultaResponseApi>(`/solicitudes-consultas/${idSolicitud}/recurso-fisico`, {
+      recursoFisicoId,
+      recurso_fisico_id: recursoFisicoId
+    });
   }
 
   calificarSolicitud(
     idSolicitud: number,
     payload: CalificacionRequestApi
   ): Observable<CalificacionResponseApi> {
-    return this.http.post<CalificacionResponseApi>(
-      `${this.baseUrl}/solicitudes-consultas/${idSolicitud}/calificacion`,
-      payload,
-      { headers: this.obtenerHeaders() }
-    );
+    return this.postAuth<CalificacionResponseApi>(`/solicitudes-consultas/${idSolicitud}/calificacion`, payload);
   }
 
   obtenerCalificacionSolicitud(idSolicitud: number): Observable<CalificacionResponseApi> {
-    return this.http.get<CalificacionResponseApi>(
-      `${this.baseUrl}/solicitudes-consultas/${idSolicitud}/calificacion`,
-      { headers: this.obtenerHeaders() }
-    );
+    return this.getAuth<CalificacionResponseApi>(`/solicitudes-consultas/${idSolicitud}/calificacion`);
   }
 
   // ==========================================================================
@@ -527,56 +416,35 @@ export class ApiPrincipal {
   // ==========================================================================
 
   listarComentariosPorSolicitud(solicitudConsultaId: number): Observable<ComentarioResponseApi[]> {
-    return this.http.get<ComentarioResponseApi[]>(
-      `${this.baseUrl}/comentarios/solicitud/${solicitudConsultaId}`,
-      { headers: this.obtenerHeaders() }
-    );
+    return this.getAuth<ComentarioResponseApi[]>(`/comentarios/solicitud/${solicitudConsultaId}`);
   }
 
   registrarComentario(payload: RegistroComentarioRequestApi): Observable<ComentarioResponseApi> {
-    return this.http.post<ComentarioResponseApi>(`${this.baseUrl}/comentarios`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.postAuth<ComentarioResponseApi>(`/comentarios`, payload);
   }
 
   actualizarComentario(idComentario: number, contenido: string): Observable<ComentarioResponseApi> {
-    return this.http.put<ComentarioResponseApi>(
-      `${this.baseUrl}/comentarios/${idComentario}`,
-      { contenido },
-      { headers: this.obtenerHeaders() }
-    );
+    return this.putAuth<ComentarioResponseApi>(`/comentarios/${idComentario}`, { contenido });
   }
 
   eliminarComentario(idComentario: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/comentarios/${idComentario}`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.deleteAuth<void>(`/comentarios/${idComentario}`);
   }
 
   listarNotificaciones(): Observable<NotificacionResponseApi[]> {
-    return this.http.get<NotificacionResponseApi[]>(`${this.baseUrl}/notificaciones`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.getAuth<NotificacionResponseApi[]>(`/notificaciones`);
   }
 
   contarNotificacionesNoLeidas(): Observable<number> {
-    return this.http.get<number>(`${this.baseUrl}/notificaciones/no-leidas/count`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.getAuth<number>(`/notificaciones/no-leidas/count`);
   }
 
   marcarNotificacionLeida(idNotificacion: number): Observable<NotificacionResponseApi> {
-    return this.http.patch<NotificacionResponseApi>(
-      `${this.baseUrl}/notificaciones/${idNotificacion}/leer`,
-      {},
-      { headers: this.obtenerHeaders() }
-    );
+    return this.patchAuth<NotificacionResponseApi>(`/notificaciones/${idNotificacion}/leer`, {});
   }
 
   eliminarNotificacion(idNotificacion: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/notificaciones/${idNotificacion}`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.deleteAuth<void>(`/notificaciones/${idNotificacion}`);
   }
 
   // ==========================================================================
@@ -585,36 +453,23 @@ export class ApiPrincipal {
 
   listarSedes(incluirInactivos = true): Observable<SedeResponseApi[]> {
     const params = new HttpParams().set('incluirInactivos', String(incluirInactivos));
-    return this.http.get<SedeResponseApi[]>(`${this.baseUrl}/sedes`, {
-      headers: this.obtenerHeaders(),
-      params
-    });
+    return this.getAuth<SedeResponseApi[]>(`/sedes`, params);
   }
 
   crearSede(payload: RegistroSedeRequestApi): Observable<SedeResponseApi> {
-    return this.http.post<SedeResponseApi>(`${this.baseUrl}/sedes`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.postAuth<SedeResponseApi>(`/sedes`, payload);
   }
 
   actualizarSede(idSede: number, payload: RegistroSedeRequestApi): Observable<SedeResponseApi> {
-    return this.http.put<SedeResponseApi>(`${this.baseUrl}/sedes/${idSede}`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.putAuth<SedeResponseApi>(`/sedes/${idSede}`, payload);
   }
 
   desactivarSede(idSede: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/sedes/${idSede}`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.deleteAuth<void>(`/sedes/${idSede}`);
   }
 
   activarSede(idSede: number): Observable<SedeResponseApi> {
-    return this.http.patch<SedeResponseApi>(
-      `${this.baseUrl}/sedes/${idSede}/activar`,
-      {},
-      { headers: this.obtenerHeaders() }
-    );
+    return this.patchAuth<SedeResponseApi>(`/sedes/${idSede}/activar`, {});
   }
 
   listarZonas(sedeId?: number, incluirInactivos = true): Observable<ZonaResponseApi[]> {
@@ -622,44 +477,28 @@ export class ApiPrincipal {
     if (sedeId) {
       params = params.set('sedeId', String(sedeId));
     }
-    return this.http.get<ZonaResponseApi[]>(`${this.baseUrl}/zonas`, {
-      headers: this.obtenerHeaders(),
-      params
-    });
+    return this.getAuth<ZonaResponseApi[]>(`/zonas`, params);
   }
 
   crearZona(payload: RegistroZonaRequestApi): Observable<ZonaResponseApi> {
-    return this.http.post<ZonaResponseApi>(`${this.baseUrl}/zonas`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.postAuth<ZonaResponseApi>(`/zonas`, payload);
   }
 
   actualizarZona(idZona: number, payload: RegistroZonaRequestApi): Observable<ZonaResponseApi> {
-    return this.http.put<ZonaResponseApi>(`${this.baseUrl}/zonas/${idZona}`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.putAuth<ZonaResponseApi>(`/zonas/${idZona}`, payload);
   }
 
   desactivarZona(idZona: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/zonas/${idZona}`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.deleteAuth<void>(`/zonas/${idZona}`);
   }
 
   activarZona(idZona: number): Observable<ZonaResponseApi> {
-    return this.http.patch<ZonaResponseApi>(
-      `${this.baseUrl}/zonas/${idZona}/activar`,
-      {},
-      { headers: this.obtenerHeaders() }
-    );
+    return this.patchAuth<ZonaResponseApi>(`/zonas/${idZona}/activar`, {});
   }
 
   listarZonasDeSede(idSede: number, incluirInactivos = false): Observable<ZonaResponseApi[]> {
     const params = new HttpParams().set('incluirInactivos', String(incluirInactivos));
-    return this.http.get<ZonaResponseApi[]>(`${this.baseUrl}/sedes/${idSede}/zonas`, {
-      headers: this.obtenerHeaders(),
-      params
-    });
+    return this.getAuth<ZonaResponseApi[]>(`/sedes/${idSede}/zonas`, params);
   }
 
   listarRecursosDeSede(
@@ -667,13 +506,7 @@ export class ApiPrincipal {
     incluirInactivos = false
   ): Observable<RecursoFisicoResponseApi[]> {
     const params = new HttpParams().set('incluirInactivos', String(incluirInactivos));
-    return this.http.get<RecursoFisicoResponseApi[]>(
-      `${this.baseUrl}/sedes/${idSede}/recursos-fisicos`,
-      {
-        headers: this.obtenerHeaders(),
-        params
-      }
-    );
+    return this.getAuth<RecursoFisicoResponseApi[]>(`/sedes/${idSede}/recursos-fisicos`, params);
   }
 
   listarRecursosDeZona(
@@ -681,13 +514,7 @@ export class ApiPrincipal {
     incluirInactivos = false
   ): Observable<RecursoFisicoResponseApi[]> {
     const params = new HttpParams().set('incluirInactivos', String(incluirInactivos));
-    return this.http.get<RecursoFisicoResponseApi[]>(
-      `${this.baseUrl}/zonas/${idZona}/recursos-fisicos`,
-      {
-        headers: this.obtenerHeaders(),
-        params
-      }
-    );
+    return this.getAuth<RecursoFisicoResponseApi[]>(`/zonas/${idZona}/recursos-fisicos`, params);
   }
 
   listarRecursosFisicos(
@@ -698,41 +525,26 @@ export class ApiPrincipal {
     let params = new HttpParams().set('incluirInactivos', String(incluirInactivos));
     if (sedeId) params = params.set('sedeId', String(sedeId));
     if (zonaId) params = params.set('zonaId', String(zonaId));
-    return this.http.get<RecursoFisicoResponseApi[]>(`${this.baseUrl}/recursos-fisicos`, {
-      headers: this.obtenerHeaders(),
-      params
-    });
+    return this.getAuth<RecursoFisicoResponseApi[]>(`/recursos-fisicos`, params);
   }
 
   crearRecursoFisico(payload: RegistroRecursoFisicoRequestApi): Observable<RecursoFisicoResponseApi> {
-    return this.http.post<RecursoFisicoResponseApi>(`${this.baseUrl}/recursos-fisicos`, payload, {
-      headers: this.obtenerHeaders()
-    });
+    return this.postAuth<RecursoFisicoResponseApi>(`/recursos-fisicos`, payload);
   }
 
   actualizarRecursoFisico(
     idRecurso: number,
     payload: RegistroRecursoFisicoRequestApi
   ): Observable<RecursoFisicoResponseApi> {
-    return this.http.put<RecursoFisicoResponseApi>(
-      `${this.baseUrl}/recursos-fisicos/${idRecurso}`,
-      payload,
-      { headers: this.obtenerHeaders() }
-    );
+    return this.putAuth<RecursoFisicoResponseApi>(`/recursos-fisicos/${idRecurso}`, payload);
   }
 
   desactivarRecursoFisico(idRecurso: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/recursos-fisicos/${idRecurso}`, {
-      headers: this.obtenerHeaders()
-    });
+    return this.deleteAuth<void>(`/recursos-fisicos/${idRecurso}`);
   }
 
   activarRecursoFisico(idRecurso: number): Observable<RecursoFisicoResponseApi> {
-    return this.http.patch<RecursoFisicoResponseApi>(
-      `${this.baseUrl}/recursos-fisicos/${idRecurso}/activar`,
-      {},
-      { headers: this.obtenerHeaders() }
-    );
+    return this.patchAuth<RecursoFisicoResponseApi>(`/recursos-fisicos/${idRecurso}/activar`, {});
   }
 
   /**

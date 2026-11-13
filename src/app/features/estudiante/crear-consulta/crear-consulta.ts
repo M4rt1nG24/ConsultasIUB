@@ -2,8 +2,10 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Auth } from '../../../core/services/auth';
 import { Data } from '../../../core/services/data';
 import { EspaciosAux, SalonSedeItem } from '../../../core/services/espacios-aux';
+import { HORARIOS_CONSULTA, fechaMananaIso } from '../../../core/utils/comun';
 
 export interface EspacioConDisponibilidad extends SalonSedeItem {
   disponibleEnHorario: boolean;
@@ -20,6 +22,7 @@ export class CrearConsulta {
   private router = inject(Router);
   private dataService = inject(Data);
   private espaciosService = inject(EspaciosAux);
+  private authService = inject(Auth);
 
   cursosDisponibles = this.dataService.cursos;
   asignatura = '';
@@ -72,9 +75,7 @@ export class CrearConsulta {
     return Array.from(mapa.values());
   });
 
-  docentesDisponibles = computed(() => {
-    return this.docentesDisponiblesPorCurso().map(d => d.nombre);
-  });
+  docentesDisponibles = computed(() => this.docentesDisponiblesPorCurso().map(d => d.nombre));
 
   docenteNombreConfirmado = computed(() => {
     const id = Number(this.docenteId());
@@ -88,23 +89,12 @@ export class CrearConsulta {
   modalidad = signal<string>('Presencial');
   sedeSeleccionada = signal<string>('');
   espacioSeleccionadoId = signal<number>(0);
-  fechaConsulta = signal<string>(this.obtenerMananaIso());
+  fechaConsulta = signal<string>(fechaMananaIso());
   horaConsulta = signal<string>('09:00');
   tema = '';
   descripcion = '';
 
-  horariosDisponibles = [
-    { valor: '08:00', etiqueta: '08:00 AM - 09:00 AM (Mañana)' },
-    { valor: '09:00', etiqueta: '09:00 AM - 10:00 AM (Mañana)' },
-    { valor: '10:00', etiqueta: '10:00 AM - 11:00 AM (Mañana)' },
-    { valor: '11:00', etiqueta: '11:00 AM - 12:00 PM (Mañana)' },
-    { valor: '14:00', etiqueta: '02:00 PM - 03:00 PM (Tarde)' },
-    { valor: '15:00', etiqueta: '03:00 PM - 04:00 PM (Tarde)' },
-    { valor: '16:00', etiqueta: '04:00 PM - 05:00 PM (Tarde)' },
-    { valor: '17:00', etiqueta: '05:00 PM - 06:00 PM (Tarde)' },
-    { valor: '18:00', etiqueta: '06:00 PM - 07:00 PM (Noche)' },
-    { valor: '19:00', etiqueta: '07:00 PM - 08:00 PM (Noche)' }
-  ];
+  horariosDisponibles = HORARIOS_CONSULTA;
 
   // Espacios filtrados por la sede seleccionada con verificación de horario en tiempo real
   espaciosDeSede = computed<EspacioConDisponibilidad[]>(() => {
@@ -169,6 +159,8 @@ export class CrearConsulta {
   modalConfirmacionAbierto = signal<boolean>(false);
   radicadoGenerado = signal<string>('');
   ubicacionConfirmada = signal<string>('');
+  estudianteNombre = computed(() => this.authService.nombreActivo() || 'Estudiante IUB');
+  estudianteDoc = computed(() => this.authService.identificacionActiva() || 'Sin registrar');
 
   constructor() {
     if (this.cursosDisponibles().length === 0 || this.dataService.usuarios().length === 0) {
@@ -212,12 +204,6 @@ export class CrearConsulta {
     });
   }
 
-  private obtenerMananaIso(): string {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }
-
   cambiarSede(nuevaSede: string): void {
     this.sedeSeleccionada.set(nuevaSede);
     const espacios = this.espaciosService.obtenerEspaciosPorSede(nuevaSede);
@@ -236,17 +222,10 @@ export class CrearConsulta {
       return;
     }
 
-    const estadoEspacio = this.verificacionDisponibilidad();
-    if (this.modalidad() === 'Presencial' && !estadoEspacio.disponible) {
-      alert(estadoEspacio.mensaje);
-      return;
-    }
-
-    const esp = this.espacioActualObj();
-    const ubicacionFinal =
-      this.modalidad() === 'Virtual'
-        ? 'Campus Virtual Institucional (Microsoft Teams / Google Meet)'
-        : `${this.sedeSeleccionada()} - ${esp?.nombre || ''}`;
+    const esVirtual = this.modalidad() === 'Virtual';
+    const ubicacionFinal = esVirtual
+      ? 'Campus Virtual Institucional (Microsoft Teams / Google Meet)'
+      : 'Pendiente de asignación por el docente';
 
     const horarioObj = this.horariosDisponibles.find(h => h.valor === this.horaConsulta());
     const docObj = this.docentesDisponiblesPorCurso().find(d => d.id === idDoc);
@@ -266,10 +245,13 @@ export class CrearConsulta {
       fecha: this.fechaConsulta(),
       hora: this.horaConsulta(),
       ubicacion: ubicacionFinal,
-      recursoFisicoId: this.modalidad() === 'Presencial' ? esp?.id || null : null,
+      recursoFisicoId: null, // El estudiante no asigna espacio; el docente lo asigna
       prioridad: this.prioridad,
       tema: this.tema.trim(),
-      descripcion: this.descripcion.trim()
+      descripcion: this.descripcion.trim(),
+      estudiante: this.authService.nombreActivo(),
+      documento: this.authService.identificacionActiva(),
+      correoEstudiante: this.authService.correoActivo()
     });
 
     this.ubicacionConfirmada.set(ubicacionFinal);
@@ -289,11 +271,7 @@ export class CrearConsulta {
   }
 
   cancelar(): void {
-    if (this.tema.trim()) {
-      if (confirm('Tienes datos ingresados en el formulario. ¿Deseas descartar y salir?')) {
-        this.router.navigate(['/estudiante/mis-solicitudes']);
-      }
-    } else {
+    if (!this.tema.trim() || confirm('Tienes datos ingresados en el formulario. ¿Deseas descartar y salir?')) {
       this.router.navigate(['/estudiante/mis-solicitudes']);
     }
   }

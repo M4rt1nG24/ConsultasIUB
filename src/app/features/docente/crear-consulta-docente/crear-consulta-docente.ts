@@ -12,6 +12,7 @@ import {
   PrioridadSolicitudApi,
   RegistroSolicitudConsultaRequestApi
 } from '../../../core/models/api-principal.models';
+import { fechaMananaIso } from '../../../core/utils/comun';
 
 export interface EspacioConDisponibilidad extends SalonSedeItem {
   disponibleEnHorario: boolean;
@@ -132,7 +133,7 @@ export class CrearConsultaDocente {
 
   // 4. Modalidad y Agendamiento
   modalidad = signal<string>('Presencial');
-  fechaConsulta = signal<string>(this.obtenerMananaIso());
+  fechaConsulta = signal<string>(fechaMananaIso());
   horaConsulta = signal<string>('09:00');
   sedeSeleccionada = signal<string>('');
   espacioSeleccionadoId = signal<number>(0);
@@ -271,12 +272,6 @@ export class CrearConsultaDocente {
         this.estudianteId.set(undefined);
       }
     });
-  }
-
-  private obtenerMananaIso(): string {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   /** Id del docente en sesión; undefined si no hay un id válido guardado. */

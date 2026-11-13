@@ -1,0 +1,16 @@
+{
+  "name": "consultas-iub-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env src/server.js",
+    "dev": "node --env-file=.env --watch src/server.js",
+    "db:schema": "node --env-file=.env scripts/run-sql.js db/01_schema.sql db/02_seed.sql"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "pg": "^8.16.0"
+  }
+}

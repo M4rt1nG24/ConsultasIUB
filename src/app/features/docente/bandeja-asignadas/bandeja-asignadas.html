@@ -26,6 +26,10 @@
             <option value="Baja">Baja</option>
         </select>
 
+        <button type="button" class="btn btn-outline-primary" (click)="abrirModalReporte()" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; white-space: nowrap; border: 1px solid #0d6efd; background: #ffffff; color: #0d6efd; cursor: pointer;">
+            📊 Generar Reporte Excel
+        </button>
+
         <button type="button" class="btn btn-primary" (click)="irACrearConsulta()" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; white-space: nowrap; border: none; cursor: pointer;">
             ➕ Nueva Consulta
         </button>
@@ -38,6 +42,7 @@
                     <tr>
                         <th>Radicado</th>
                         <th>Estudiante</th>
+                        <th>Identificación</th>
                         <th>Asignatura</th>
                         <th>Tema / Consulta</th>
                         <th>Sede / Espacio</th>
@@ -56,6 +61,9 @@
                             <strong>{{ item.estudiante }}</strong><br>
                             <small class="text-muted">{{ item.nombrePrograma || item.correoEstudiante }}</small>
                         </td>
+                        <td>
+                            <span class="badge-documento" style="display: inline-block; font-family: monospace; font-weight: 700; color: #1e3a8a; background: #e0f2fe; padding: 3px 8px; border-radius: 4px; font-size: 0.85rem;">{{ item.documento }}</span>
+                        </td>
                         <td>{{ item.asignatura }}</td>
                         <td>
                             <strong>{{ item.tema }}</strong>
@@ -64,8 +72,18 @@
                             }
                         </td>
                         <td>
-                            <span>{{ item.ubicacion }}</span><br>
-                            <small class="text-muted">{{ item.modalidad }}</small>
+                            @if (item.modalidad === 'Presencial') {
+                                @if (item.ubicacion && !item.ubicacion.includes('asignar')) {
+                                    <span style="font-weight: 600; color: #0f2747;">📍 {{ item.ubicacion }}</span><br>
+                                    <button type="button" class="btn-link-sm" (click)="abrirModalAsignarEspacio(item)">✏️ Cambiar Salón</button>
+                                } @else {
+                                    <span class="badge-pendiente-espacio">⚠️ Salón Pendiente</span><br>
+                                    <button type="button" class="btn-asignar-sm" (click)="abrirModalAsignarEspacio(item)">🏢 Asignar Espacio</button>
+                                }
+                            } @else {
+                                <span>💻 {{ item.ubicacion }}</span>
+                            }
+                            <br><small class="text-muted">{{ item.modalidad }}</small>
                         </td>
                         <td>{{ item.tutor }}</td>
                         <td>{{ item.fecha }}</td>
@@ -73,6 +91,9 @@
                         <td><app-status-badge [estado]="item.estado"></app-status-badge></td>
                         <td>
                             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <button class="btn-action-primary" type="button" style="background: #0284c7;" (click)="abrirDetalle(item)">
+                                    Ver
+                                </button>
                                 <button class="btn-action-primary" type="button" (click)="atender(item)">
                                     {{ item.estado === 'Completada' ? 'Editar' : 'Atender' }}
                                 </button>
@@ -88,3 +109,127 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para Asignación de Espacio / Salón Físico por parte del Docente -->
+@if (modalAsignarEspacioAbierto() && solicitudParaAsignar(); as sol) {
+<div class="modal-backdrop">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>🏫 Asignar Espacio Físico a Consulta</h3>
+            <button class="btn-close" type="button" (click)="cerrarModalAsignarEspacio()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="summary-box">
+                <div><strong>Radicado:</strong> {{ sol.radicado }}</div>
+                <div><strong>Estudiante:</strong> {{ sol.estudiante }}</div>
+                <div><strong>Identificación:</strong> <span style="display: inline-block; font-family: monospace; font-weight: 700; color: #1e3a8a; background: #e0f2fe; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem;">{{ sol.documento }}</span></div>
+                <div><strong>Asignatura:</strong> {{ sol.asignatura }}</div>
+                <div><strong>Fecha y Hora:</strong> {{ sol.fechaConsulta || sol.fecha }} • {{ sol.horaConsulta || sol.franja }}</div>
+                <div><strong>Modalidad:</strong> {{ sol.modalidad }}</div>
+            </div>
+
+            <div class="form-group">
+                <label for="sedeAsig">Sede Institucional *</label>
+                <select id="sedeAsig" class="form-control" [ngModel]="sedeSeleccionada()" (ngModelChange)="cambiarSedeAsignacion($event)">
+                    @for (sede of sedesDisponibles(); track sede.id) {
+                    <option [value]="sede.nombre">{{ sede.nombre }}</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="espacioAsig">Espacio / Salón de la Sede *</label>
+                <select id="espacioAsig" class="form-control" [ngModel]="espacioSeleccionadoId()" (ngModelChange)="espacioSeleccionadoId.set(+$event)">
+                    @for (esp of espaciosDeSede(); track esp.id) {
+                    <option [value]="esp.id">
+                        {{ esp.disponibleEnHorario ? '✅ Disponible' : '🚫 Ocupado' }} — {{ esp.nombre }} ({{ esp.bloquePiso }})
+                    </option>
+                    }
+                </select>
+            </div>
+
+            <div style="padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;"
+                [style.background]="verificacionDisponibilidad().disponible ? '#ecfdf5' : '#fef2f2'"
+                [style.border]="verificacionDisponibilidad().disponible ? '1px solid #10b981' : '1px solid #ef4444'"
+                [style.color]="verificacionDisponibilidad().disponible ? '#065f46' : '#991b1b'">
+                <span>{{ verificacionDisponibilidad().disponible ? '✅ ' : '⚠️ ' }}{{ verificacionDisponibilidad().mensaje }}</span>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" (click)="cerrarModalAsignarEspacio()">Cancelar</button>
+                <button type="button" class="btn-primary" (click)="guardarAsignacionEspacio()">Confirmar Asignación</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+<!-- Modal Detalle Completo de Consulta (Todo menos la firma) -->
+@if (modalDetalleAbierto() && consultaDetalle(); as c) {
+<div class="modal-backdrop">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>📑 Detalle Completo de Consulta</h3>
+            <button class="btn-close" type="button" (click)="cerrarDetalle()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="format-header" style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <span class="badge-audit" style="font-weight: 700; color: #1e40af;">Radicado: {{ c.radicado }}</span>
+                <span class="timestamp-meta" style="color: #64748b;">{{ c.fecha }}</span>
+            </div>
+
+            <div class="grid-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9rem; margin-bottom: 14px;">
+                <div><strong>Estudiante:</strong> {{ c.estudiante }}</div>
+                <div><strong>Identificación:</strong> <span style="font-family: monospace; font-weight: 700; color: #1e3a8a; background: #e0f2fe; padding: 2px 6px; border-radius: 4px;">{{ c.documento }}</span></div>
+                <div><strong>Programa Académico:</strong> {{ c.nombrePrograma || 'Sin programa' }}</div>
+                <div><strong>Asignatura:</strong> {{ c.asignatura }}</div>
+                <div><strong>Modalidad:</strong> {{ c.modalidad }}</div>
+                <div><strong>Lugar / Espacio:</strong> {{ c.ubicacion }}</div>
+                <div><strong>Prioridad:</strong> {{ c.prioridad }}</div>
+                <div><strong>Estado Actual:</strong> {{ c.estado }}</div>
+                @if (c.tipoAtencion) {
+                <div><strong>Tipo de Atención:</strong> {{ c.tipoAtencion }}</div>
+                }
+                @if (c.asistencia !== undefined) {
+                <div><strong>Control de Asistencia:</strong> {{ c.asistencia === 1 ? 'Confirmada (1)' : 'Sin Asistencia (0)' }}</div>
+                }
+                @if (c.calificacion) {
+                <div><strong>Calificación Estudiante:</strong> ⭐ {{ c.calificacion.puntaje }} / 5</div>
+                }
+            </div>
+
+            <div class="info-box" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+                <span class="box-title" style="display: block; font-weight: 700; font-size: 0.85rem; color: #334155; margin-bottom: 4px;">Tema o Duda Concreta:</span>
+                <p style="margin: 0; font-size: 0.9rem; color: #0f172a;">{{ c.tema }}</p>
+            </div>
+
+            @if (c.descripcion && c.descripcion !== c.tema) {
+            <div class="info-box" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+                <span class="box-title" style="display: block; font-weight: 700; font-size: 0.85rem; color: #334155; margin-bottom: 4px;">Descripción Detallada enviada por el Estudiante:</span>
+                <p style="margin: 0; font-size: 0.9rem; color: #0f172a; white-space: pre-wrap;">{{ c.descripcion }}</p>
+            </div>
+            }
+
+            @if (c.retroalimentacionDocente || c.observaciones) {
+            <div class="info-box" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+                <span class="box-title" style="display: block; font-weight: 700; font-size: 0.85rem; color: #166534; margin-bottom: 4px;">Observaciones y Retroalimentación del Docente:</span>
+                <p style="margin: 0; font-size: 0.9rem; color: #14532d; white-space: pre-wrap;">{{ c.retroalimentacionDocente || c.observaciones }}</p>
+            </div>
+            }
+
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;">
+                <button type="button" class="btn-primary" (click)="cerrarDetalle()">Cerrar Consulta</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+<!-- Modal Reporte Excel Oficial FR-GPA-16-V8 -->
+<app-modal-reporte-consultas
+    [visible]="modalReporteExcelAbierto()"
+    rol="DOCENTE"
+    [docenteIdActual]="docenteIdActual()"
+    [docenteNombreActual]="nombreDocenteActual()"
+    (cerrar)="cerrarModalReporte()">
+</app-modal-reporte-consultas>

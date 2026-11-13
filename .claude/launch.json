@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "consultasiub",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:/Users/MARTIN/Downloads/consultasiub/ConsultasIUB", "start"],
+      "port": 4200
+    }
+  ]
+}

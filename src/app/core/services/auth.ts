@@ -3,6 +3,7 @@ import { Observable, catchError, map, of } from 'rxjs';
 import { ApiPrincipal, LoginResponseApi, MeResponseApi, ModuloInfoApi } from './api-principal';
 import { Data, UsuarioSistema } from './data';
 import { EspaciosAux } from './espacios-aux';
+import { borrarVariosStorage, guardarVariosStorage } from '../utils/comun';
 
 export type RolUsuario = 'ADMIN' | 'DOCENTE' | 'ESTUDIANTE';
 
@@ -199,14 +200,14 @@ export class Auth {
         this.usuarioIdActivo.set(perfil.id);
         this.modulosDesdeBD.set(perfil.modulos || []);
 
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('rolActivo', rolNormalizado);
-          localStorage.setItem('correoActivo', perfil.correo || '');
-          localStorage.setItem('nombreUsuarioActivo', perfil.nombre || '');
-          localStorage.setItem('identificacionUsuarioActivo', perfil.identificacion || '');
-          localStorage.setItem('idUsuarioActivo', String(perfil.id));
-          localStorage.setItem(STORAGE_KEY_MODULOS_DB, JSON.stringify(perfil.modulos || []));
-        }
+        guardarVariosStorage({
+          rolActivo: rolNormalizado,
+          correoActivo: perfil.correo || '',
+          nombreUsuarioActivo: perfil.nombre || '',
+          identificacionUsuarioActivo: perfil.identificacion || '',
+          idUsuarioActivo: String(perfil.id),
+          [STORAGE_KEY_MODULOS_DB]: JSON.stringify(perfil.modulos || [])
+        });
       },
       error: (err) => {
         if (err?.status === 401) {
@@ -276,18 +277,17 @@ export class Auth {
         this.tokenJWT.set(res.token);
         this.modulosDesdeBD.set(res.modulos || []);
 
-        if (typeof localStorage !== 'undefined') {
-          localStorage.removeItem('iub_consultas_api_cache');
-          localStorage.removeItem('iub_consulta_activa_id');
-          localStorage.setItem('rolActivo', rolNormalizado);
-          localStorage.setItem('correoActivo', res.correo);
-          localStorage.setItem('nombreUsuarioActivo', res.nombre);
-          localStorage.setItem('idUsuarioActivo', String(res.id_usuario));
-          localStorage.setItem(STORAGE_KEY_TOKEN, res.token);
-          localStorage.setItem('token', res.token);
-          localStorage.setItem('id_usuario', String(res.id_usuario));
-          localStorage.setItem(STORAGE_KEY_MODULOS_DB, JSON.stringify(res.modulos || []));
-        }
+        borrarVariosStorage(['iub_consultas_api_cache', 'iub_consulta_activa_id']);
+        guardarVariosStorage({
+          rolActivo: rolNormalizado,
+          correoActivo: res.correo,
+          nombreUsuarioActivo: res.nombre,
+          idUsuarioActivo: String(res.id_usuario),
+          [STORAGE_KEY_TOKEN]: res.token,
+          token: res.token,
+          id_usuario: String(res.id_usuario),
+          [STORAGE_KEY_MODULOS_DB]: JSON.stringify(res.modulos || [])
+        });
 
         // Limpiar lista previa antes de sincronizar los registros reales del nuevo perfil desde PostgreSQL
         this.dataService.consultas.set([]);
@@ -360,19 +360,19 @@ export class Auth {
     this.modulosDesdeBD.set([]);
     this.dataService.consultas.set([]);
     this.dataService.consultaActivaId.set(0);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem('rolActivo');
-      localStorage.removeItem('correoActivo');
-      localStorage.removeItem('nombreUsuarioActivo');
-      localStorage.removeItem('token');
-      localStorage.removeItem('id_usuario');
-      localStorage.removeItem('identificacionUsuarioActivo');
-      localStorage.removeItem('idUsuarioActivo');
-      localStorage.removeItem('iub_consultas_api_cache');
-      localStorage.removeItem('iub_consulta_activa_id');
-      localStorage.removeItem(STORAGE_KEY_TOKEN);
-      localStorage.removeItem(STORAGE_KEY_MODULOS_DB);
-    }
+    borrarVariosStorage([
+      'rolActivo',
+      'correoActivo',
+      'nombreUsuarioActivo',
+      'token',
+      'id_usuario',
+      'identificacionUsuarioActivo',
+      'idUsuarioActivo',
+      'iub_consultas_api_cache',
+      'iub_consulta_activa_id',
+      STORAGE_KEY_TOKEN,
+      STORAGE_KEY_MODULOS_DB
+    ]);
   }
 
   private obtenerRolInicial(): RolUsuario {

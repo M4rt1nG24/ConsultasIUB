@@ -12,7 +12,11 @@
         <div class="info-card">
             <div class="info-item">
                 <span class="info-label">Estudiante</span>
-                <span class="info-val">{{ c.estudiante }} ({{ c.nombrePrograma || c.correoEstudiante }})</span>
+                <span class="info-val"><strong>{{ c.estudiante }}</strong><br><small class="text-muted">{{ c.nombrePrograma || c.correoEstudiante }}</small></span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Identificación</span>
+                <span class="info-val"><strong style="font-family: monospace; font-size: 1.05rem; color: #1e3a8a; background: #e0f2fe; padding: 2px 8px; border-radius: 4px; display: inline-block;">{{ c.documento }}</strong></span>
             </div>
             <div class="info-item">
                 <span class="info-label">Curso</span>
@@ -46,6 +50,30 @@
 
         <!-- Campos del Formulario de Atención Docente -->
         <form (ngSubmit)="finalizarRegistro()" class="form-content">
+
+            <!-- Asignación / Confirmación de Espacio Físico (Solo Presencial) -->
+            @if (c.modalidad === 'Presencial') {
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 6px;">
+                <div class="input-block">
+                    <label for="sedeAtencion">🏢 Sede Institucional *</label>
+                    <select id="sedeAtencion" class="form-control" [ngModel]="sedeSeleccionada()" (ngModelChange)="cambiarSede($event)" name="sedeAtencion">
+                        @for (s of sedesDisponibles(); track s.id) {
+                        <option [value]="s.nombre">{{ s.nombre }}</option>
+                        }
+                    </select>
+                </div>
+                <div class="input-block">
+                    <label for="espacioAtencion">📍 Espacio / Salón Físico *</label>
+                    <select id="espacioAtencion" class="form-control" [ngModel]="espacioSeleccionadoId()" (ngModelChange)="espacioSeleccionadoId.set(+$event)" name="espacioAtencion">
+                        @for (esp of espaciosDeSede(); track esp.id) {
+                        <option [value]="esp.id">
+                            {{ esp.nombre }} ({{ esp.bloquePiso }})
+                        </option>
+                        }
+                    </select>
+                </div>
+            </div>
+            }
 
             <!-- Tipo de Atención -->
             <div class="input-block">
@@ -114,7 +142,7 @@
         </div>
         <div class="modal-body">
             <p><strong>Folio de Auditoría:</strong> {{ c.folioAuditoria }}</p>
-            <p>La sesión académica de <strong>{{ temaTratado }}</strong> con el estudiante <strong>{{ c.estudiante }}</strong> ha sido radicada digitalmente con control de asistencia <strong>{{ asistenciaConfirmada ? 'Confirmada (1)' : 'Sin Asistencia (0)' }}</strong> y ya es visible para el estudiante.</p>
+            <p>La sesión académica de <strong>{{ temaTratado }}</strong> con el estudiante <strong>{{ c.estudiante }}</strong> (Identificación: <strong style="font-family: monospace;">{{ c.documento }}</strong>) ha sido radicada digitalmente con control de asistencia <strong>{{ asistenciaConfirmada ? 'Confirmada (1)' : 'Sin Asistencia (0)' }}</strong> y ya es visible para el estudiante.</p>
             <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button type="button" class="btn-cancel" (click)="confirmarSalida()">Volver a Bandeja</button>
                 <button type="button" class="btn-submit" (click)="irAHistorial()">Ver en Historial de Tutorías</button>

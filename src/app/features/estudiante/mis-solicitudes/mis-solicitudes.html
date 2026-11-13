@@ -6,7 +6,7 @@
                 <h2>Mis Consultas y Solicitudes</h2>
                 <p>Seguimiento en tiempo real al estado de tus consultas académicas, espacios asignados y respuestas docentes.</p>
             </div>
-            <button class="btn-create" type="button" (click)="abrirModalRapido()">+ Nueva Consulta</button>
+            <button class="btn-create" type="button" (click)="irACrearConsulta()">+ Nueva Consulta</button>
         </div>
     </div>
 
@@ -30,6 +30,7 @@
                 <thead>
                     <tr>
                         <th>Radicado</th>
+                        <th>Identificación</th>
                         <th>Asignatura</th>
                         <th>Tema</th>
                         <th>Tutor Asignado</th>
@@ -43,6 +44,9 @@
                     @for (item of solicitudesFiltradas(); track item.radicado) {
                     <tr>
                         <td><strong>{{ item.radicado }}</strong></td>
+                        <td>
+                            <span class="badge-documento" style="font-family: monospace; font-weight: 700; color: #1e3a8a; background: #e0f2fe; padding: 3px 8px; border-radius: 4px; font-size: 0.85rem; display: inline-block;">{{ item.documento }}</span>
+                        </td>
                         <td>{{ item.asignatura }}</td>
                         <td>{{ item.tema }}</td>
                         <td>{{ item.tutor }}</td>
@@ -64,7 +68,7 @@
                     </tr>
                     } @empty {
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 36px 16px; color: #64748b;">
+                        <td colspan="9" style="text-align: center; padding: 36px 16px; color: #64748b;">
                             <div style="font-size: 1.15rem; font-weight: 600; margin-bottom: 6px;">📭 No tienes consultas registradas actualmente</div>
                             <p style="margin: 0; font-size: 0.95rem;">Puedes solicitar una nueva tutoría con un docente pulsando en <strong>+ Nueva Consulta</strong>.</p>
                         </td>
@@ -86,6 +90,8 @@
         </div>
         <div class="modal-body">
             <div class="detail-grid">
+                <div><strong>Estudiante:</strong> {{ s.estudiante }}</div>
+                <div><strong>Identificación:</strong> <span style="font-family: monospace; font-weight: 700; color: #1e3a8a; background: #e0f2fe; padding: 2px 6px; border-radius: 4px;">{{ s.documento }}</span></div>
                 <div><strong>Asignatura:</strong> {{ s.asignatura }}</div>
                 <div><strong>Estado:</strong> <app-status-badge [estado]="s.estado"></app-status-badge></div>
                 <div><strong>Tutor:</strong> {{ s.tutor }}</div>
@@ -123,12 +129,12 @@
 </div>
 }
 
-<!-- Modal Formulario Rápido de Solicitud (Crear / Editar) -->
+<!-- Modal de Edición de Solicitud -->
 @if (modalRapidoAbierto()) {
 <div class="modal-backdrop">
     <div class="modal-dialog">
         <div class="modal-header">
-            <h3>{{ modoModalRapido() === 'editar' ? '✏️ Actualizar Solicitud de Tutoría' : '📝 Solicitud Rápida de Tutoría' }}</h3>
+            <h3>✏️ Actualizar Solicitud de Tutoría</h3>
             <button class="btn-close" type="button" (click)="cerrarModalRapido()">✕</button>
         </div>
         <div class="modal-body">
@@ -185,33 +191,20 @@
             </div>
 
             @if (nuevaModalidad() === 'Presencial') {
-            <div class="form-row">
-                <div class="form-group flex-1">
-                    <label>Sede Institucional *</label>
-                    <select class="form-control" [ngModel]="nuevaSede()" (ngModelChange)="cambiarSedeModal($event)">
-                        @for (sede of sedesDisponibles(); track sede.id) {
-                        <option [value]="sede.nombre">{{ sede.nombre }}</option>
-                        }
-                    </select>
-                </div>
-                <div class="form-group flex-1">
-                    <label>Espacio / Salón Disponible *</label>
-                    <select class="form-control" [ngModel]="nuevoEspacioId()" (ngModelChange)="nuevoEspacioId.set(+$event)">
-                        @for (esp of espaciosDeSede(); track esp.id) {
-                        <option [value]="esp.id">
-                            {{ esp.disponibleEnHorario ? '✅ Disponible' : '🚫 Ocupado' }} — {{ esp.nombre }} ({{ esp.bloquePiso }})
-                        </option>
-                        }
-                    </select>
+            <div style="display: flex; align-items: flex-start; gap: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; color: #0369a1; font-size: 13px;">
+                <span>📍</span>
+                <div>
+                    <strong>Modalidad Presencial:</strong>
+                    <span> La sede y el salón institucional son asignados directamente por el docente tutor.</span>
                 </div>
             </div>
-
-            <div
-                style="padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; font-weight: 500;"
-                [style.background]="verificacionDisponibilidad().disponible ? '#ecfdf5' : '#fef2f2'"
-                [style.border]="verificacionDisponibilidad().disponible ? '1px solid #10b981' : '1px solid #ef4444'"
-                [style.color]="verificacionDisponibilidad().disponible ? '#065f46' : '#991b1b'">
-                <span>{{ verificacionDisponibilidad().disponible ? '✅ ' : '⚠️ ' }}{{ verificacionDisponibilidad().mensaje }}</span>
+            } @else {
+            <div style="display: flex; align-items: flex-start; gap: 10px; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; color: #5b21b6; font-size: 13px;">
+                <span>💻</span>
+                <div>
+                    <strong>Modalidad Virtual:</strong>
+                    <span> Se generará enlace en el Campus Virtual Institucional (Teams / Meet).</span>
+                </div>
             </div>
             }
 
@@ -225,16 +218,12 @@
             </div>
 
             <div class="modal-footer">
-                @if (modoModalRapido() === 'crear') {
-                <button type="button" class="btn-link-action" (click)="irAFormularioCompleto()">Abrir Formulario Completo ↗</button>
-                }
                 <button type="button" class="btn-secondary" (click)="cerrarModalRapido()">Cancelar</button>
                 <button
                     type="button"
                     class="btn-primary"
-                    [disabled]="nuevaModalidad() === 'Presencial' && !verificacionDisponibilidad().disponible"
                     (click)="guardarSolicitudRapida()">
-                    {{ modoModalRapido() === 'editar' ? 'Guardar Cambios' : 'Radicar Consulta' }}
+                    Guardar Cambios
                 </button>
             </div>
         </div>

@@ -4,9 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Data, ConsultaUnificada } from '../../../core/services/data';
 import { DataTableDirective } from '../../../shared/directives/datatable.directive';
+import { ModalReporteConsultas } from '../../../shared/components/modal-reporte-consultas/modal-reporte-consultas';
+import { Auth } from '../../../core/services/auth';
 
 @Component({
-  imports: [CommonModule, FormsModule, DataTableDirective],
+  imports: [CommonModule, FormsModule, DataTableDirective, ModalReporteConsultas],
   selector: 'app-historial-tutorias',
   styleUrl: './historial-tutorias.css',
   templateUrl: './historial-tutorias.html',
@@ -14,9 +16,14 @@ import { DataTableDirective } from '../../../shared/directives/datatable.directi
 export class HistorialTutorias implements OnInit {
   private router = inject(Router);
   private dataService = inject(Data);
+  private authService = inject(Auth);
 
   busqueda = signal<string>('');
   filtroAsignatura = signal<string>('Todas las asignaturas');
+
+  modalReporteExcelAbierto = signal<boolean>(false);
+  docenteIdActual = computed(() => this.authService.usuarioIdActivo());
+  nombreDocenteActual = computed(() => this.authService.nombreActivo());
 
   todasLasConsultas = this.dataService.consultas;
   cursosDisponibles = this.dataService.cursos;
@@ -76,5 +83,13 @@ export class HistorialTutorias implements OnInit {
       'Pendiente',
       'Tutoría reabierta a estado Pendiente para nueva revisión.'
     );
+  }
+
+  abrirModalReporte(): void {
+    this.modalReporteExcelAbierto.set(true);
+  }
+
+  cerrarModalReporte(): void {
+    this.modalReporteExcelAbierto.set(false);
   }
 }

@@ -146,45 +146,13 @@
                 </div>
 
                 @if (modalidadCita() === 'Presencial') {
-                <div class="form-row">
-                    <div class="form-group flex-1">
-                        <label>Sede Institucional *</label>
-                        <select
-                            class="form-control"
-                            [ngModel]="sedeCita()"
-                            (ngModelChange)="alCambiarSedeCita($event)"
-                            name="sedeCita">
-                            @for (sede of sedesDisponibles(); track sede.id) {
-                            <option [value]="sede.nombre">{{ sede.nombre }}</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="form-group flex-1">
-                        <label>Espacio / Salón de la Sede *</label>
-                        <select
-                            class="form-control"
-                            [ngModel]="espacioCitaId()"
-                            (ngModelChange)="espacioCitaId.set(+$event)"
-                            name="espacioCitaId">
-                            @for (espacio of espaciosDeLaSedeCita(); track espacio.id) {
-                            <option [value]="espacio.id">
-                                {{ estaEspacioDisponibleEnHora(espacio) ? '✅' : '🚫' }}
-                                {{ espacio.nombre }} - {{ espacio.bloquePiso }} ({{ estaEspacioDisponibleEnHora(espacio) ? 'Disponible' : 'Ocupado' }})
-                            </option>
-                            }
-                        </select>
+                <div style="margin-bottom: 14px; padding: 10px 14px; border-radius: 8px; font-size: 13px; background: #f0f7ff; border: 1px solid #bae6fd; color: #0369a1; display: flex; align-items: flex-start; gap: 8px;">
+                    <span>📍</span>
+                    <div>
+                        <strong>Modalidad Presencial:</strong>
+                        <span>La asignación del salón o espacio físico en sede IUB la realiza el docente tutor al gestionar tu solicitud.</span>
                     </div>
                 </div>
-
-                @if (verificacionDisponibilidadCita(); as verif) {
-                <div style="margin-bottom: 14px; padding: 10px 12px; border-radius: 8px; font-size: 13px; border: 1px solid;"
-                     [style.background]="verif.disponible ? '#ecfdf5' : '#fef2f2'"
-                     [style.border-color]="verif.disponible ? '#10b981' : '#ef4444'"
-                     [style.color]="verif.disponible ? '#065f46' : '#991b1b'">
-                    <strong>{{ verif.disponible ? '✅ Espacio disponible:' : '🚫 Espacio ocupado:' }}</strong>
-                    {{ verif.mensaje }}
-                </div>
-                }
                 }
 
                 <div class="form-group">
@@ -202,8 +170,7 @@
                     <button type="button" class="btn-secondary" (click)="cerrarModalCita()">Cancelar</button>
                     <button
                         type="submit"
-                        class="btn-primary"
-                        [disabled]="modalidadCita() === 'Presencial' && verificacionDisponibilidadCita() && !verificacionDisponibilidadCita()!.disponible">
+                        class="btn-primary">
                         Confirmar Solicitud de Cita
                     </button>
                 </div>

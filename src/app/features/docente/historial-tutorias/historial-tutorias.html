@@ -23,6 +23,10 @@
             <option [value]="c.asignatura">{{ c.asignatura }}</option>
             }
         </select>
+
+        <button type="button" class="btn-reporte-excel" (click)="abrirModalReporte()" style="padding: 0.55rem 1rem; border-radius: 6px; font-weight: 600; background: #1e3a8a; color: #fff; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;">
+            📊 Generar Reporte Excel FR-GPA-16-V8
+        </button>
     </div>
 
     <div class="main-card">
@@ -33,6 +37,7 @@
                         <th>Radicado</th>
                         <th>Fecha y Hora</th>
                         <th>Estudiante</th>
+                        <th>Identificación</th>
                         <th>Asignatura</th>
                         <th>Tipo</th>
                         <th>Estado Auditoría</th>
@@ -45,8 +50,10 @@
                         <td><strong>{{ item.radicado }}</strong></td>
                         <td>{{ item.fecha }}</td>
                         <td>
-                            <strong>{{ item.estudiante }}</strong><br>
-                            <small class="text-muted">Doc: {{ item.documento }}</small>
+                            <strong>{{ item.estudiante }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge-documento" style="display: inline-block; font-family: monospace; font-weight: 700; color: #1e3a8a; background: #e0f2fe; padding: 3px 8px; border-radius: 4px; font-size: 0.85rem;">{{ item.documento }}</span>
                         </td>
                         <td>{{ item.asignatura }}</td>
                         <td>{{ item.tipoAtencion }}</td>
@@ -92,7 +99,7 @@
 
             <div class="grid-details">
                 <div><strong>Estudiante:</strong> {{ reg.estudiante }}</div>
-                <div><strong>Documento:</strong> {{ reg.documento }}</div>
+                <div><strong>Identificación:</strong> <span style="font-family: monospace; font-weight: 700; color: #1e3a8a; background: #e0f2fe; padding: 2px 6px; border-radius: 4px;">{{ reg.documento }}</span></div>
                 <div><strong>Programa:</strong> {{ reg.nombrePrograma || 'Sin programa' }}</div>
                 <div><strong>Asignatura:</strong> {{ reg.asignatura }}</div>
                 <div><strong>Tipo de Atención:</strong> {{ reg.tipoAtencion }}</div>
@@ -108,19 +115,31 @@
                 <p>{{ reg.tema }}</p>
             </div>
 
+            @if (reg.descripcion && reg.descripcion !== reg.tema) {
+            <div class="info-box">
+                <span class="box-title">Descripción Detallada de la Consulta:</span>
+                <p>{{ reg.descripcion }}</p>
+            </div>
+            }
+
             <div class="info-box">
                 <span class="box-title">Observaciones y Compromisos Docentes:</span>
                 <p>{{ reg.retroalimentacionDocente || reg.observaciones }}</p>
             </div>
 
-            <div class="signature-box">
-                <span>✓ Diligenciado y radicado digitalmente por el docente asignado ({{ reg.tutor }})</span>
-            </div>
-
             <div class="modal-footer">
-                <button type="button" class="btn-primary" (click)="cerrarFormato()">Cerrar Formato</button>
+                <button type="button" class="btn-primary" (click)="cerrarFormato()">Cerrar Consulta</button>
             </div>
         </div>
     </div>
 </div>
 }
+
+<!-- Modal Reporte Excel Oficial FR-GPA-16-V8 -->
+<app-modal-reporte-consultas
+    [visible]="modalReporteExcelAbierto()"
+    rol="DOCENTE"
+    [docenteIdActual]="docenteIdActual()"
+    [docenteNombreActual]="nombreDocenteActual()"
+    (cerrar)="cerrarModalReporte()">
+</app-modal-reporte-consultas>

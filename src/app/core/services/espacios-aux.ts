@@ -8,6 +8,7 @@ import {
   TipoRecursoFisicoApi,
   ZonaResponseApi
 } from './api-principal';
+import { sesion } from '../utils/comun';
 
 /**
  * Modelo de Sede institucional sincronizado 1:1 con la tabla 'sedes' de PostgreSQL.
@@ -107,11 +108,7 @@ export class EspaciosAux {
   sincronizarDesdeBackend(): void {
     if (!this.api || !this.api.baseUrl || !this.api.tieneTokenActivo()) return;
 
-    const rolActual =
-      typeof localStorage !== 'undefined'
-        ? localStorage.getItem('rolActivo') || 'ESTUDIANTE'
-        : 'ESTUDIANTE';
-    const incluirInactivos = rolActual === 'ADMIN';
+    const incluirInactivos = sesion.rol() === 'ADMIN';
 
     forkJoin({
       sedesRemotas: this.api
