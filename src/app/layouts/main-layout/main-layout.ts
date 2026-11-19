@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { RouterOutlet, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Auth, RolUsuario, RolXModuloItem } from '../../core/services/auth';
@@ -149,46 +150,78 @@ export class MainLayout {
     this.preguntaIA = '';
     this.cargandoIA.set(true);
 
+    // Historial que se envía: solo turnos user/assistant, los últimos 10 y recortados
+    // a los límites que acepta el backend (POST /ia/chat).
+    const historialEnvio = historialActual
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .slice(-10)
+      .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content.slice(0, 2000) }));
+
     try {
-      // 1. Detectar el primer modelo instalado en Ollama
-      const tagsRes = await fetch('http://localhost:11434/api/tags');
-      const tagsData = await tagsRes.json();
-      const modelo = tagsData?.models?.[0]?.name || 'llama3.2';
+      let respuesta: string;
+      try {
+        // 1. Camino principal (local y nube): backend → Open WebUI con el modelo
+        //    "consultas-asistente" y la base de conocimiento cargada.
+        if (!this.apiPrincipal) throw new Error('API no disponible');
+        respuesta = (await firstValueFrom(this.apiPrincipal.chatIA(historialEnvio))).respuesta;
+      } catch (errBackend: any) {
+        // 2. Solo en desarrollo (localhost): si el backend aún no tiene /ia/chat o la IA
+        //    no está configurada, usar Ollama instalado en este mismo equipo.
+        const esLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const sinIaEnBackend = [404, 503].includes(errBackend?.status);
+        if (!esLocal || !sinIaEnBackend) throw errBackend;
+        respuesta = await this.preguntarOllamaLocal(historialEnvio);
+      }
 
-      // 2. Enviar pregunta a Ollama
-      const chatRes = await fetch('http://localhost:11434/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: modelo,
-          messages: [
-            {
-              role: 'system',
-              content: 'Eres el asistente virtual de MiTutoría IUB. Responde siempre en español de forma breve y clara.'
-            },
-            ...historialActual
-          ],
-          stream: false
-        })
-      });
-
-      const chatData = await chatRes.json();
-      const respuesta = chatData?.message?.content || 'No se recibió respuesta de Ollama.';
-
-      this.mensajesIA.set([
-        ...historialActual,
-        { role: 'assistant', content: respuesta }
-      ]);
-    } catch {
-      this.mensajesIA.set([
-        ...historialActual,
-        {
-          role: 'assistant',
-          content: 'Error: Asegúrate de que Ollama esté abierto y con un modelo descargado (ej: ollama run llama3.2).'
-        }
-      ]);
+      this.mensajesIA.set([...historialActual, { role: 'assistant', content: respuesta }]);
+    } catch (err: any) {
+      const mensaje =
+        err?.status === 429
+          ? 'Has enviado muchas preguntas seguidas. Espera unos minutos e inténtalo de nuevo.'
+          : 'El asistente no está disponible en este momento. Inténtalo más tarde.';
+      this.mensajesIA.set([...historialActual, { role: 'assistant', content: mensaje }]);
     } finally {
       this.cargandoIA.set(false);
     }
+  }
+
+  /** Respaldo para desarrollo: Ollama local, priorizando el modelo del proyecto. */
+  private async preguntarOllamaLocal(
+    mensajes: { role: 'user' | 'assistant'; content: string }[]
+  ): Promise<string> {
+    const tagsRes = await fetch('http://localhost:11434/api/tags');
+    const tagsData = await tagsRes.json();
+    const modelos: { name: string; remote_host?: string }[] = tagsData?.models || [];
+    // Los modelos ":cloud" se ejecutan en ollama.com y pueden exigir suscripción (HTTP 402),
+    // así que se prefieren los modelos descargados en este equipo.
+    const locales = modelos
+      .filter((m) => !m.remote_host && !m.name.endsWith(':cloud'))
+      .map((m) => m.name);
+    const modelo =
+      locales.find((n) => n.startsWith('consultas-asistente')) ||
+      locales[0] ||
+      modelos[0]?.name ||
+      'consultas-asistente';
+
+    const chatRes = await fetch('http://localhost:11434/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: modelo,
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres el asistente virtual de MiTutoría IUB. Responde siempre en español de forma breve y clara.'
+          },
+          ...mensajes
+        ],
+        stream: false
+      })
+    });
+    const chatData = await chatRes.json();
+    const texto = String(chatData?.message?.content || '')
+      .replace(/<think>[\s\S]*?<\/think>/g, '')
+      .trim();
+    return texto || 'No se recibió respuesta del asistente.';
   }
 }

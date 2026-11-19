@@ -9,6 +9,7 @@ import {
   ZonaResponseApi
 } from './api-principal';
 import { sesion } from '../utils/comun';
+import { crearSincronizador, igualJson } from '../utils/sincronizacion';
 
 /**
  * Modelo de Sede institucional sincronizado 1:1 con la tabla 'sedes' de PostgreSQL.
@@ -49,9 +50,9 @@ const STORAGE_KEY_SALONES = 'iub_salones_api_cache';
 export class EspaciosAux {
   private readonly api = inject(ApiPrincipal, { optional: true });
 
-  sedes = signal<SedeItem[]>(this.cargarCache(STORAGE_KEY_SEDES, []));
-  zonas = signal<ZonaResponseApi[]>([]);
-  salones = signal<SalonSedeItem[]>(this.cargarCache(STORAGE_KEY_SALONES, []));
+  sedes = signal<SedeItem[]>(this.cargarCache(STORAGE_KEY_SEDES, []), { equal: igualJson });
+  zonas = signal<ZonaResponseApi[]>([], { equal: igualJson });
+  salones = signal<SalonSedeItem[]>(this.cargarCache(STORAGE_KEY_SALONES, []), { equal: igualJson });
 
   constructor() {
     effect(() => {
@@ -105,8 +106,14 @@ export class EspaciosAux {
    * Sincroniza sedes (/sedes), zonas (/zonas) y recursos físicos (/recursos-fisicos)
    * directamente desde PostgreSQL vía FastAPI.
    */
-  sincronizarDesdeBackend(): void {
-    if (!this.api || !this.api.baseUrl || !this.api.tieneTokenActivo()) return;
+  /** Sincronización agrupada: evita peticiones duplicadas y respuestas en desorden. */
+  readonly sincronizarDesdeBackend = crearSincronizador((fin) => this.ejecutarSincronizacion(fin));
+
+  private ejecutarSincronizacion(fin: () => void): void {
+    if (!this.api || !this.api.baseUrl || !this.api.tieneTokenActivo()) {
+      fin();
+      return;
+    }
 
     const incluirInactivos = sesion.rol() === 'ADMIN';
 
@@ -121,15 +128,19 @@ export class EspaciosAux {
         .listarRecursosFisicos(undefined, undefined, incluirInactivos)
         .pipe(catchError(() => of(null)))
     }).subscribe(({ sedesRemotas, zonasRemotas, recursosRemotos }) => {
+      fin();
       if (sedesRemotas === null && recursosRemotos === null) {
         return;
       }
 
       const listaSedes = sedesRemotas || [];
-      const listaZonas = zonasRemotas || [];
+      // Si falla /zonas se conservan las actuales en vez de vaciarlas.
+      const listaZonas = zonasRemotas ?? this.zonas();
       const listaRecursos = recursosRemotos || [];
 
-      this.zonas.set(listaZonas);
+      if (zonasRemotas !== null) {
+        this.zonas.set(listaZonas);
+      }
 
       const sedesMapeadas: SedeItem[] = listaSedes.map((s) => {
         const zonasSede = listaZonas.filter((z) => z.sedeId === s.id);

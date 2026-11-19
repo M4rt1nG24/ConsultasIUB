@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { roleGuard } from './core/guards/role.guard';
+import { authGuard } from './core/guards/auth-guard';
 
 export const routes: Routes = [
   // Ruta raíz: redirige a /principal (o a /login según prefieras)
@@ -36,6 +37,7 @@ export const routes: Routes = [
   // =========================================================================
   {
     path: '',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./layouts/main-layout/main-layout').then(m => m.MainLayout),
     children: [

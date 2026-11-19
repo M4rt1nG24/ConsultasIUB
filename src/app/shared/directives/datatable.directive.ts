@@ -8,6 +8,7 @@ import {
   SimpleChanges,
   inject
 } from '@angular/core';
+import { igualJson } from '../../core/utils/sincronizacion';
 declare const DataTable: any;
 
 
@@ -19,6 +20,8 @@ export class DataTableDirective implements AfterViewInit, OnChanges, OnDestroy {
   private el = inject(ElementRef<HTMLTableElement>);
   private dtInstance: any = null;
   private initTimer: any = null;
+  /** Página y texto de búsqueda a restaurar tras reconstruir la tabla. */
+  private estadoPrevio: { pagina: number; busqueda: string } | null = null;
 
   /**
    * Pasa aquí el arreglo o signal leído (ej. [appDataTable]="usuarios()")
@@ -36,7 +39,13 @@ export class DataTableDirective implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['dataTrigger'] && !changes['dataTrigger'].firstChange) {
+    const cambio = changes['dataTrigger'];
+    if (cambio && !cambio.firstChange) {
+      // Si los datos son idénticos (misma respuesta del backend) no se reconstruye la tabla:
+      // reconstruirla es lo que la hacía "desaparecer y aparecer".
+      if (this.dtInstance && igualJson(cambio.previousValue, cambio.currentValue)) {
+        return;
+      }
       // Destruir sincrónicamente DataTables ANTES de que Angular actualice el @for en el <tbody>,
       // evitando que dtInstance.destroy() sobreescriba las filas nuevas con el snapshot vacío inicial.
       this.destroyDataTable();
@@ -46,6 +55,14 @@ export class DataTableDirective implements AfterViewInit, OnChanges, OnDestroy {
 
   private destroyDataTable(): void {
     if (this.dtInstance) {
+      try {
+        this.estadoPrevio = {
+          pagina: Number(this.dtInstance.page()) || 0,
+          busqueda: String(this.dtInstance.search() || '')
+        };
+      } catch {
+        this.estadoPrevio = null;
+      }
       try {
         this.dtInstance.destroy();
       } catch {
@@ -97,8 +114,27 @@ export class DataTableDirective implements AfterViewInit, OnChanges, OnDestroy {
           }
         }
       });
+      this.restaurarEstado();
     } catch {
       // Fallback silencioso en entorno de pruebas unitarias sin DOM completo
+    }
+  }
+
+  /** Mantiene al usuario en la misma página y con el mismo filtro tras actualizar datos. */
+  private restaurarEstado(): void {
+    const estado = this.estadoPrevio;
+    this.estadoPrevio = null;
+    if (!estado || !this.dtInstance) return;
+    try {
+      if (estado.busqueda) {
+        this.dtInstance.search(estado.busqueda).draw();
+      }
+      const totalPaginas = Number(this.dtInstance.page.info()?.pages) || 0;
+      if (estado.pagina > 0 && estado.pagina < totalPaginas) {
+        this.dtInstance.page(estado.pagina).draw(false);
+      }
+    } catch {
+      // Si la API de DataTables no está disponible, se deja la tabla en su estado inicial.
     }
   }
 

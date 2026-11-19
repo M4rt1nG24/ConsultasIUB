@@ -3,7 +3,8 @@ import { Observable, catchError, map, of } from 'rxjs';
 import { ApiPrincipal, LoginResponseApi, MeResponseApi, ModuloInfoApi } from './api-principal';
 import { Data, UsuarioSistema } from './data';
 import { EspaciosAux } from './espacios-aux';
-import { borrarVariosStorage, guardarVariosStorage } from '../utils/comun';
+import { borrarVariosStorage, guardarVariosStorage, leerStorage } from '../utils/comun';
+import { STORAGE_KEY_TOKEN, STORAGE_KEY_TOKEN_RECIBIDO, decodificarJwt, jwtVigente } from '../utils/jwt';
 
 export type RolUsuario = 'ADMIN' | 'DOCENTE' | 'ESTUDIANTE';
 
@@ -25,7 +26,6 @@ export interface SesionJWT {
   expiraEn: number;
 }
 
-const STORAGE_KEY_TOKEN = 'iub_jwt_token';
 const STORAGE_KEY_MODULOS_DB = 'iub_modulos_rol_db';
 
 @Injectable({
@@ -177,14 +177,23 @@ export class Auth {
   }
 
   /**
-   * Verifica que exista un JWT con estructura válida en sesión.
-   * No usa Date.now() local para no invalidar sesiones cuando la fecha del sistema
-   * operativo del equipo difiere del reloj UTC del servidor en Render.
+   * Verifica que exista un JWT bien formado y NO vencido (claim `exp`).
+   * La vigencia se calcula con la duración del token desde que se recibió en este
+   * navegador, así una diferencia entre el reloj del equipo y el del servidor en
+   * Render no invalida sesiones válidas (ver utils/jwt.ts).
+   * La firma la valida el backend; un 401 cierra la sesión vía authInterceptor.
    */
   esTokenValido(token?: string | null): boolean {
     const tk = token ?? this.tokenJWT();
-    if (!tk) return false;
-    return tk.split('.').length === 3;
+    return jwtVigente(tk, Number(leerStorage(STORAGE_KEY_TOKEN_RECIBIDO)) || 0);
+  }
+
+  /** Rol que viene dentro del JWT (fuente confiable frente al valor editable de localStorage). */
+  rolDesdeToken(token?: string | null): RolUsuario | null {
+    const rol = (decodificarJwt(token ?? this.tokenJWT())?.rol || '').toUpperCase().trim();
+    if (rol === 'ADMINISTRADOR' || rol === 'ADMIN') return 'ADMIN';
+    if (rol === 'DOCENTE' || rol === 'ESTUDIANTE') return rol;
+    return null;
   }
 
   sincronizarPerfilActual(): void {
@@ -284,8 +293,7 @@ export class Auth {
           nombreUsuarioActivo: res.nombre,
           idUsuarioActivo: String(res.id_usuario),
           [STORAGE_KEY_TOKEN]: res.token,
-          token: res.token,
-          id_usuario: String(res.id_usuario),
+          [STORAGE_KEY_TOKEN_RECIBIDO]: String(Date.now()),
           [STORAGE_KEY_MODULOS_DB]: JSON.stringify(res.modulos || [])
         });
 
@@ -334,8 +342,9 @@ export class Auth {
     }
 
     const modulos = this.obtenerModulosPorRol(rolActual);
+    // Denegar por defecto: sin módulos cargados no hay permisos confirmados.
     if (modulos.length === 0) {
-      return true;
+      return false;
     }
     const rutaLimpia = url.split('?')[0];
     return modulos.some(m => rutaLimpia.startsWith(m.ruta));
@@ -371,6 +380,7 @@ export class Auth {
       'iub_consultas_api_cache',
       'iub_consulta_activa_id',
       STORAGE_KEY_TOKEN,
+      STORAGE_KEY_TOKEN_RECIBIDO,
       STORAGE_KEY_MODULOS_DB
     ]);
   }

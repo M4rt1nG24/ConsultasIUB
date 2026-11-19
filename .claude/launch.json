@@ -4,7 +4,7 @@
     {
       "name": "consultasiub",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "C:/Users/MARTIN/Downloads/consultasiub/ConsultasIUB", "start"],
+      "runtimeArgs": ["start"],
       "port": 4200
     }
   ]

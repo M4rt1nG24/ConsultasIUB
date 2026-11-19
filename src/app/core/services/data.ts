@@ -68,6 +68,7 @@ import {
   marcaTiempo,
   sesion
 } from '../utils/comun';
+import { crearSincronizador, igualJson } from '../utils/sincronizacion';
 
 @Injectable({
   providedIn: 'root'
@@ -86,14 +87,36 @@ export class Data {
     return !!this.api?.baseUrl;
   }
 
-  consultas = signal<ConsultaUnificada[]>(cargarCacheDeStorage(STORAGE_KEY_CONSULTAS, []));
-  cursos = signal<CursoSistema[]>(cargarCacheDeStorage(STORAGE_KEY_CURSOS, []));
-  usuarios = signal<UsuarioSistema[]>(cargarCacheDeStorage(STORAGE_KEY_USUARIOS, []));
-  programas = signal<ProgAcademicoResponseApi[]>([]);
-  tiposDocumento = signal<TipoDocumentoResponseApi[]>(TIPOS_DOC_FALLBACK);
-  periodosAcademicos = signal<PeriodoResponseApi[]>([]);
-  disponibilidadesDocentes = signal<DisponibilidadResponseApi[]>([]);
-  notificaciones = signal<NotificacionResponseApi[]>([]);
+  // `equal: igualJson` → si el backend devuelve los mismos datos, las vistas no se
+  // vuelven a pintar (evita que las tablas "desaparezcan y aparezcan" en cada sincronización).
+  consultas = signal<ConsultaUnificada[]>(cargarCacheDeStorage(STORAGE_KEY_CONSULTAS, []), { equal: igualJson });
+  cursos = signal<CursoSistema[]>(cargarCacheDeStorage(STORAGE_KEY_CURSOS, []), { equal: igualJson });
+  usuarios = signal<UsuarioSistema[]>(cargarCacheDeStorage(STORAGE_KEY_USUARIOS, []), { equal: igualJson });
+  programas = signal<ProgAcademicoResponseApi[]>([], { equal: igualJson });
+  tiposDocumento = signal<TipoDocumentoResponseApi[]>(TIPOS_DOC_FALLBACK, { equal: igualJson });
+  periodosAcademicos = signal<PeriodoResponseApi[]>([], { equal: igualJson });
+  disponibilidadesDocentes = signal<DisponibilidadResponseApi[]>([], { equal: igualJson });
+  notificaciones = signal<NotificacionResponseApi[]>([], { equal: igualJson });
+
+  /**
+   * Operaciones automáticas de mantenimiento ya lanzadas en esta sesión
+   * (disponibilidad por docente, vínculo docente-módulo, salón de una solicitud).
+   * Antes se repetían en CADA sincronización, generando decenas de POST innecesarios.
+   */
+  private readonly disponibilidadAsegurada = new Set<number>();
+  private readonly operacionesAutomaticas = new Set<string>();
+
+  /** Ejecuta `crear` solo la primera vez por clave; si falla, permite reintentar más tarde. */
+  private unaVezPorSesion(clave: string, crear: () => Observable<unknown>): void {
+    if (this.operacionesAutomaticas.has(clave)) return;
+    this.operacionesAutomaticas.add(clave);
+    crear()
+      .pipe(catchError(() => {
+        this.operacionesAutomaticas.delete(clave);
+        return of(null);
+      }))
+      .subscribe();
+  }
 
   constructor() {
     effect(() => guardarCacheEnStorage(STORAGE_KEY_CONSULTAS, this.consultas()));
@@ -106,8 +129,12 @@ export class Data {
    * en /disponibilidad-docente y esté vinculado a los módulos activos para que las solicitudes
    * de los estudiantes nunca sean rechazadas por falta de horario o asignación.
    */
-  asegurarDisponibilidadDocente(docenteId: number): void {
+  asegurarDisponibilidadDocente(docenteId: number, forzar = true): void {
     if (!this.apiDisponible || !docenteId) return;
+    // Las llamadas automáticas de la sincronización se hacen una sola vez por docente y sesión;
+    // las explícitas (crear docente, asignar curso) siempre se ejecutan.
+    if (!forzar && this.disponibilidadAsegurada.has(docenteId)) return;
+    this.disponibilidadAsegurada.add(docenteId);
     asegurarDisponibilidadDocenteHelper(this.api!, docenteId, this.cursos(), sesion.rol());
   }
 
@@ -793,8 +820,18 @@ export class Data {
    * módulos (asignaturas), docentes por módulo, disponibilidad docente
    * y solicitudes de consulta desde la API respetando los permisos del rol activo.
    */
-  sincronizarDesdeBackend(): void {
-    if (!this.api || !this.api.baseUrl || !this.api.tieneTokenActivo()) return;
+  /**
+   * Sincroniza con el backend. Las llamadas repetidas (layout, página y servicios al
+   * arrancar, o tras cada guardado) se agrupan: nunca corren dos sincronizaciones a la vez
+   * y, si se pidió otra durante una en curso, se ejecuta una sola vez más al terminar.
+   */
+  readonly sincronizarDesdeBackend = crearSincronizador((fin) => this.ejecutarSincronizacion(fin));
+
+  private ejecutarSincronizacion(fin: () => void): void {
+    if (!this.api || !this.api.baseUrl || !this.api.tieneTokenActivo()) {
+      fin();
+      return;
+    }
 
     const rolActual = sesion.rol();
     const idUsuarioActivo = sesion.idUsuario();
@@ -850,7 +887,7 @@ export class Data {
     });
 
     if (rolActual === 'DOCENTE' && idUsuarioActivo > 0) {
-      this.asegurarDisponibilidadDocente(idUsuarioActivo);
+      this.asegurarDisponibilidadDocente(idUsuarioActivo, false);
     }
 
     this.reintentarSolicitudesPendientesBD();
@@ -858,10 +895,11 @@ export class Data {
     // 1. Obtener Usuarios (catálogo completo de estudiantes y docentes de la BD)
     const docentesObs = this.api.listarDocentes().pipe(
       map((docentes: DocenteResumenApi[]) => (docentes || []).map(mapearDocenteApiAFront)),
-      catchError(() => of([] as UsuarioSistema[]))
+      // null = no se pudo consultar: se conservan los usuarios actuales en vez de vaciar la lista
+      catchError(() => of(null as UsuarioSistema[] | null))
     );
     const usuariosObs = this.api.listarUsuarios(true).pipe(
-      map((usuariosRemotos: UsuarioResponseApi[]) =>
+      map((usuariosRemotos: UsuarioResponseApi[]): UsuarioSistema[] | null =>
         (usuariosRemotos || []).map(mapearUsuarioApiAFront)
       ),
       catchError(() => docentesObs)
@@ -869,7 +907,7 @@ export class Data {
 
     const modulosObs = this.api
       .listarModulosAsignaturas()
-      .pipe(catchError(() => of([] as ModuloResponseApi[])));
+      .pipe(catchError(() => of(null as ModuloResponseApi[] | null)));
 
     const docentesModulosObs =
       rolActual === 'ADMIN'
@@ -882,8 +920,12 @@ export class Data {
       usuariosMapeados: usuariosObs,
       modulosRemotos: modulosObs,
       asignacionesAdmin: docentesModulosObs
-    }).subscribe(({ usuariosMapeados, modulosRemotos, asignacionesAdmin }) => {
-      this.usuarios.set(usuariosMapeados);
+    }).subscribe(({ usuariosMapeados: usuariosRemotos, modulosRemotos, asignacionesAdmin }) => {
+      // Si la petición falló, se mantienen los datos actuales (no se vacía la pantalla).
+      const usuariosMapeados = usuariosRemotos ?? this.usuarios();
+      if (usuariosRemotos) {
+        this.usuarios.set(usuariosRemotos);
+      }
 
       const docentesActivos = usuariosMapeados.filter(
         (u) => u.rol === 'DOCENTE' && u.estado === 'Activo'
@@ -891,11 +933,13 @@ export class Data {
 
       if (rolActual === 'ADMIN') {
         for (const doc of docentesActivos) {
-          this.asegurarDisponibilidadDocente(doc.id);
+          this.asegurarDisponibilidadDocente(doc.id, false);
         }
       }
 
-      if (modulosRemotos.length === 0) {
+      if (modulosRemotos === null) {
+        // Falló la consulta de módulos: conservar los cursos actuales.
+      } else if (modulosRemotos.length === 0) {
         this.cursos.set([]);
       } else {
         const peticionesPorModulo = modulosRemotos.map((m) =>
@@ -912,10 +956,9 @@ export class Data {
               for (const doc of docentesActivos) {
                 const yaVinculado = docentes.some((d) => d.id === doc.id);
                 if (!yaVinculado) {
-                  this.api!
-                    .asignarDocenteModulo({ docenteId: doc.id, moduloId: modulo.id })
-                    .pipe(catchError(() => of(null)))
-                    .subscribe();
+                  this.unaVezPorSesion(`docente-modulo:${doc.id}:${modulo.id}`, () =>
+                    this.api!.asignarDocenteModulo({ docenteId: doc.id, moduloId: modulo.id })
+                  );
                 }
               }
             }
@@ -943,7 +986,9 @@ export class Data {
             ) {
               const recId = metaDesc.recursoId || ubicGuardada?.recursoFisicoId;
               if (recId) {
-                this.api!.asignarRecursoFisicoSolicitud(s.id, recId).pipe(catchError(() => of(null))).subscribe();
+                this.unaVezPorSesion(`recurso-solicitud:${s.id}:${recId}`, () =>
+                  this.api!.asignarRecursoFisicoSolicitud(s.id, recId)
+                );
               }
             }
 
@@ -980,8 +1025,9 @@ export class Data {
             this.consultaActivaId.set(activaId);
             this.cargarComentariosDeConsulta(activaId);
           }
+          fin();
         },
-        error: () => {}
+        error: () => fin()
       });
     });
   }

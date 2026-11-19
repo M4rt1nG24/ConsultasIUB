@@ -54,6 +54,12 @@
                 <p>Ingresa tus credenciales institucionales y selecciona el rol a evaluar</p>
             </div>
 
+            @if (avisoSesion()) {
+            <div class="aviso-sesion" role="alert">
+                <i class="bi bi-shield-lock-fill me-2"></i>{{ avisoSesion() }}
+            </div>
+            }
+
             <form (ngSubmit)="ingresar()" class="login-form">
 
                 <!-- Campo Selector de Rol (Requisito obligatorio del Parcial) -->

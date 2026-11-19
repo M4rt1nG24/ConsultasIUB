@@ -60,8 +60,7 @@ import {
   RegistroRecursoFisicoRequestApi
 } from '../models/api-principal.models';
 import { leerStorage } from '../utils/comun';
-
-const STORAGE_KEY_TOKEN = 'iub_jwt_token';
+import { STORAGE_KEY_TOKEN, tokenSesionVigente } from '../utils/jwt';
 
 @Injectable({
   providedIn: 'root'
@@ -75,46 +74,21 @@ export class ApiPrincipal {
   readonly urlRemotaDirecta = 'https://sistemaconsultas-api.onrender.com';
   private readonly usarProxyMismoOrigen = typeof window !== 'undefined';
 
-  get baseUrl(): string {
-    if (typeof localStorage !== 'undefined') {
-      const personalizada = localStorage.getItem('iub_api_url');
-      if (
-        personalizada &&
-        personalizada.trim() &&
-        !personalizada.includes('onrender.com') &&
-        !personalizada.includes('sistemaconsultas-api')
-      ) {
-        return personalizada.trim().replace(/\/+$/, '');
-      }
-    }
-    // En el navegador, siempre usar el proxy de mismo origen (/api-proxy)
-    // para evitar cualquier bloqueo de CORS en localhost (Angular CLI) o proxies inversos.
-    if (this.usarProxyMismoOrigen) {
-      return '/api-proxy';
-    }
-    return this.urlRemotaDirecta;
-  }
-
-  establecerBaseUrl(url: string): void {
-    if (typeof localStorage !== 'undefined') {
-      if (url && url.trim() && !url.includes('onrender.com')) {
-        localStorage.setItem('iub_api_url', url.trim().replace(/\/+$/, ''));
-      } else {
-        localStorage.removeItem('iub_api_url');
-      }
-    }
-  }
-
   /**
-   * Verifica si existe un token JWT activo en localStorage.
-   * No compara contra Date.now() local para evitar falsos positivos cuando el reloj
-   * del sistema operativo del cliente difiere de la hora UTC del servidor.
+   * URL base de la API. En el navegador siempre se usa el proxy de mismo origen
+   * (/api-proxy → Render), configurado en proxy.conf.json (desarrollo) y render.yaml (producción).
+   *
+   * Seguridad: ya NO se acepta una URL personalizada desde localStorage ('iub_api_url'),
+   * porque permitía desviar el token JWT y las contraseñas del login a un servidor ajeno.
    */
+  get baseUrl(): string {
+    return this.usarProxyMismoOrigen ? '/api-proxy' : this.urlRemotaDirecta;
+  }
+
+  /** Indica si hay un token JWT en sesión con formato válido y sin vencer (claim `exp`). */
   tieneTokenActivo(): boolean {
     try {
-      if (typeof localStorage === 'undefined') return false;
-      const token = localStorage.getItem(STORAGE_KEY_TOKEN);
-      return Boolean(token && token.split('.').length === 3);
+      return tokenSesionVigente();
     } catch {
       return false;
     }
@@ -179,6 +153,14 @@ export class ApiPrincipal {
 
   cambiarPassword(payload: CambiarPasswordRequestApi): Observable<string> {
     return this.postAuth<string>(`/auth/cambiar-password`, payload);
+  }
+
+  // ==========================================================================
+  // ASISTENTE IA (/ia/chat): FastAPI → Open WebUI ("consultas-asistente" + base de conocimiento)
+  // ==========================================================================
+
+  chatIA(mensajes: { role: 'user' | 'assistant'; content: string }[]): Observable<{ respuesta: string }> {
+    return this.postAuth<{ respuesta: string }>(`/ia/chat`, { mensajes });
   }
 
   // ==========================================================================

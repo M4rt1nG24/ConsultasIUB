@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Auth, RolUsuario } from '../../../core/services/auth';
 import { ApiPrincipal } from '../../../core/services/api-principal';
 
@@ -21,6 +21,12 @@ export class Login {
   correo: string = '';
   password: string = '';
   errorMensaje = signal<string>('');
+  /** Aviso cuando el interceptor/guards cierran la sesión por token vencido o inválido. */
+  avisoSesion = signal<string>(
+    inject(ActivatedRoute).snapshot.queryParamMap.get('sesion') === 'expirada'
+      ? 'Tu sesión expiró o no es válida. Inicia sesión nuevamente.'
+      : ''
+  );
 
   modalRecuperarAbierto = signal<boolean>(false);
   correoRecuperacion = signal<string>('');
@@ -67,6 +73,7 @@ export class Login {
           return;
         }
         this.errorMensaje.set('');
+        this.avisoSesion.set('');
         this.router.navigateByUrl(resultadoApi.rutaRedireccion || '/login');
       });
   }

@@ -1,33 +1,36 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { Auth, RolUsuario } from '../services/auth';
+import { escribirStorage, leerStorage } from '../utils/comun';
 
-export const roleGuard: CanActivateFn = (route, state) => {
+/**
+ * Valida que el JWT esté vigente y que el rol del módulo solicitado coincida con el
+ * rol que viene DENTRO del token (no con el valor editable de localStorage).
+ * La autorización definitiva la hace el backend en cada endpoint; esto evita que la
+ * interfaz de otro rol se muestre a quien no corresponde.
+ */
+export const roleGuard: CanActivateFn = (route) => {
   const authService = inject(Auth);
   const router = inject(Router);
 
-  // Si no hay un token JWT activo o ya expiró (30 min), redirigir a /login para evitar errores 401
-  if (!authService.esTokenValido()) {
+  // Token ausente, malformado o vencido → cerrar sesión y volver al login.
+  const rolToken = authService.esTokenValido() ? authService.rolDesdeToken() : null;
+  if (!rolToken) {
+    const habiaSesion = !!authService.tokenJWT();
     authService.cerrarSesion();
-    return router.createUrlTree(['/login']);
+    return router.createUrlTree(['/login'], habiaSesion ? { queryParams: { sesion: 'expirada' } } : undefined);
   }
+
+  // Mantener sincronizado el rol de la interfaz con el del token.
+  if (leerStorage('rolActivo') !== rolToken) {
+    escribirStorage('rolActivo', rolToken);
+  }
+  authService.rolActivo.set(rolToken);
 
   const rolEsperado = route.data?.['role'] as RolUsuario | undefined;
-  const rolGuardado =
-    typeof localStorage !== 'undefined'
-      ? (localStorage.getItem('rolActivo') as RolUsuario | null)
-      : null;
-
-  // Si hay un rol guardado en sesión, validamos que coincida con el módulo solicitado
-  if (rolGuardado && rolEsperado && rolGuardado !== rolEsperado) {
-    const rutaPermitida = authService.obtenerRutaInicialPorRol(rolGuardado);
-    return router.createUrlTree([rutaPermitida]);
-  }
-
-  if (rolEsperado) {
-    authService.rolActivo.set(rolGuardado || rolEsperado);
+  if (rolEsperado && rolToken !== rolEsperado) {
+    return router.createUrlTree([authService.obtenerRutaInicialPorRol(rolToken)]);
   }
 
   return true;
 };
-

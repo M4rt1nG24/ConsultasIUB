@@ -6,11 +6,19 @@
   <title>ConsultasIub - MiTutoría IUB</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <!-- Calentar la conexión con los CDN para cargar antes los estilos y scripts -->
+  <link rel="preconnect" href="https://cdn.datatables.net" crossorigin>
+  <link rel="preconnect" href="https://code.jquery.com" crossorigin>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <!-- Librería oficial DataTables CSS y JS -->
-  <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css">
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css"
+    integrity="sha384-bK2L0Q3Sn2fB8YZTIjKejpTUJXd8xNtKn4RcIm7KM3EX3orMlOI31hwtNH0iyky/" crossorigin="anonymous">
+  <!-- integrity (SRI): el navegador rechaza el archivo si el CDN lo modifica. defer: no bloquea el primer pintado. -->
+  <script defer src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"
+    integrity="sha384-MgwUq0TVErv5Lkj/jIAgQpC+iUIqwhwXxJMfrZQVAOhr++1MR02yXH8aXdPc3fk0" crossorigin="anonymous"></script>
 </head>
 
 <body>
