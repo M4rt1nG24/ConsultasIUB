@@ -92,6 +92,11 @@ export const routes: Routes = [
               import('./features/administrador/gestion-programas/gestion-programas')
                 .then(m => m.GestionProgramas)
           },
+          {
+            path: 'chat',
+            loadComponent: () =>
+              import('./features/chat/chat').then(m => m.Chat)
+          },
           // Si entra solo a "/admin", lo lleva a "/admin/reportes"
           { path: '', redirectTo: 'reportes', pathMatch: 'full' }
         ]
@@ -135,6 +140,11 @@ export const routes: Routes = [
               import('./features/docente/disponibilidad-docente/disponibilidad-docente')
                 .then(m => m.DisponibilidadDocente)
           },
+          {
+            path: 'chat',
+            loadComponent: () =>
+              import('./features/chat/chat').then(m => m.Chat)
+          },
           // Si entra solo a "/docente", lo lleva a "/docente/asignadas"
           { path: '', redirectTo: 'asignadas', pathMatch: 'full' }
         ]
@@ -174,6 +184,11 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/estudiante/directorio-tutorias/directorio-tutorias')
                 .then(m => m.DirectorioTutorias)
+          },
+          {
+            path: 'chat',
+            loadComponent: () =>
+              import('./features/chat/chat').then(m => m.Chat)
           }
 
 

@@ -35,6 +35,11 @@ export class ModalReporteConsultas {
   soloCompletadas = signal<boolean>(false);
   formatoExportacion = signal<'xlsx' | 'csv'>('xlsx');
 
+  // Filtros adicionales por Categoría, Dependencia y Estado
+  filtroDependencia = signal<string>('TODAS');
+  filtroCategoria = signal<string>('TODAS');
+  filtroEstado = signal<string>('TODOS');
+
   // Filtro de docentes para Administrador
   seleccionDocentesModo = signal<'TODOS' | 'ESPECIFICOS'>('TODOS');
   busquedaDocente = signal<string>('');
@@ -42,6 +47,28 @@ export class ModalReporteConsultas {
 
   readonly aniosDisponibles = [2025, 2026, 2027];
   readonly meses = this.reporteService.MESES;
+
+  dependenciasDisponibles = computed(() => {
+    const set = new Set<string>();
+    for (const c of this.dataService.consultas()) {
+      if (c.nombrePrograma) set.add(c.nombrePrograma);
+    }
+    for (const u of this.dataService.usuarios()) {
+      if (u.programa) set.add(u.programa);
+    }
+    return ['TODAS', ...Array.from(set).sort()];
+  });
+
+  categoriasDisponibles = computed(() => {
+    const set = new Set<string>();
+    for (const c of this.dataService.cursos()) {
+      if (c.asignatura) set.add(c.asignatura);
+    }
+    for (const q of this.dataService.consultas()) {
+      if (q.asignatura) set.add(q.asignatura);
+    }
+    return ['TODAS', ...Array.from(set).sort()];
+  });
 
   docentesLista = computed(() => {
     return this.dataService
@@ -83,8 +110,31 @@ export class ModalReporteConsultas {
   });
 
   consultasEnLapso = computed(() => {
-    const todas = this.dataService.consultas();
-    return this.reporteService.filtrarConsultas(todas, this.configuracionActual());
+    let todas = this.reporteService.filtrarConsultas(this.dataService.consultas(), this.configuracionActual());
+
+    // Filtro por Dependencia / Programa
+    const dep = this.filtroDependencia();
+    if (dep && dep !== 'TODAS') {
+      todas = todas.filter(c => (c.nombrePrograma || '').toLowerCase() === dep.toLowerCase());
+    }
+
+    // Filtro por Categoría / Asignatura
+    const cat = this.filtroCategoria();
+    if (cat && cat !== 'TODAS') {
+      todas = todas.filter(c => (c.asignatura || '').toLowerCase() === cat.toLowerCase());
+    }
+
+    // Filtro por Estado de Consulta
+    const est = this.filtroEstado();
+    if (est && est !== 'TODOS') {
+      if (est === 'COMPLETADAS') {
+        todas = todas.filter(c => c.estado === 'Completada' || c.estado === 'Resuelta' || c.asistencia === 1);
+      } else if (est === 'PENDIENTES') {
+        todas = todas.filter(c => c.estado === 'Pendiente' || c.estado === 'Programada' || c.estado === 'En proceso');
+      }
+    }
+
+    return todas;
   });
 
   docentesReporte = computed<DocenteReporteData[]>(() => {

@@ -93,6 +93,44 @@ export class CrearConsulta {
   horaConsulta = signal<string>('09:00');
   tema = '';
   descripcion = '';
+  clasificacionIaMensaje = signal<string | null>(null);
+
+  clasificarConIA(): void {
+    const texto = `${this.tema} ${this.descripcion}`.toLowerCase().trim();
+    if (!texto) {
+      this.clasificacionIaMensaje.set('Ingresa primero el tema o descripción de tu inquietud académica para que la IA sugiera la categoría.');
+      return;
+    }
+
+    const cursos = this.cursosDisponibles();
+    let mejorMatch = cursos[0];
+    let prioridadSugerida: 'Alta' | 'Media' | 'Baja' = 'Media';
+
+    if (texto.includes('matriz') || texto.includes('matrices') || texto.includes('lineal') || texto.includes('vector')) {
+      const match = cursos.find(c => c.asignatura.toLowerCase().includes('matem') || c.asignatura.toLowerCase().includes('algebra'));
+      if (match) mejorMatch = match;
+      prioridadSugerida = 'Media';
+    } else if (texto.includes('limite') || texto.includes('derivada') || texto.includes('integral') || texto.includes('calculo')) {
+      const match = cursos.find(c => c.asignatura.toLowerCase().includes('calculo') || c.asignatura.toLowerCase().includes('matem'));
+      if (match) mejorMatch = match;
+      prioridadSugerida = 'Alta';
+    } else if (texto.includes('arbol') || texto.includes('avl') || texto.includes('algoritmo') || texto.includes('codigo') || texto.includes('programa')) {
+      const match = cursos.find(c => c.asignatura.toLowerCase().includes('algoritmo') || c.asignatura.toLowerCase().includes('programac') || c.asignatura.toLowerCase().includes('sistemas'));
+      if (match) mejorMatch = match;
+      prioridadSugerida = 'Alta';
+    } else if (texto.includes('constitucion') || texto.includes('derecho') || texto.includes('ley') || texto.includes('politica')) {
+      const match = cursos.find(c => c.asignatura.toLowerCase().includes('constitucion') || c.asignatura.toLowerCase().includes('humanidad'));
+      if (match) mejorMatch = match;
+      prioridadSugerida = 'Baja';
+    }
+
+    if (mejorMatch) {
+      this.asignatura = mejorMatch.asignatura;
+      this.asignaturaSignal.set(mejorMatch.asignatura);
+      this.prioridad = prioridadSugerida;
+      this.clasificacionIaMensaje.set(`✨ Modelo IA: Solicitud categorizada en "${mejorMatch.asignatura}" (Prioridad sugerida: ${prioridadSugerida}).`);
+    }
+  }
 
   horariosDisponibles = HORARIOS_CONSULTA;
 

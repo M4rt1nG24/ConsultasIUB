@@ -124,6 +124,8 @@ export class Auth {
         agregarItem('Gestión de Sedes', '/admin/sedes', '🏢', 6);
         agregarItem('Salones de Sedes', '/admin/salones', '🏫', 7);
       }
+      // Módulo de Chat en Tiempo Real (WebSocket)
+      agregarItem('Chat en Vivo', '/admin/chat', '💬', 8);
     } else if (rol === 'DOCENTE') {
       if (
         codigosActivos.has('ATENCION_SOLICITUDES') ||
@@ -141,6 +143,8 @@ export class Auth {
       if (codigosActivos.has('DISPONIBILIDAD_DOCENTE') || rutasActivas.has('/disponibilidad-docente') || rutasActivas.has('/docente/disponibilidad')) {
         agregarItem('Mi Disponibilidad', '/docente/disponibilidad', '🕒', 5);
       }
+      // Módulo de Chat en Tiempo Real (WebSocket)
+      agregarItem('Chat en Vivo', '/docente/chat', '💬', 6);
     } else if (rol === 'ESTUDIANTE') {
       if (
         codigosActivos.has('MIS_SOLICITUDES') ||
@@ -162,6 +166,8 @@ export class Auth {
       if (codigosActivos.has('PERFIL') || rutasActivas.has('/perfil') || rutasActivas.has('/estudiante/directorio-tutorias')) {
         agregarItem('Directorio de Tutorías', '/estudiante/directorio-tutorias', '📖', 4);
       }
+      // Módulo de Chat en Tiempo Real (WebSocket)
+      agregarItem('Chat en Vivo', '/estudiante/chat', '💬', 5);
     }
 
     // Incluir cualquier módulo personalizado creado en modulos_sistema con ruta directa del rol

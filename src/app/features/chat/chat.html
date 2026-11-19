@@ -1,0 +1,379 @@
+<div class="chat-container">
+
+  <!-- ========================================================================= -->
+  <!-- BARRA LATERAL IZQUIERDA: LISTA DE CHATS Y USUARIOS CONECTADOS             -->
+  <!-- ========================================================================= -->
+  <aside class="chat-sidebar">
+
+    <!-- Buscador Superior -->
+    <div class="chat-search-box">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        [(ngModel)]="busqueda"
+        placeholder="¿Qué estás buscando?..."
+        class="search-input"
+      />
+      @if (busqueda) {
+        <button type="button" class="clear-search-btn" (click)="busqueda = ''">✕</button>
+      }
+    </div>
+
+    <!-- Pestañas de Filtro (Todos / Canales / En línea) -->
+    <div class="chat-filter-tabs">
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="filtroActivo() === 'todos'"
+        (click)="filtroActivo.set('todos')"
+      >
+        Todos
+      </button>
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="filtroActivo() === 'canales'"
+        (click)="filtroActivo.set('canales')"
+      >
+        Salas ({{ canales().length }})
+      </button>
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="filtroActivo() === 'usuarios'"
+        (click)="filtroActivo.set('usuarios')"
+      >
+        En Línea ({{ usuariosOnline().length }})
+      </button>
+    </div>
+
+    <!-- Lista de Conversaciones -->
+    <div class="chat-list-scroll">
+
+      <!-- SECCIÓN: CANALES Y SALAS INSTITUCIONALES -->
+      @if (filtroActivo() !== 'usuarios') {
+        <div class="chat-section-label">SALAS DE CONSULTAS</div>
+        @for (canal of canalesFiltrados(); track canal.id) {
+          <div
+            class="chat-item"
+            [class.active]="canal.id === canalActivo().id"
+            (click)="seleccionarCanal(canal)"
+          >
+            <div class="chat-avatar-wrapper">
+              <div class="chat-avatar channel-avatar">
+                {{ canal.icono || '💬' }}
+              </div>
+              <span class="status-indicator online"></span>
+            </div>
+
+            <div class="chat-item-info">
+              <div class="chat-item-header">
+                <span class="chat-item-name">{{ canal.nombre }}</span>
+                <span class="chat-item-time">{{ canal.ultimaHora || 'Ahora' }}</span>
+              </div>
+              <div class="chat-item-sub">
+                <span class="chat-snippet">{{ canal.ultimoMensaje || canal.descripcion }}</span>
+                @if (canal.mensajesNoLeidos > 0) {
+                  <span class="unread-badge">{{ canal.mensajesNoLeidos }}</span>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- SECCIÓN: USUARIOS CONECTADOS EN TIEMPO REAL -->
+      @if (filtroActivo() !== 'canales') {
+        <div class="chat-section-label">
+          USUARIOS ACTIVOS ({{ usuariosOnline().length + 1 }})
+        </div>
+
+        <!-- Usuario Actual (Tú) -->
+        <div class="chat-item current-user-item">
+          <div class="chat-avatar-wrapper">
+            <div class="chat-avatar my-avatar">
+              {{ usuarioActual().avatar }}
+            </div>
+            <span class="status-indicator online"></span>
+          </div>
+          <div class="chat-item-info">
+            <div class="chat-item-header">
+              <span class="chat-item-name">{{ usuarioActual().nombre }} (Tú)</span>
+              <span class="role-pill" [attr.data-role]="usuarioActual().rol">{{ usuarioActual().rol }}</span>
+            </div>
+            <div class="chat-item-sub">
+              <span class="chat-snippet text-success">● Sesión activa</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Otros usuarios conectados en vivo -->
+        @for (usr of usuariosFiltrados(); track usr.id) {
+          <div
+            class="chat-item user-item"
+            (click)="abrirChatPrivado(usr)"
+          >
+            <div class="chat-avatar-wrapper">
+              <div class="chat-avatar">
+                {{ usr.avatar || '👤' }}
+              </div>
+              <span class="status-indicator online"></span>
+            </div>
+
+            <div class="chat-item-info">
+              <div class="chat-item-header">
+                <span class="chat-item-name">{{ usr.nombre }}</span>
+                <span class="role-pill" [attr.data-role]="usr.rol">{{ usr.rol }}</span>
+              </div>
+              <div class="chat-item-sub">
+                <span class="chat-snippet">{{ usr.correo }}</span>
+                <span class="chat-action-btn">Chatear 💬</span>
+              </div>
+            </div>
+          </div>
+        }
+
+        @if (usuariosOnline().length === 0) {
+          <div class="empty-users-hint">
+            <p>💡 <em>Abre el sistema en otra pestaña o ventana para simular otro usuario y ver la comunicación en tiempo real.</em></p>
+          </div>
+        }
+      }
+
+    </div>
+
+    <!-- Pie de Barra Lateral: Estado de Conexión -->
+    <div class="chat-sidebar-footer">
+      <div class="ws-status-bar" [class.connected]="estadoConexion().conectado">
+        <span class="ws-dot"></span>
+        <div class="ws-info">
+          <span class="ws-label">
+            {{ estadoConexion().conectado ? 'WebSocket Conectado' : 'Modo Sincronización Local' }}
+          </span>
+          <span class="ws-sub">
+            {{ estadoConexion().usuariosConectados }} usuario(s) conectado(s)
+          </span>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="config-ws-btn"
+        (click)="abrirModalConfig()"
+        title="Configurar endpoint WebSocket"
+      >
+        ⚙️
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- ÁREA PRINCIPAL DERECHA: CONVERSACIÓN Y FORMULARIO DE ENVÍO                -->
+  <!-- ========================================================================= -->
+  <main class="chat-main">
+
+    <!-- Encabezado de la Conversación Activa -->
+    <header class="chat-header">
+      <div class="chat-header-info">
+        <div class="chat-avatar-wrapper">
+          <div class="chat-avatar header-avatar">
+            {{ canalActivo().icono || '💬' }}
+          </div>
+          <span class="status-indicator online"></span>
+        </div>
+        <div>
+          <h2 class="chat-header-title">{{ canalActivo().nombre }}</h2>
+          <div class="chat-header-status">
+            <span class="status-text">
+              🟢 En línea • {{ estadoConexion().usuariosConectados }} conectado(s)
+            </span>
+            @if (canalActivo().descripcion) {
+              <span class="header-desc-separator">•</span>
+              <span class="header-desc">{{ canalActivo().descripcion }}</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-header-actions">
+        <button
+          type="button"
+          class="action-btn"
+          (click)="reconectar()"
+          title="Reconectar WebSocket"
+        >
+          🔄 <span class="btn-text">Reconectar</span>
+        </button>
+        <button
+          type="button"
+          class="action-btn"
+          (click)="limpiarHistorial()"
+          title="Limpiar mensajes"
+        >
+          🗑️ <span class="btn-text">Limpiar</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Área de Mensajes (Scrollable) -->
+    <div class="chat-messages" #scrollMensajes>
+
+      <!-- Mensaje Inicial / Aviso de Protocolo -->
+      <div class="chat-protocol-banner">
+        <span>⚡ <strong>WebSocket en Tiempo Real:</strong> Los mensajes se distribuyen instantáneamente entre todos los usuarios conectados sin recargar la página.</span>
+      </div>
+
+      @for (msg of mensajes(); track msg.id) {
+
+        @if (msg.tipo === 'sistema') {
+          <!-- Mensaje de Evento del Sistema (Conexión / Desconexión) -->
+          <div class="chat-msg-system">
+            <span class="system-chip">{{ msg.contenido }}</span>
+          </div>
+        } @else {
+          <!-- Mensaje de Usuario (Propio o de Tercero) -->
+          <div
+            class="chat-msg-row"
+            [class.msg-mine]="msg.esMio"
+            [class.msg-other]="!msg.esMio"
+          >
+            <!-- Avatar si es mensaje de otro usuario -->
+            @if (!msg.esMio) {
+              <div class="msg-avatar" [attr.data-role]="msg.remitenteRol">
+                {{ msg.remitenteAvatar || '👤' }}
+              </div>
+            }
+
+            <div class="msg-bubble-container">
+              <!-- Nombre y rol del remitente si es de otro -->
+              @if (!msg.esMio) {
+                <div class="msg-sender-info">
+                  <span class="sender-name">{{ msg.remitenteNombre }}</span>
+                  <span class="sender-role" [attr.data-role]="msg.remitenteRol">
+                    {{ msg.remitenteRol }}
+                  </span>
+                </div>
+              }
+
+              <!-- Burbuja de contenido -->
+              <div class="msg-bubble">
+                <p class="msg-text">{{ msg.contenido }}</p>
+                <div class="msg-meta">
+                  <span class="msg-time">{{ msg.fechaHora }}</span>
+                  @if (msg.esMio) {
+                    <span class="msg-checks" title="Enviado en tiempo real">✓✓</span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Avatar si es propio -->
+            @if (msg.esMio) {
+              <div class="msg-avatar my-bubble-avatar">
+                {{ usuarioActual().avatar }}
+              </div>
+            }
+          </div>
+        }
+
+      }
+
+      @if (mensajes().length === 0) {
+        <div class="empty-conversation">
+          <div class="empty-icon">💬</div>
+          <h3>¡Inicia la conversación!</h3>
+          <p>Escribe tu primer mensaje abajo para probar la transmisión en tiempo real.</p>
+        </div>
+      }
+
+    </div>
+
+    <!-- Formulario Inferior de Envío de Mensajes -->
+    <form class="chat-input-container" (ngSubmit)="enviar()">
+      <div class="chat-input-bar">
+        <input
+          #inputMensaje
+          type="text"
+          name="mensajeTexto"
+          [(ngModel)]="mensajeTexto"
+          placeholder="Escribe tu mensaje aquí..."
+          class="chat-text-input"
+          autocomplete="off"
+        />
+
+        <div class="input-actions">
+          <button
+            type="submit"
+            class="send-btn"
+            [disabled]="!mensajeTexto.trim()"
+            title="Enviar mensaje (Enter)"
+          >
+            <span class="send-icon">➤</span>
+          </button>
+        </div>
+      </div>
+    </form>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: CONFIGURACIÓN DE ENDPOINT WEBSOCKET                                 -->
+  <!-- ========================================================================= -->
+  @if (mostrarConfig()) {
+    <div class="config-modal-backdrop" (click)="cancelarConfig()">
+      <div class="config-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>⚙️ Configuración del Servidor WebSocket</h3>
+          <button type="button" class="close-modal-btn" (click)="cancelarConfig()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-desc">
+            Define la dirección del servidor WebSocket para la comunicación en tiempo real (FastAPI en Python o Node.js):
+          </p>
+
+          <label class="modal-label" for="wsUrlInput">URL del WebSocket:</label>
+          <input
+            id="wsUrlInput"
+            type="text"
+            [(ngModel)]="urlTemporal"
+            class="modal-input"
+            placeholder="ws://localhost:8000/ws"
+          />
+
+          <div class="url-presets">
+            <span class="preset-title">Accesos rápidos:</span>
+            <button
+              type="button"
+              class="preset-chip"
+              (click)="urlTemporal = 'ws://localhost:8000/ws'"
+            >
+              FastAPI (ws://localhost:8000/ws)
+            </button>
+            <button
+              type="button"
+              class="preset-chip"
+              (click)="urlTemporal = 'ws://localhost:3000/ws'"
+            >
+              Node API (ws://localhost:3000/ws)
+            </button>
+          </div>
+
+          <div class="modal-note">
+            ℹ️ Si el servidor externo no está corriendo, el sistema utiliza <strong>BroadcastChannel</strong> para sincronizar instantáneamente entre pestañas y navegadores en tu equipo.
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancelar" (click)="cancelarConfig()">
+            Cancelar
+          </button>
+          <button type="button" class="btn-guardar" (click)="guardarConfig()">
+            Guardar y Reconectar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

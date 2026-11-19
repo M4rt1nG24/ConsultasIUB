@@ -99,16 +99,28 @@
                     required />
             </div>
 
-            <!-- Observaciones y Compromisos -->
+            <!-- Observaciones y Compromisos con Asistencia IA -->
             <div class="input-block">
-                <label for="obs">Observaciones, Retroalimentación y Compromisos Académicos *</label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+                    <label for="obs" style="margin: 0;">Observaciones, Retroalimentación y Compromisos Académicos *</label>
+                    <button
+                        type="button"
+                        (click)="sugerirRespuestaOrientativaIA()"
+                        [disabled]="cargandoSugerenciaIA()"
+                        style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                        <span>🤖 {{ cargandoSugerenciaIA() ? 'Generando propuesta...' : 'Sugerir Respuesta Orientativa con IA' }}</span>
+                    </button>
+                </div>
                 <textarea
                     id="obs"
                     rows="5"
                     class="form-control"
                     [(ngModel)]="observaciones"
                     name="obs"
-                    placeholder="Detalle la retroalimentación y los compromisos pactados con el estudiante..."></textarea>
+                    placeholder="Detalle la retroalimentación y los compromisos pactados con el estudiante (puedes usar el botón de IA para obtener una propuesta orientativa y modificarla a criterio)..."></textarea>
+                <small *ngIf="mensajeIaAplicado()" style="color: #0284c7; font-size: 11px; margin-top: 4px; display: block;">
+                    ✨ Propuesta orientativa generada por IA. Puedes aceptarla o modificarla libremente antes de finalizar el registro.
+                </small>
             </div>
 
             <!-- Checkbox de Auditoría -->

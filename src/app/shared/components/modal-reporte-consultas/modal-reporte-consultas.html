@@ -142,24 +142,42 @@
             </div>
             }
 
-            <!-- Paso 3: Filtro de Estado y Formato -->
+            <!-- Paso 3: Filtro por Categoría, Dependencia, Estado y Formato -->
             <div class="section-block">
-                <label class="section-title">{{ rol === 'ADMIN' ? '3' : '2' }}. Filtros de Consulta y Formato de Salida</label>
+                <label class="section-title">{{ rol === 'ADMIN' ? '3' : '2' }}. Filtros por Categoría, Dependencia, Estado y Formato</label>
                 
-                <div class="opciones-filtros-grid">
-                    <div class="checkbox-option">
-                        <label class="checkbox-styled">
-                            <input type="checkbox" [ngModel]="soloCompletadas()" (ngModelChange)="soloCompletadas.set($event)" />
-                            <span class="checkmark"></span>
-                            <span class="label-text">
-                                <strong>Solo consultas completadas / atendidas</strong>
-                                <small class="d-block text-muted">Excluir consultas en proceso o canceladas</small>
-                            </span>
-                        </label>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600; color: #334155; display: block; margin-bottom: 4px;">🏛️ Dependencia / Programa:</label>
+                        <select class="form-select" [ngModel]="filtroDependencia()" (ngModelChange)="filtroDependencia.set($event)">
+                            @for (dep of dependenciasDisponibles(); track dep) {
+                            <option [value]="dep">{{ dep === 'TODAS' ? 'Todos los Programas' : dep }}</option>
+                            }
+                        </select>
                     </div>
 
-                    <div class="format-choice-box">
-                        <label>Formato de Descarga:</label>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600; color: #334155; display: block; margin-bottom: 4px;">📚 Categoría / Asignatura:</label>
+                        <select class="form-select" [ngModel]="filtroCategoria()" (ngModelChange)="filtroCategoria.set($event)">
+                            @for (cat of categoriasDisponibles(); track cat) {
+                            <option [value]="cat">{{ cat === 'TODAS' ? 'Todas las Categorías' : cat }}</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600; color: #334155; display: block; margin-bottom: 4px;">📌 Estado de Solicitud:</label>
+                        <select class="form-select" [ngModel]="filtroEstado()" (ngModelChange)="filtroEstado.set($event)">
+                            <option value="TODOS">Todos los Estados</option>
+                            <option value="COMPLETADAS">Solo Atendidas / Completadas</option>
+                            <option value="PENDIENTES">Solo Pendientes / En Proceso</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="opciones-filtros-grid">
+                    <div class="format-choice-box" style="grid-column: 1 / -1;">
+                        <label>Formato Oficial de Exportación (Calidad Institucional):</label>
                         <div class="format-radios">
                             <label class="format-pill" [class.active]="formatoExportacion() === 'xlsx'">
                                 <input type="radio" name="formato" value="xlsx" [ngModel]="formatoExportacion()" (ngModelChange)="formatoExportacion.set($event)" />
@@ -167,7 +185,7 @@
                             </label>
                             <label class="format-pill" [class.active]="formatoExportacion() === 'csv'">
                                 <input type="radio" name="formato" value="csv" [ngModel]="formatoExportacion()" (ngModelChange)="formatoExportacion.set($event)" />
-                                <span>📄 CSV Delimitado por Comas (.csv)</span>
+                                <span>📄 CSV Delimitado (.csv)</span>
                             </label>
                         </div>
                     </div>
@@ -200,7 +218,7 @@
                 Cancelar
             </button>
             <button type="button" class="btn-download" (click)="descargarReporte()">
-                📥 Descargar Reporte {{ formatoExportacion() === 'xlsx' ? 'Excel Oficial (.xlsx)' : 'CSV (.csv)' }}
+                📥 Generar y Descargar {{ formatoExportacion() === 'xlsx' ? 'Excel Oficial (.xlsx)' : 'CSV (.csv)' }}
             </button>
         </div>
 
